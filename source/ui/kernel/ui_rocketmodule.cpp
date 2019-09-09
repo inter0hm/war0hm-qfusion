@@ -16,6 +16,7 @@
 
 #include <RmlUi/Core/FontEffectInstancer.h>
 #include <RmlUi/Controls.h>
+#include <RmlUi/Debugger/Debugger.h>
 
 namespace WSWUI
 {
@@ -85,8 +86,10 @@ RocketModule::RocketModule( int vidWidth, int vidHeight, float pixelRatio )
 	contextQuick = Rml::Core::CreateContext( contextName + "_quick", Vector2i( vidWidth, vidHeight ) );
 	contextQuick->SetDensityIndependentPixelRatio( pixelRatio );
 
-	contextsTouch[UI_CONTEXT_MAIN].id = -1;
-	contextsTouch[UI_CONTEXT_QUICK].id = -1;
+	memset( hideCursorBits, 0, sizeof( *hideCursorBits ) * UI_NUM_CONTEXTS );
+	memset( contextsTouch, -1, sizeof( *contextsTouch ) * UI_NUM_CONTEXTS );
+
+	Rml::Debugger::Initialise( contextMain );
 }
 
 RocketModule::~RocketModule() {
@@ -162,12 +165,13 @@ void RocketModule::keyEvent( int contextId, int key, bool pressed )
 	else if( key == K_MWHEELUP )
 	{
 		context->ProcessMouseWheel( -1, mod );
-	}
-	else
-	{
-		if( ( key == K_A_BUTTON ) || ( key == K_DPAD_CENTER ) )
-		{
-			if( pressed )
+	} else if( key == K_F11 ) {
+		if( pressed ) {
+			Rml::Debugger::SetVisible( !Rml::Debugger::IsVisible() );
+		}
+	} else {
+		if( ( key == K_A_BUTTON ) || ( key == K_DPAD_CENTER ) ) {
+			if( pressed ) {
 				context->ProcessMouseButtonDown( 0, mod );
 			else
 				context->ProcessMouseButtonUp( 0, mod );
@@ -325,12 +329,17 @@ int RocketModule::GetEventClasses() {
 
 void RocketModule::OnDocumentLoad( Rml::Core::ElementDocument *document ) {
 	ASUI::UI_ScriptDocument *ui_document = dynamic_cast<ASUI::UI_ScriptDocument *>( document );
-	ui_document->BuildScripts();
+	if( ui_document != nullptr ) {
+		ui_document->BuildScripts();
+		ui_document->UpdateDocument();
+	}
 }
 
 void RocketModule::OnDocumentUnload( Rml::Core::ElementDocument *document ) {
 	ASUI::UI_ScriptDocument *ui_document = dynamic_cast<ASUI::UI_ScriptDocument *>( document );
-	ui_document->DestroyScripts();
+	if( ui_document != nullptr ) {
+		ui_document->DestroyScripts();
+	}
 }
 
 //==================================================
