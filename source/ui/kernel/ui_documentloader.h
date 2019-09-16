@@ -58,16 +58,14 @@ namespace WSWUI {
 	void setRocketDocument( Rml::Core::ElementDocument *elem ) { rocketDocument = elem; }
 	Rml::Core::ElementDocument *getRocketDocument() { return rocketDocument; }
 
-		// other rocket wrappers
-		void Show(bool show=true, bool modal=false);
-		void Hide();
-		void Focus();
-		void FocusFirstTabElement();
-		void SetViewed (void) { viewed = true; }
-		bool IsViewed (void) const { return viewed; }
-		bool IsModal(void);
-		NavigationStack *getStack() const { return stack; }
-		void setStack(NavigationStack *stack) { this->stack = stack; }
+	// other rocket wrappers
+	void Show( bool modal = false, bool autofocus = false );
+	void Hide();
+	void SetViewed( void ) { viewed = true; }
+	bool IsViewed( void ) const { return viewed; }
+	bool IsModal( void );
+	NavigationStack *getStack() const { return stack; }
+	void setStack( NavigationStack *s ) { this->stack = s; }
 
 private:
 	// this will also be the name for the asmodule!

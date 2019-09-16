@@ -109,7 +109,7 @@ private:
 			return;
 		}
 
-		framed_document = stack->pushDocument( source.c_str() );
+		framed_document = stack->pushDocument( source.c_str(), false, false );
 		if( !framed_document ) {
 			return;
 		}

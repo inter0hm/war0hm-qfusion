@@ -227,20 +227,8 @@ Document *NavigationStack::pushDocument(const std::string &name, bool modal, boo
 
 	attachMainEventListenerToTop( top );
 
-	// show doc, do stuff.. install eventlisteners?
 	if( show ) {
 		showStack( true );
-	}
-
-	// now check whether we're still on top of stack after the 'show' event
-	// as we could have been popped off the stack
-	if( doc == documentStack.back() ) {
-		doc->FocusFirstTabElement();
-
-		if( UI_Main::Get()->debugOn() ) {
-			Com_Printf( "NavigationStack::pushDocument returning %s\n",
-						documentRealname.c_str() );
-		}
 	}
 
 	return doc;
@@ -426,10 +414,10 @@ std::string NavigationStack::getFullpath( const std::string &name )
 }
 
 // TEMP TEMP
-void NavigationStack::showStack(bool show)
-{
-	if( documentStack.empty() )
-		return;		// Warn?
+void NavigationStack::showStack( bool autofocus ) {
+	if( documentStack.empty() ) {
+		return;
+	}
 
 #if 0
 	if( modalTop )
@@ -443,13 +431,15 @@ void NavigationStack::showStack(bool show)
 	}
 #endif
 
-	documentStack.back()->Show( show, modalTop );
+	documentStack.back()->Show( modalTop, autofocus );
 }
 
 // TEMP TEMP
-void NavigationStack::hideStack()
-{
-	showStack(false);
+void NavigationStack::hideStack() {
+	if( documentStack.empty() ) {
+		return;
+	}
+	documentStack.back()->Hide();
 }
 
 // DEBUG

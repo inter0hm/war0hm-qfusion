@@ -89,11 +89,9 @@ namespace WSWUI {
 		void setDefaultPath( const std::string &path );
 		const std::string &getDefaultPath( void );
 
-		// this is here for testing, in the future use proper mechanics outside
-		// that will push/pop the stack when the UI is hidden
-		void showStack(bool show=true);
-		void hideStack();
-		size_t getStackSize(void) const;
+	void showStack( bool autofocus = false );
+	void hideStack();
+	size_t getStackSize( void ) const;
 
 		void invalidateAssets(void);
 		int getContextId(void) const { return cache.getContextId(); };
