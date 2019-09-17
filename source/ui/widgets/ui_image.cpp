@@ -221,14 +221,9 @@ bool ElementImage::LoadCachedTexture()
  	geometry_dirty = true;
 
 	URL image_url( image_source );
-	bool res = texture.Load( image_url.GetHost() + "/" + image_url.GetPathedFileName() );
+	texture.Set( image_url.GetHost() + "/" + image_url.GetPathedFileName() );
 
 	SetPseudoClass( "loading", false );
-
-	if( !res ) {
-		geometry.SetTexture( NULL );
-		return false;
-	}
 
 	// Set the texture onto our geometry object.
 	geometry.SetTexture( &texture );
@@ -252,11 +247,7 @@ bool ElementImage::LoadDiskTexture()
 	Rml::Core::ElementDocument* document = GetOwnerDocument();
 	URL source_url( document == NULL ? "" : document->GetSourceURL() );
 
-	if (!texture.Load(image_source, source_url.GetPath()))
-	{
-		geometry.SetTexture(NULL);
-		return false;
-	}
+	texture.Set( image_source, source_url.GetPath() );
 
 	// Set the texture onto our geometry object.
 	geometry.SetTexture(&texture);
