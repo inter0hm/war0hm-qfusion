@@ -563,6 +563,9 @@ void CG_AddLinearTrail( centity_t *cent, float lifetime )
 	if( cg_playerTrailsColor->string != NULL && sscanf( cg_playerTrailsColor->string, "%f %f %f", &r, &g, &b ) == 3 ) {
 		if( r < 0.0f )
 			r = 0.0f;
+		clamp( r, 0.0f, 1.0f );
+		clamp( g, 0.0f, 1.0f );
+		clamp( b, 0.0f, 1.0f );
 		if( r > 1.0f )
 			r = 1.0f;
 		if( g < 0.0f )
