@@ -550,6 +550,11 @@ static void CG_ClearParticles( void )
 	( p )->fog = true \
 	)
 
+/*
+* CG_AddLinearTrail
+* 
+* Spectator only player trails.
+*/
 extern cvar_t *cg_playerTrailsColor;
 
 void CG_AddLinearTrail( centity_t *cent, float lifetime )
