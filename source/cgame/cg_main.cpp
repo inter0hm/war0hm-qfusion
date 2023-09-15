@@ -825,7 +825,7 @@ static void CG_RegisterVariables( void )
 	cg_shadows =		trap_Cvar_Get( "cg_shadows", "1", CVAR_ARCHIVE );
 
 	cg_showPlayerTrails = trap_Cvar_Get( "cg_showPlayerTrails", "0", CVAR_ARCHIVE );
-	cg_playerTrailsColor = trap_Cvar_Get( "cg_playerTrailsColor", "0.0 1.0 0.0", CVAR_ARCHIVE );
+	cg_playerTrailsColor = trap_Cvar_Get( "cg_playerTrailsColor", "0 255 0", CVAR_ARCHIVE );
 
 	cg_laserBeamSubdivisions = trap_Cvar_Get( "cg_laserBeamSubdivisions", "10", CVAR_ARCHIVE );
 	cg_projectileAntilagOffset = trap_Cvar_Get( "cg_projectileAntilagOffset", "1.0", CVAR_ARCHIVE );

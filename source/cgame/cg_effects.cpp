@@ -560,35 +560,24 @@ extern cvar_t *cg_playerTrailsColor;
 void CG_AddLinearTrail( centity_t *cent, float lifetime )
 {
 	cparticle_t *p;
-	float r, g, b;
+	static vec4_t trailColor = { 0, 1.0f, 0, 1.0f };
 
 	if( cg_numparticles + 1 > MAX_PARTICLES )
 		return;
 
-	if( cg_playerTrailsColor->string != NULL && sscanf( cg_playerTrailsColor->string, "%f %f %f", &r, &g, &b ) == 3 ) {
-		if( r < 0.0f )
-			r = 0.0f;
-		clamp( r, 0.0f, 1.0f );
-		clamp( g, 0.0f, 1.0f );
-		clamp( b, 0.0f, 1.0f );
-		if( r > 1.0f )
-			r = 1.0f;
-		if( g < 0.0f )
-			g = 0.0f;
-		if( g > 1.0f )
-			g = 1.0f;
-		if( b < 0.0f )
-			b = 0.0f;
-		if( b > 1.0f )
-			b = 1.0f;
-	} else {
-		r = 0.0f;
-		g = 1.0f;
-		b = 0.0f;
+	if (cg_playerTrailsColor->modified)
+	{
+		int playerColor[3];
+		cg_playerTrailsColor->modified = false;
+		if (sscanf(cg_playerTrailsColor->string, "%3i %3i %3i", &playerColor[0], &playerColor[1], &playerColor[2]) == 3)
+		{
+			Vector4Set( trailColor, clamp( playerColor[0], 0, 255 ) * ( 1.0f / 255.0f ), clamp( playerColor[1], 0, 255 ) * ( 1.0f / 255.0f ), clamp( playerColor[2], 0, 255 ) * ( 1.0f / 255.0f ),
+						1.0f );
+		}
 	}
 
 	p = &particles[cg_numparticles++];
-	CG_InitParticle( p, 1.0f, 1.0f, r, g, b, NULL );
+	CG_InitParticle( p, 1.0f, trailColor[3], trailColor[0], trailColor[1], trailColor[2], NULL );
 	VectorCopy( cent->ent.origin, p->org );
 	p->alphavel = -( 1.0f / lifetime );
 }	
