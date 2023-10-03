@@ -70,6 +70,13 @@ msgstr "<0-2> Filters chat messages.\n"
 "^6Filters team chat messages: cg_chatFilter \"2\""
 
 #. Console/cg
+msgid "cg_chatFilterHateSpeech"
+msgstr "<0-2> Filters chat messages containing hate speech.\n"
+"^6Display all messages: cg_chatFilterHateSpeech \"0\"\n"
+"^6Filters messages for hate speech, but stills prints the message to console: cg_chatFilterHateSpeech \"1\"\n"
+"^6Filters messages for hate speech, but doesn\"t print the message to console: cg_chatFilterHateSpeech \"2\""
+
+#. Console/cg
 msgid "cg_chatFilterTV"
 msgstr "<0-4> Filters Warfork TV chat messages.\n"
 "^6Display all Messages: cg_chatFilterTV \"0\"\n"
