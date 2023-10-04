@@ -930,7 +930,8 @@ extern cvar_t *cg_raceGhosts;
 extern cvar_t *cg_raceGhostsAlpha;
 extern cvar_t *cg_chatBeep;
 extern cvar_t *cg_chatFilter;
-extern cvar_t *cg_chatFilterHateSpeech;
+extern cvar_t *cg_chatFilterProfanity;
+extern cvar_t *cg_chatFilterProfanityList;
 extern cvar_t *cg_chatFilterTV;
 
 //force models

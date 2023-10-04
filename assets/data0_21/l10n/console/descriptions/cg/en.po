@@ -70,11 +70,16 @@ msgstr "<0-2> Filters chat messages.\n"
 "^6Filters team chat messages: cg_chatFilter \"2\""
 
 #. Console/cg
-msgid "cg_chatFilterHateSpeech"
-msgstr "<0-2> Filters chat messages containing hate speech.\n"
-"^6Display all messages: cg_chatFilterHateSpeech \"0\"\n"
-"^6Filters messages for hate speech, but stills prints the message to console: cg_chatFilterHateSpeech \"1\"\n"
-"^6Filters messages for hate speech, but doesn\"t print the message to console: cg_chatFilterHateSpeech \"2\""
+msgid "cg_chatFilterProfanity"
+msgstr "<0-2> Filters chat messages containing profanity.\n"
+"^6Display all messages: cg_chatFilterProfanity \"0\"\n"
+"^6Hides the entire message from chat: cg_chatFilterProfanity \"1\"\n"
+"^6Changes the offending profanity to the word "fork": cg_chatFilterProfanity \"2\"\n"
+"^6Note: cg_chatFilterProfanity \"1\" will still show that a message was sent from a specific player, but will indicate that the message was filtered."
+
+#. Console/cg
+msgid "cg_chatFilterProfanityList"
+msgstr "<value> Filters chat messages containing words on this list."
 
 #. Console/cg
 msgid "cg_chatFilterTV"
