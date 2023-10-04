@@ -74,7 +74,7 @@ msgid "cg_chatFilterProfanity"
 msgstr "<0-2> Filters chat messages containing profanity.\n"
 "^6Display all messages: cg_chatFilterProfanity \"0\"\n"
 "^6Hides the entire message from chat: cg_chatFilterProfanity \"1\"\n"
-"^6Changes the offending profanity to the word "fork": cg_chatFilterProfanity \"2\"\n"
+"^6Changes the offending profanity to the word \"fork\": cg_chatFilterProfanity \"2\"\n"
 "^6Note: cg_chatFilterProfanity \"1\" will still show that a message was sent from a specific player, but will indicate that the message was filtered."
 
 #. Console/cg
