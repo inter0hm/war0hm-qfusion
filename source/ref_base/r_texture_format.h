@@ -10,15 +10,17 @@ enum texture_logical_channel_e {
 	R_LOGICAL_C_ALPHA = 3,
 	R_LOGICAL_C_DEPTH = 0,
 	R_LOGICAL_C_STENCIL = 1,
-	R_LOGICAL_C_MAX = 4
-
+	R_LOGICAL_C_LUMINANCE = 0,
+	R_LOGICAL_C_MAX = 6
 };
 
 enum texture_base_format_e {
+	R_BASE_UNKNOWN, 
 	R_BASE_BLOCKED_COMPRESSED,
 	R_BASE_FORMAT_FIXED_8,
 	R_BASE_FORMAT_FIXED_16,
 	R_BASE_FORMAT_FIXED_32,
+  R_BASE_FORMAT_PACKED_16
 };
 
 enum texture_format_e {
@@ -118,22 +120,40 @@ enum texture_format_e {
 	R_FORMAT_ETC2_EAC_R11_SNORM,
 	R_FORMAT_ETC2_EAC_R11G11_UNORM,
 	R_FORMAT_ETC2_EAC_R11G11_SNORM,
+
+	R_TEXTURE_FORMAT_COUNT
 };
 
 struct texture_format_def_fixed_8_s {
-	uint16_t blockByteSize;
 	uint16_t numChannels;
-	enum texture_logical_channel_e channels[16];
+	enum texture_logical_channel_e channels[R_LOGICAL_C_MAX];
   uint32_t normalized: 1;
   uint32_t sign: 1;
   uint32_t srgb: 1;
   uint32_t isInteger: 1;
 };
 
-struct texture_format_fixed_def_16_s {
-	uint16_t blockByteSize;
+struct texture_format_packed_def_16_s {
 	uint16_t numChannels;
-	enum texture_logical_channel_e channels[16];
+	struct {
+		uint32_t offset;
+		uint32_t mask;
+	} bits[R_LOGICAL_C_MAX];
+	enum texture_logical_channel_e channels[R_LOGICAL_C_MAX];
+};
+
+struct texture_format_fixed_def_16_s {
+	uint16_t numChannels;
+	enum texture_logical_channel_e channels[R_LOGICAL_C_MAX];
+  uint32_t normalized: 1;
+  uint32_t sign: 1;
+  uint32_t srgb: 1;
+  uint32_t isInteger: 1;
+};
+
+struct texture_format_fixed_def_32_s {
+	uint16_t numChannels;
+	enum texture_logical_channel_e channels[R_LOGICAL_C_MAX];
   uint32_t normalized: 1;
   uint32_t sign: 1;
   uint32_t srgb: 1;
@@ -153,10 +173,14 @@ struct base_format_def_s {
 		struct texture_format_def_compressed_s compressed;
 		struct texture_format_def_fixed_8_s fixed_8;
 		struct texture_format_fixed_def_16_s fixed_16;
+		struct texture_format_fixed_def_32_s fixed_32;
+	  struct texture_format_packed_def_16_s packed_16; 
 	};
 };
 
-const struct base_format_def_s* R_BaseFormat(enum texture_format_e format);
+const struct base_format_def_s* R_BaseFormatDef(enum texture_format_e format);
+const size_t RT_BlockSize(const struct base_format_def_s* defs);
+
 bool R_FormatIsCompressed(enum texture_format_e format);
 uint32_t R_FormatBlockWidth( enum texture_format_e format );
 uint32_t R_FormatBlockHeight( enum texture_format_e format );

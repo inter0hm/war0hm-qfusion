@@ -1,5 +1,162 @@
 #include "r_texture_format.h"
+#include "../gameshared/q_math.h"
 
+static const struct base_format_def_s baseFormats[] = {
+  [R_FORMAT_ETC1_R8G8B8_OES ] = {
+    .format = R_FORMAT_ETC1_R8G8B8_OES, 
+    .base = R_BASE_BLOCKED_COMPRESSED,
+    .compressed = {
+      .blockByteSize = 8,
+      .blockWidth = 4,
+      .blockHeight = 4
+    },
+  },
+  [R_FORMAT_ETC2_R8G8B8_UNORM ] = {
+    .format = R_FORMAT_ETC2_R8G8B8_UNORM , 
+    .base = R_BASE_BLOCKED_COMPRESSED,
+    .compressed = {
+      .blockByteSize = 8,
+      .blockWidth = 4,
+      .blockHeight = 4
+    },
+  },
+
+  [R_FORMAT_RGB8_UNORM] = {
+    .format = R_FORMAT_RGB8_UNORM, 
+    .base = R_BASE_FORMAT_FIXED_8,
+    .fixed_8 = {
+      //.blockByteSize = 3,
+      .numChannels = 3,
+      .channels = {R_LOGICAL_C_RED, R_LOGICAL_C_GREEN, R_LOGICAL_C_BLUE},
+      .normalized = 1,
+      .sign = 0
+    },
+  },
+  [R_FORMAT_R4_G4_B4_A4_UNORM ] = {
+    .format = R_FORMAT_R4_G4_B4_A4_UNORM , 
+    .base = R_BASE_FORMAT_PACKED_16,
+    .packed_16 = {
+      .numChannels = 4,
+      .bits = { 
+        {.offset = 12, .mask = 0xf},
+        {.offset = 8, .mask = 0xf},
+        {.offset = 4, .mask = 0xf},
+        {.offset = 0, .mask = 0xf}
+      },
+      .channels = {R_LOGICAL_C_RED, R_LOGICAL_C_GREEN, R_LOGICAL_C_BLUE, R_LOGICAL_C_ALPHA},
+    },
+  },
+  [R_FORMAT_R5_G6_B5_UNORM ] = {
+    .format = R_FORMAT_R5_G6_B5_UNORM, 
+    .base = R_BASE_FORMAT_PACKED_16,
+    .packed_16 = {
+      .numChannels = 3,
+      .bits = { 
+        {.offset = 11, .mask = 0x1f},
+        {.offset = 5, .mask = 0x3f},
+        {.offset = 0, .mask = 0x1f},
+      },
+      .channels = {R_LOGICAL_C_RED, R_LOGICAL_C_GREEN, R_LOGICAL_C_BLUE},
+    },
+  },
+  [R_FORMAT_R5_G5_B5_A1_UNORM] = {
+    .format = R_FORMAT_R5_G5_B5_A1_UNORM, 
+    .base = R_BASE_FORMAT_PACKED_16,
+    .packed_16 = {
+      .numChannels = 4,
+      .bits = { 
+        {.offset = 11, .mask = 0x1f},
+        {.offset = 6, .mask = 0x1F},
+        {.offset = 1, .mask = 0x1F},
+        {.offset = 0, .mask = 0x01},
+      },
+      .channels = {R_LOGICAL_C_RED, R_LOGICAL_C_GREEN, R_LOGICAL_C_BLUE, R_LOGICAL_C_ALPHA},
+    },
+  },
+  [R_FORMAT_A8_UNORM] = {
+    .format = R_FORMAT_A8_UNORM, 
+    .base = R_BASE_FORMAT_FIXED_8,
+    .fixed_8 = {
+      //.blockByteSize = 1,
+      .numChannels = 1,
+      .channels = {R_LOGICAL_C_ALPHA},
+      .normalized = 1,
+      .sign = 0
+    },
+  },
+  [R_FORMAT_L8_UNORM] = {
+    .format = R_FORMAT_L8_UNORM, 
+    .base = R_BASE_FORMAT_FIXED_8,
+    .fixed_8 = {
+      //.blockByteSize = 1,
+      .numChannels = 1,
+      .channels = {R_LOGICAL_C_LUMINANCE},
+      .normalized = 1,
+      .sign = 0
+    },
+  },
+  [R_FORMAT_L8_A8_UNORM] = {
+    .format = R_FORMAT_L8_A8_UNORM, 
+    .base = R_BASE_FORMAT_FIXED_8,
+    .fixed_8 = {
+      //.blockByteSize = 2,
+      .numChannels = 2,
+      .channels = {R_LOGICAL_C_LUMINANCE, R_LOGICAL_C_ALPHA},
+      .normalized = 1,
+      .sign = 0
+    },
+  },
+  [R_FORMAT_RGBA8_UNORM] = {
+    .format = R_FORMAT_RGBA8_UNORM, 
+    .base = R_BASE_FORMAT_FIXED_8,
+    .fixed_8 = {
+      //.blockByteSize = 4,
+      .numChannels = 4,
+      .channels = {R_LOGICAL_C_RED, R_LOGICAL_C_GREEN, R_LOGICAL_C_BLUE, R_LOGICAL_C_ALPHA},
+      .normalized = 1
+    }
+  },
+  [R_FORMAT_R8_UNORM] = {
+    .format = R_FORMAT_R8_UNORM, 
+    .base = R_BASE_FORMAT_FIXED_8,
+    .fixed_8 = {
+      //.blockByteSize = 1,
+      .numChannels = 1,
+      .channels = {R_LOGICAL_C_RED},
+      .normalized = 1
+    }
+  },
+  [R_FORMAT_BGR8_UNORM] = {
+    .format = R_FORMAT_BGR8_UNORM, 
+    .base = R_BASE_FORMAT_FIXED_8,
+    .fixed_8 = {
+      //.blockByteSize = 3,
+      .numChannels = 3,
+      .channels = {R_LOGICAL_C_BLUE, R_LOGICAL_C_GREEN, R_LOGICAL_C_RED},
+      .normalized = 1
+    }
+  },
+  [R_FORMAT_BGRA8_UNORM] = {
+    .format = R_FORMAT_BGRA8_UNORM, 
+    .base = R_BASE_FORMAT_FIXED_8,
+    .fixed_16 = {
+      //.blockByteSize = 4,
+      .numChannels = 4,
+      .channels = {R_LOGICAL_C_BLUE, R_LOGICAL_C_GREEN, R_LOGICAL_C_RED, R_LOGICAL_C_ALPHA},
+      .normalized = 1
+    }
+  }, 
+  [R_FORMAT_RG16_UNORM] = {
+    .base = R_BASE_FORMAT_FIXED_16,
+    .fixed_16 = {
+      //.blockByteSize = 2 * sizeof(uint16_t),
+      .numChannels = 2,
+      .channels = {R_LOGICAL_C_RED, R_LOGICAL_C_GREEN},
+      .normalized = 1
+    }
+  },
+  [R_TEXTURE_FORMAT_COUNT] = {}
+}; 
 
 uint32_t R_FormatChannelCount(enum texture_format_e format) {
   switch(format) {
@@ -324,86 +481,79 @@ uint32_t R_FormatBitSizePerBlock(enum texture_format_e format) {
   return 0;
 }
 
-const struct base_format_def_s* R_BaseFormat(enum texture_format_e format) {
-  static const struct base_format_def_s def_RGB_UNORM = {
-    .format = R_FORMAT_RGB8_UNORM,
-    .base = R_BASE_FORMAT_FIXED_8,
-    .fixed_8 = {
-      .blockByteSize = 3,
-      .numChannels = 3,
-      .channels = {R_LOGICAL_C_RED, R_LOGICAL_C_GREEN, R_LOGICAL_C_BLUE},
-      .normalized = 1,
-      .sign = 0
-    },
-  };
-
-  static const struct base_format_def_s def_RGBA8_UNORM = {
-    .format = R_FORMAT_RGBA8_UNORM,
-    .base = R_BASE_FORMAT_FIXED_8,
-    .fixed_8 = {
-      .blockByteSize = 4,
-      .numChannels = 4,
-      .channels = {R_LOGICAL_C_RED, R_LOGICAL_C_GREEN, R_LOGICAL_C_BLUE, R_LOGICAL_C_ALPHA},
-      .normalized = 1
-    }
-  };
-
-  static const struct base_format_def_s def_R8_UNORM = {
-    .format = R_FORMAT_R8_UNORM,
-    .base = R_BASE_FORMAT_FIXED_8,
-    .fixed_8 = {
-      .blockByteSize = 1,
-      .numChannels = 1,
-      .channels = {R_LOGICAL_C_RED},
-      .normalized = 1
-    }
-  };
-
-  static const struct base_format_def_s def_BGR8_UNORM = {
-    .format = R_FORMAT_BGR8_UNORM,
-    .base = R_BASE_FORMAT_FIXED_8,
-    .fixed_8 = {
-      .blockByteSize = 3,
-      .numChannels = 3,
-      .channels = {R_LOGICAL_C_BLUE, R_LOGICAL_C_GREEN, R_LOGICAL_C_RED},
-      .normalized = 1
-    }
-  };
-  
-  static const struct base_format_def_s def_BGRA8_UNORM = {
-    .format = R_FORMAT_BGRA8_UNORM,
-    .base = R_BASE_FORMAT_FIXED_8,
-    .fixed_16 = {
-      .blockByteSize = 4,
-      .numChannels = 4,
-      .channels = {R_LOGICAL_C_BLUE, R_LOGICAL_C_GREEN, R_LOGICAL_C_RED, R_LOGICAL_C_ALPHA},
-      .normalized = 1
-    }
-  };
-  
-  static const struct base_format_def_s def_RG16_UNORM = {
-    .format = R_FORMAT_RG16_UNORM,
-    .base = R_BASE_FORMAT_FIXED_16,
-    .fixed_16 = {
-      .blockByteSize = 2 * sizeof(uint16_t),
-      .numChannels = 2,
-      .channels = {R_LOGICAL_C_RED, R_LOGICAL_C_GREEN},
-      .normalized = 1
-    }
-  };
-
-	switch( format ) {
-	  case R_FORMAT_RG16_UNORM: return &def_RG16_UNORM; 
-		case R_FORMAT_R8_UNORM: return &def_R8_UNORM;
-		case R_FORMAT_RGBA8_UNORM: return &def_RGBA8_UNORM;
-		case R_FORMAT_RGB8_UNORM: return &def_RGB_UNORM;
-		case R_FORMAT_BGR8_UNORM: return &def_BGR8_UNORM;
-		case R_FORMAT_BGRA8_UNORM: return &def_BGRA8_UNORM;
+//uint32_t RF_RowPitch(const struct base_format_def_s *def, uint32_t width, uint16_t align )
+//{
+//	switch( def->base ) {
+//		case R_BASE_FORMAT_FIXED_8:
+//			return ALIGN( width * def->fixed_8.blockByteSize, align );
+//		case R_BASE_FORMAT_FIXED_16:
+//			return ALIGN( width * def->fixed_16.blockByteSize, align );
+//		case R_BASE_FORMAT_FIXED_32:
+//			return ALIGN( width * def->fixed_32.blockByteSize, align );
+//		case R_BASE_BLOCKED_COMPRESSED:
+//		  return ALIGN(RF_LogicalWidth(def, width) * def->compressed.blockByteSize, align);
+//		default:
+//			break;
+//	}
+//	assert( 0 );
+//	return 0;
+//}
+//
+//uint32_t RF_LogicalWidth(const  struct base_format_def_s *def, uint32_t width )
+//{
+//	switch( def->base ) {
+//		case R_BASE_FORMAT_FIXED_8:
+//		case R_BASE_FORMAT_FIXED_16:
+//		case R_BASE_FORMAT_FIXED_32:
+//			return width;
+//	  case R_BASE_BLOCKED_COMPRESSED:
+//		  return ( width / def->compressed.blockWidth ) + ( ( width % def->compressed.blockWidth ) == 0 ? 0 : 1 );
+//		default:
+//			break;
+//	}
+//	assert( 0 );
+//	return 0;
+//}
+//
+//uint32_t RF_LogicalHeight(const struct base_format_def_s *def, uint32_t height )
+//{
+//	switch( def->base ) {
+//		case R_BASE_FORMAT_FIXED_8:
+//		case R_BASE_FORMAT_FIXED_16:
+//		case R_BASE_FORMAT_FIXED_32:
+//			return height;
+//		case R_BASE_BLOCKED_COMPRESSED:
+//			return ( height / def->compressed.blockHeight ) + ( ( height % def->compressed.blockWidth ) == 0 ? 0 : 1 );
+//		default:
+//			break;
+//	}
+//	assert( 0 );
+//	return 0;
+//}
+const size_t RT_BlockSize(const struct base_format_def_s* def) {
+	switch( def->base ) {
+		case R_BASE_BLOCKED_COMPRESSED:
+			return def->compressed.blockByteSize;
+		case R_BASE_FORMAT_FIXED_8:
+			return def->fixed_8.numChannels;
+		case R_BASE_FORMAT_FIXED_16:
+			return def->fixed_16.numChannels * sizeof( uint16_t );
+		case R_BASE_FORMAT_FIXED_32:
+			return def->fixed_32.numChannels * sizeof( uint16_t );
+		case R_BASE_FORMAT_PACKED_16:
+			return sizeof( uint16_t );
 		default:
-			assert( 0 );
 			break;
 	}
-	return NULL;
+	return 0;
+}
+
+const struct base_format_def_s* R_BaseFormatDef(enum texture_format_e format) {
+  const struct base_format_def_s* def = &baseFormats[format];
+  if(def->base == R_BASE_UNKNOWN) {
+    return NULL;
+  }
+  return &baseFormats[format];
 }
 
 

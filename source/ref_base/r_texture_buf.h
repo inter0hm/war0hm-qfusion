@@ -35,9 +35,15 @@ uint16_t T_LogicalH( struct texture_buf_s *buf );
 uint16_t T_LogicalW( struct texture_buf_s *buf );
 uint16_t T_PixelW( struct texture_buf_s *buf);
 uint16_t T_PixelH( struct texture_buf_s *buf);
-void T_ReallocTextureBuf( struct texture_buf_s *buf, const struct texture_buf_desc_s *desc );
-void T_AliasTextureBuf( struct texture_buf_s *buf, const struct texture_buf_desc_s *desc, uint8_t *buffer );
+
+/**
+* If a buffer is aliased then it will allocate and copy the alised memory ovecr
+**/
+void T_PromteTextureBuf( struct texture_buf_s *buf);
+void T_ReallocTextureBuf( struct texture_buf_s *buf, const struct texture_buf_desc_s *desc);
+void T_AliasTextureBuf( struct texture_buf_s *buf, const struct texture_buf_desc_s *desc, uint8_t *buffer, size_t size);
 
 void T_MipMapQuarterInPlace( struct texture_buf_s *tex);
+void T_SwapEndianness( struct texture_buf_s *tex);
 
 #endif
