@@ -20,7 +20,7 @@ enum texture_base_format_e {
 	R_BASE_FORMAT_FIXED_8,
 	R_BASE_FORMAT_FIXED_16,
 	R_BASE_FORMAT_FIXED_32,
-  R_BASE_FORMAT_PACKED_16
+	R_BASE_FORMAT_PACKED_16
 };
 
 enum texture_format_e {

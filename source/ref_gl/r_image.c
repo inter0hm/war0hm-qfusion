@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "../gameshared/q_sds.h"
 
+#include "r_ktx_loader.h"
+
 #define	MAX_GLIMAGES	    8192
 #define IMAGES_HASH_SIZE    64
 
@@ -1362,9 +1364,15 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 	if( image->flags & ( IT_FLIPX|IT_FLIPY|IT_FLIPDIAGONAL ) )
 		return false;
 
-	R_LoadFile( pathname, ( void ** )&buffer );
+	size_t size = R_LoadFile( pathname, ( void ** )&buffer );
 	if( !buffer )
 		return false;
+
+	struct ktx_context_s ktxContext = {};
+	enum ktx_context_result_e res = R_InitKTXContext( buffer, size, &ktxContext );
+	if( res != KTX_ERR_NONE ) {
+		return false;
+	}
 
 	header = ( ktx_header_t * )buffer;
 	if( memcmp( header->identifier, "\xABKTX 11\xBB\r\n\x1A\n", 12 ) )
@@ -1490,12 +1498,16 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 			mips -= mip;
 			for( i = 0; i < mips; ++i )
 			{
+				
 				faceSize = ( ( ALIGN( scaledWidth, 4 ) * ALIGN( scaledHeight, 4 ) ) >> 4 ) * 8;
 				data += sizeof( int );
 				for( j = 0; j < numFaces; ++j )
 				{
+					struct texture_buf_s *texBuffer = R_KTXResolveBuffer( &ktxContext, i, j, 0 );
+					assert(texBuffer);
+					assert(texBuffer->buffer == data);
 					qglCompressedTexImage2DARB( target + j, i, compressedFormat,
-						scaledWidth, scaledHeight, 0, faceSize, data );
+						scaledWidth, scaledHeight, 0, faceSize, texBuffer->buffer);
 					data += faceSize;
 				}
 				scaledWidth >>= 1;

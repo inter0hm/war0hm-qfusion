@@ -41,7 +41,7 @@ enum ktx_context_result_e R_InitKTXContext( uint8_t *memory, size_t size, struct
 uint16_t R_KTXGetNumberMips( const struct ktx_context_s *cntx );
 uint16_t R_KTXGetNumberFaces( const struct ktx_context_s *cntx );
 uint16_t R_KTXGetNumberArrayElements( const struct ktx_context_s *cntx );
-struct texture_buf_s *R_ResolveKTXBuffer( struct ktx_context_s *cntx, uint32_t mipLevel, uint32_t faceIndex, uint32_t arrayOffset );
-void R_FreeKTXContext(struct ktx_context_s* cntx);
+struct texture_buf_s *R_KTXResolveBuffer( struct ktx_context_s *cntx, uint32_t mipLevel, uint32_t faceIndex, uint32_t arrayOffset );
+void R_KTXFreeContext(struct ktx_context_s* cntx);
 
 #endif

@@ -39,8 +39,7 @@ static struct ktx_image_s *R_KTXGetImage( const struct ktx_context_s *cntx, uint
 	return &cntx->textures[index];
 }
 
-
-struct texture_buf_s *R_ResolveKTXBuffer( struct ktx_context_s *cntx, uint32_t mipLevel, uint32_t faceIndex, uint32_t arrayOffset ) {
+struct texture_buf_s *R_KTXResolveBuffer( struct ktx_context_s *cntx, uint32_t mipLevel, uint32_t faceIndex, uint32_t arrayOffset ) {
 	struct ktx_image_s *img = R_KTXGetImage( cntx, mipLevel, faceIndex, arrayOffset);
 	if(!img->updated) {
 		switch( cntx->desc->base ) {
@@ -145,43 +144,32 @@ enum ktx_context_result_e  R_InitKTXContext( uint8_t *memory, size_t size, struc
 		}
 	}
 
-
 	// mip and faces are aligned 4
 	// KTX File Format Spec: https://registry.khronos.org/KTX/specs/1.0/ktxspec.v1.html
 	uint32_t width = cntx->pixelWidth;
 	uint32_t height = cntx->pixelHeight;
-
-	size_t bufferOffset = dataOffset;
+	size_t offset = dataOffset;
 	for( size_t mipLevel = 0; mipLevel < numberOfMips; mipLevel++ ) {
-		bufferOffset += sizeof( uint32_t );
+		uint32_t bufferLen = cntx->swapEndianess ? LongSwap( *( (uint32_t *)( cntx->buffer + offset ) ) ) : ( *( (uint32_t *)( cntx->buffer + offset ) ) );
+		offset += sizeof( uint32_t );
+
+		size_t imgOffset = 0;
 		for( size_t arrayIdx = 0; arrayIdx < numberOfArrayElements; arrayIdx++ ) {
 			for( size_t faceIdx = 0; faceIdx < numberOfFaces; faceIdx++ ) {
 				struct ktx_image_s *img = R_KTXGetImage( cntx, mipLevel, faceIdx, arrayIdx );
-				memset(img, 0, sizeof(struct ktx_image_s));
-				struct texture_buf_desc_s desc = {
-				  .width = width,
-				  .height = height,
-				  .alignment = 4,
-				  .def = cntx->desc
-				};
-				T_AliasTextureBuf(&img->texture, &desc, cntx->buffer + bufferOffset, 0);
-				bufferOffset += img->texture.size;
-				if( numberOfFaces >= 1 ) {
-					bufferOffset  = ALIGN( bufferOffset, 4 );
-				}
+				memset( img, 0, sizeof( struct ktx_image_s ) );
+				struct texture_buf_desc_s desc = { .width = width, .height = height, .alignment = 4, .def = cntx->desc };
+				T_AliasTextureBuf( &img->texture, &desc, ( cntx->buffer + offset + imgOffset ), 0 );
+				imgOffset += img->texture.size;
 			}
 		}
-	 // if( chunkOffset > imageBufLen ) {
-	 // 	ri.Com_Printf( S_COLOR_YELLOW "iamge buffer size greater %d expected: %d\n", chunkOffset, imageBufLen );
-	 // }
-		bufferOffset = ALIGN( bufferOffset, 4 );
+		offset = ALIGN( offset + bufferLen, 4 );
 		width = max( 1, width >> 1 );
 		height = max( 1, height >> 1 );
 	}
 
-  if(bufferOffset > size ) {
+  if(offset > size ) {
     return KTX_ERR_TRUNCATED; 
-  	//ri.Com_Printf( S_COLOR_YELLOW "file size does not match size: %d expected: %d\n", bufferOffset , size );
   }
   return KTX_ERR_NONE;
 }
@@ -198,7 +186,7 @@ uint16_t R_KTXGetNumberArrayElements( const struct ktx_context_s *cntx )
 	return max( 1, cntx->numberOfArrayElements );
 }
 
-void R_FreeKTXContext(struct ktx_context_s* context) {
+void R_KTXFreeContext(struct ktx_context_s* context) {
 	arrfree(context->buffer);
 }
 
