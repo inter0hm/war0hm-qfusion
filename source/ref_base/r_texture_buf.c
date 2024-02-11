@@ -1,9 +1,12 @@
 #include "r_texture_buf.h"
 #include "../gameshared/q_math.h"
 #include "../gameshared/q_shared.h"
+#include "r_texture_decode.h"
 #include "r_texture_format.h"
 
-uint16_t T_LogicalH( struct texture_buf_s *buf )
+#include "r_texture_buf.h"
+
+uint16_t T_LogicalH(const  struct texture_buf_s *buf )
 {
 	switch( buf->def->base ) {
 		case R_BASE_BLOCKED_COMPRESSED:
@@ -13,7 +16,7 @@ uint16_t T_LogicalH( struct texture_buf_s *buf )
 	}
 	return buf->height;
 }
-uint16_t T_LogicalW( struct texture_buf_s *buf )
+uint16_t T_LogicalW(const  struct texture_buf_s *buf )
 {
 	switch( buf->def->base ) {
 		case R_BASE_BLOCKED_COMPRESSED:
@@ -23,11 +26,11 @@ uint16_t T_LogicalW( struct texture_buf_s *buf )
 	}
 	return buf->height;
 }
-uint16_t T_PixelW( struct texture_buf_s *buf )
+uint16_t T_PixelW(const  struct texture_buf_s *buf )
 {
 	return buf->width;
 }
-uint16_t T_PixelH( struct texture_buf_s *buf )
+uint16_t T_PixelH(const  struct texture_buf_s *buf )
 {
 	return buf->height;
 }
@@ -132,6 +135,9 @@ void T_AliasTextureBuf( struct texture_buf_s *buf, const struct texture_buf_desc
 	}
 	buf->buffer = buffer;
 }
+
+
+
 void T_SwapEndianness( struct texture_buf_s *tex) {
 	const uint32_t width = T_LogicalW( tex );
 	const uint32_t height = T_LogicalH( tex );
@@ -187,4 +193,72 @@ void T_MipMapQuarterInPlace( struct texture_buf_s *tex) {
 		  assert( 0 );
 		  break;
   }
+}
+
+void T_FreeTextureBuf( struct texture_buf_s *tex )
+{
+	if( ( tex->flags & TEX_BUF_IS_ALIASED ) == 0 ) {
+		free( tex->buffer );
+	}
+}
+
+struct texture_buf_s *T_CurrentPogoTex( struct texture_buf_pogo_s *pogo )
+{
+	return &pogo->textures[pogo->index];
+}
+
+struct texture_buf_s *T_NextPogoTex( struct texture_buf_pogo_s *pogo )
+{
+	return &pogo->textures[( pogo->index + 1 ) % 2];
+}
+
+void T_IncrPogoTex(struct texture_buf_pogo_s* pogo) {
+	pogo->index = (pogo->index + 1) % 2;
+}
+
+void T_FreePogoBuffer( struct texture_buf_pogo_s *pogo )
+{
+	T_FreeTextureBuf( &pogo->textures[0] );
+	T_FreeTextureBuf( &pogo->textures[1] );
+}
+
+
+void T_BlockDecodeETC1( const struct texture_buf_s *src, const struct base_format_def_s  *desc, struct texture_buf_s *dest )
+{
+	assert( dest );
+	assert( src );
+	assert( src->def );
+	assert(desc->base == R_BASE_FORMAT_FIXED_8);
+
+	const uint16_t logicalWidth = T_LogicalW( src );
+	const uint16_t logicalHeight = T_LogicalH( src );
+	struct uint_8_4 decodeColors[ETC1_BLOCK_WIDTH * ETC1_BLOCK_HEIGHT];
+	for( size_t row = 0; row < logicalHeight; row++ ) {
+		for( size_t column = 0; column < logicalWidth; column++ ) {
+			uint8_t *block = &src->buffer[src->rowPitch * row + ( column * dest->def->compressed.blockByteSize )];
+			R_ETC1DecodeBlock_RGBA8( block, decodeColors );
+			for( uint16_t subRow = 0; subRow < ETC1_BLOCK_HEIGHT; subRow++ ) {
+				for( uint16_t subCol = 0; subCol < ETC1_BLOCK_WIDTH; subCol++ ) {
+					const struct uint_8_4* color = &decodeColors[( subRow * ETC1_BLOCK_HEIGHT ) + subCol];
+					uint8_t *const destBlock = &dest->buffer[dest->rowPitch * ( ( row * ETC1_BLOCK_HEIGHT ) + subRow ) + ( ( column * ETC1_BLOCK_WIDTH ) + subCol )];
+					memset( destBlock, 0, desc->fixed_8.numChannels );
+					for( uint8_t c = 0; c < desc->fixed_8.numChannels; c++ ) {
+						switch( desc->fixed_8.channels[c] ) {
+							case R_LOGICAL_C_RED:
+								( *(destBlock + c) ) = color->r;
+								break;
+							case R_LOGICAL_C_GREEN:
+								( *(destBlock + c)) = color->g;
+								break;
+							case R_LOGICAL_C_BLUE:
+								( *(destBlock + c) ) = color->b;
+								break;
+							default:
+								break;
+						}
+					}
+				}
+			}
+		}
+	}
 }

@@ -1450,15 +1450,11 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		}
 
 		int scaledWidth, scaledHeight;
-		const int minMipLevels = R_ScaledImageSize( header->pixelWidth, header->pixelHeight, &scaledWidth, &scaledHeight,
-			image->flags, mips, image->minmipsize, false );
-		//const uint32_t minMipLevels = mip;
-
+		const int minMipLevels = R_ScaledImageSize( header->pixelWidth, header->pixelHeight, &scaledWidth, &scaledHeight, image->flags, mips, image->minmipsize, false );
 		image->upload_width = scaledWidth;
 		image->upload_height = scaledHeight;
 
 		// If different compression formats are added, make this more general-purpose!
-
 		if( !glConfig.ext.texture_compression || !( glConfig.ext.compressed_ETC1_RGB8_texture || glConfig.ext.ES3_compatibility ) || ( minMipLevels < 0 ) )
 		{
 			int inSize = ( ( ALIGN( header->pixelWidth, 4 ) * ALIGN( header->pixelHeight, 4 ) ) >> 4 ) * 8;
@@ -1472,7 +1468,6 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 				DecompressETC1( in, header->pixelWidth, header->pixelHeight, decompressed[i], glConfig.ext.bgra ? true : false );
 				in += inSize;
 			}
-
 			R_UploadMipmapped( ctx, decompressed, header->pixelWidth, header->pixelHeight, 1,
 				image->flags, image->minmipsize, &image->upload_width, &image->upload_height,
 				glConfig.ext.bgra ? GL_BGR_EXT : GL_RGB, GL_UNSIGNED_BYTE );
@@ -1482,7 +1477,6 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 			int target;
 			const int compressedFormat = glConfig.ext.ES3_compatibility ? GL_COMPRESSED_RGB8_ETC2 : GL_ETC1_RGB8_OES;
 			R_TextureTarget( image->flags, &target );
-
 			R_SetupTexParameters( image->flags, scaledWidth, scaledHeight, image->minmipsize );
 		  const uint16_t numberOfMipLevels = R_KTXGetNumberMips(&ktxContext);
 		  uint16_t mip = 0;

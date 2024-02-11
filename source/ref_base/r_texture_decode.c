@@ -1,7 +1,7 @@
 #include "r_texture_decode.h"
 #include "../gameshared/q_math.h"
 
-void R_ETC1DecodeBlock_RGB8(uint8_t* block, uint8_t* colors) {
+void R_ETC1DecodeBlock_RGBA8(uint8_t* block, struct uint_8_4 colors[4 * 4]) {
 
   // implementation: https://registry.khronos.org/OpenGL/extensions/OES/OES_compressed_ETC1_RGB8_texture.txt
   // BCF -- Base Color Flag
@@ -79,9 +79,10 @@ void R_ETC1DecodeBlock_RGB8(uint8_t* block, uint8_t* colors) {
 		const uint32_t k = y + ( x * 4 );
 		const uint32_t delta = (ETC1_ModifierTable + (BCF_CW1(baseColorsAndFlags) << 2))[( ( pixels >> k ) & 1 ) | ( ( pixels >> ( k + 15 ) ) & 2 )];
 
-		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT + 0 )] = bound( 0, r1 + delta, 255 );
-		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT + 1 )] = bound( 0, g1 + delta, 255 );
-		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT + 2 )] = bound( 0, b1 + delta, 255 );
+		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT )].r = bound( 0, r1 + delta, 255 );
+		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT )].g = bound( 0, g1 + delta, 255 );
+		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT )].b = bound( 0, b1 + delta, 255 );
+		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT )].a = 0;
 	}
 
 	for( size_t index = 0; index < 8; index++ ) {
@@ -90,9 +91,10 @@ void R_ETC1DecodeBlock_RGB8(uint8_t* block, uint8_t* colors) {
 		const uint32_t k = y + ( x * 4 );
 		const uint32_t delta = (ETC1_ModifierTable + (BCF_CW2(baseColorsAndFlags) << 2))[( ( pixels >> k ) & 1 ) | ( ( pixels >> ( k + 15 ) ) & 2 )];
 
-		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT + 0 )] = bound( 0, r2 + delta, 255 );
-		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT + 1 )] = bound( 0, g2 + delta, 255 );
-		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT + 2 )] = bound( 0, b2 + delta, 255 );
+		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT )].r = bound( 0, r2 + delta, 255 );
+		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT )].g = bound( 0, g2 + delta, 255 );
+		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT )].b = bound( 0, b2 + delta, 255 );
+		colors[( ( y * 4 * CHANNEL_COUNT ) ) + ( x * CHANNEL_COUNT )].a = 0;
 	}
 
 #undef CHANNEL_COUNT

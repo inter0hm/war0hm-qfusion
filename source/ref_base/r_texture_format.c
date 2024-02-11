@@ -25,7 +25,6 @@ static const struct base_format_def_s baseFormats[] = {
     .format = R_FORMAT_RGB8_UNORM, 
     .base = R_BASE_FORMAT_FIXED_8,
     .fixed_8 = {
-      //.blockByteSize = 3,
       .numChannels = 3,
       .channels = {R_LOGICAL_C_RED, R_LOGICAL_C_GREEN, R_LOGICAL_C_BLUE},
       .normalized = 1,
@@ -480,56 +479,6 @@ uint32_t R_FormatBitSizePerBlock(enum texture_format_e format) {
   }
   return 0;
 }
-
-//uint32_t RF_RowPitch(const struct base_format_def_s *def, uint32_t width, uint16_t align )
-//{
-//	switch( def->base ) {
-//		case R_BASE_FORMAT_FIXED_8:
-//			return ALIGN( width * def->fixed_8.blockByteSize, align );
-//		case R_BASE_FORMAT_FIXED_16:
-//			return ALIGN( width * def->fixed_16.blockByteSize, align );
-//		case R_BASE_FORMAT_FIXED_32:
-//			return ALIGN( width * def->fixed_32.blockByteSize, align );
-//		case R_BASE_BLOCKED_COMPRESSED:
-//		  return ALIGN(RF_LogicalWidth(def, width) * def->compressed.blockByteSize, align);
-//		default:
-//			break;
-//	}
-//	assert( 0 );
-//	return 0;
-//}
-//
-//uint32_t RF_LogicalWidth(const  struct base_format_def_s *def, uint32_t width )
-//{
-//	switch( def->base ) {
-//		case R_BASE_FORMAT_FIXED_8:
-//		case R_BASE_FORMAT_FIXED_16:
-//		case R_BASE_FORMAT_FIXED_32:
-//			return width;
-//	  case R_BASE_BLOCKED_COMPRESSED:
-//		  return ( width / def->compressed.blockWidth ) + ( ( width % def->compressed.blockWidth ) == 0 ? 0 : 1 );
-//		default:
-//			break;
-//	}
-//	assert( 0 );
-//	return 0;
-//}
-//
-//uint32_t RF_LogicalHeight(const struct base_format_def_s *def, uint32_t height )
-//{
-//	switch( def->base ) {
-//		case R_BASE_FORMAT_FIXED_8:
-//		case R_BASE_FORMAT_FIXED_16:
-//		case R_BASE_FORMAT_FIXED_32:
-//			return height;
-//		case R_BASE_BLOCKED_COMPRESSED:
-//			return ( height / def->compressed.blockHeight ) + ( ( height % def->compressed.blockWidth ) == 0 ? 0 : 1 );
-//		default:
-//			break;
-//	}
-//	assert( 0 );
-//	return 0;
-//}
 const size_t RT_BlockSize(const struct base_format_def_s* def) {
 	switch( def->base ) {
 		case R_BASE_BLOCKED_COMPRESSED:
