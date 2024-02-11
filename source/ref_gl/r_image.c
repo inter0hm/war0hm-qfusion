@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../gameshared/q_sds.h"
 
 #include "r_ktx_loader.h"
+#include "r_texture_buf.h"
+#include "r_texture_format.h"
 
 #define	MAX_GLIMAGES	    8192
 #define IMAGES_HASH_SIZE    64
@@ -1457,20 +1459,26 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		// If different compression formats are added, make this more general-purpose!
 		if( !glConfig.ext.texture_compression || !( glConfig.ext.compressed_ETC1_RGB8_texture || glConfig.ext.ES3_compatibility ) || ( minMipLevels < 0 ) )
 		{
-			int inSize = ( ( ALIGN( header->pixelWidth, 4 ) * ALIGN( header->pixelHeight, 4 ) ) >> 4 ) * 8;
-			int outSize = ALIGN( header->pixelWidth * 3, 4 ) * header->pixelHeight;
-			uint8_t *in = data + sizeof( int );
 			uint8_t *decompressed[6];
-
-			for( i = 0; i < numFaces; ++i )
-			{
-				decompressed[i] = R_PrepareImageBuffer( ctx, TEXTURE_LOADING_BUF0 + i, outSize );
-				DecompressETC1( in, header->pixelWidth, header->pixelHeight, decompressed[i], glConfig.ext.bgra ? true : false );
-				in += inSize;
+			struct texture_buf_s decodeTextures[8] = {0};
+			for( i = 0; i < numFaces; ++i ) {
+		  	struct texture_buf_s *tex= R_KTXResolveBuffer( &ktxContext, 0, i, 0 );
+				struct texture_buf_desc_s decodeDesc = {
+					.width = T_PixelW(tex),  
+					.height = T_PixelH(tex),
+					.def = glConfig.ext.bgra ? R_BaseFormatDef(R_FORMAT_BGR8_UNORM): R_BaseFormatDef(R_FORMAT_RGB8_UNORM),
+					.alignment = 1 
+				};
+				T_ReallocTextureBuf(&decodeTextures[i], &decodeDesc);
+				T_BlockDecodeETC1( tex, &decodeTextures[i] );
+				decompressed[i] = decodeTextures[i].buffer;
 			}
 			R_UploadMipmapped( ctx, decompressed, header->pixelWidth, header->pixelHeight, 1,
 				image->flags, image->minmipsize, &image->upload_width, &image->upload_height,
 				glConfig.ext.bgra ? GL_BGR_EXT : GL_RGB, GL_UNSIGNED_BYTE );
+			for( i = 0; i < numFaces; i++ ) {
+				T_FreeTextureBuf( &decodeTextures[i] );
+			}
 		}
 		else
 		{
@@ -1488,7 +1496,6 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		  	}
 		  }
 		}
-
 		image->samples = 3;
 	}
 	else
@@ -1583,11 +1590,13 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 	image->width = header->pixelWidth;
 	image->height = header->pixelHeight;
 
+	R_KTXFreeContext(&ktxContext);
 	R_FreeFile( buffer );
 	R_DeferDataSync();
 	return true;
 
 error: // must not be reached after actually starting uploading the texture
+	R_KTXFreeContext(&ktxContext);
 	R_FreeFile( buffer );
 	return false;
 }

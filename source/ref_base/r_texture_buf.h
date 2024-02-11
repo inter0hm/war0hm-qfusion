@@ -55,8 +55,7 @@ struct texture_buf_s* T_NextPogoTex(struct texture_buf_pogo_s* pogo);
 void T_IncrPogoTex(struct texture_buf_pogo_s* pogo);
 void T_FreePogoBuffer(struct texture_buf_pogo_s* pogo);
 
-void T_BlockDecodeETC1( const struct texture_buf_s *src, const struct base_format_def_s  *desc, struct texture_buf_s *dest );
-
+void T_BlockDecodeETC1( const struct texture_buf_s *src, struct texture_buf_s *dest );
 void T_MipMapQuarterInPlace( struct texture_buf_s *tex);
 void T_SwapEndianness( struct texture_buf_s *tex);
 

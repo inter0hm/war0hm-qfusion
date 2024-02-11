@@ -175,37 +175,22 @@ enum ktx_context_result_e  R_InitKTXContext( uint8_t *memory, size_t size, struc
 }
 uint16_t R_KTXGetNumberMips( const struct ktx_context_s *cntx )
 {
+	assert(cntx);
 	return max( 1, cntx->numberOfMipmapLevels );
 }
 uint16_t R_KTXGetNumberFaces( const struct ktx_context_s *cntx )
 {
+	assert(cntx);
 	return max( 1, cntx->numberOfFaces );
 }
 uint16_t R_KTXGetNumberArrayElements( const struct ktx_context_s *cntx )
 {
+	assert(cntx);
 	return max( 1, cntx->numberOfArrayElements );
 }
 
-void R_KTXFreeContext(struct ktx_context_s* context) {
-	arrfree(context->buffer);
+void R_KTXFreeContext( struct ktx_context_s *context )
+{
+	assert( context );
+	arrfree( context->textures );
 }
-
-//void R_AliasBuffer( const struct ktx_context_s *cntx, struct texture_buf_s *tex, uint32_t faceIndex, uint32_t arrOffset, uint16_t mipLevel ){
-//	assert( tex );
-//	struct ktx_image_s *ktxImage = R_KTXGetImage( cntx, mipLevel, faceIndex, arrOffset );
-//	assert( ktxImage );
-// // struct texture_buf_desc_s desc = {
-// //   .width = ktxImage->width,
-// //   .height = ktxImage->height,
-// //   .alignment = 4,
-// //   .def = cntx->desc
-// // };
-// // T_AliasTextureBuf(tex, &desc, cntx->buffer + ktxImage->offset, ktxImage->size);
-//
-//	//
-//	//	R_ConfigureImageBuffer( image, &img->layout);
-//	//	memcpy( image->data, (cntx->buffer + img->offset), img->layout.size);
-//	//	if( !R_FormatIsCompressed( img->layout.format) && cntx->swapEndianess ) {
-//	//		R_Buf_SwapEndianess( image );
-//	//	}
-//}

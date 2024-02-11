@@ -27,5 +27,4 @@ struct uint_8_4 {
 **/
 void R_ETC1DecodeBlock_RGBA8(uint8_t* block, struct uint_8_4 colors[ETC1_BLOCK_WIDTH * ETC1_BLOCK_HEIGHT]);
 
-
 #endif

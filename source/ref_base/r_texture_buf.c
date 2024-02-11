@@ -10,7 +10,7 @@ uint16_t T_LogicalH(const  struct texture_buf_s *buf )
 {
 	switch( buf->def->base ) {
 		case R_BASE_BLOCKED_COMPRESSED:
-			return ( buf->width / buf->def->compressed.blockWidth ) + ( (buf->width % buf->def->compressed.blockWidth) == 0 ? 0 : 1 );
+			return ( buf->height / buf->def->compressed.blockWidth ) + ( (buf->height  % buf->def->compressed.blockHeight) == 0 ? 0 : 1 );
 		default:
 			break;
 	}
@@ -20,7 +20,7 @@ uint16_t T_LogicalW(const  struct texture_buf_s *buf )
 {
 	switch( buf->def->base ) {
 		case R_BASE_BLOCKED_COMPRESSED:
-			return ( buf->height / buf->def->compressed.blockHeight ) + ( (buf->height % buf->def->compressed.blockHeight) == 0 ? 0 : 1 );
+			return ( buf->width / buf->def->compressed.blockWidth ) + ( ( buf->width % buf->def->compressed.blockWidth ) == 0 ? 0 : 1 );
 		default:
 			break;
 	}
@@ -197,6 +197,7 @@ void T_MipMapQuarterInPlace( struct texture_buf_s *tex) {
 
 void T_FreeTextureBuf( struct texture_buf_s *tex )
 {
+	assert(tex);
 	if( ( tex->flags & TEX_BUF_IS_ALIASED ) == 0 ) {
 		free( tex->buffer );
 	}
@@ -204,46 +205,60 @@ void T_FreeTextureBuf( struct texture_buf_s *tex )
 
 struct texture_buf_s *T_CurrentPogoTex( struct texture_buf_pogo_s *pogo )
 {
+	assert(pogo);
 	return &pogo->textures[pogo->index];
 }
 
 struct texture_buf_s *T_NextPogoTex( struct texture_buf_pogo_s *pogo )
 {
+	assert(pogo);
 	return &pogo->textures[( pogo->index + 1 ) % 2];
 }
 
 void T_IncrPogoTex(struct texture_buf_pogo_s* pogo) {
+	assert(pogo);
 	pogo->index = (pogo->index + 1) % 2;
 }
 
 void T_FreePogoBuffer( struct texture_buf_pogo_s *pogo )
 {
+	assert(pogo);
 	T_FreeTextureBuf( &pogo->textures[0] );
 	T_FreeTextureBuf( &pogo->textures[1] );
 }
 
 
-void T_BlockDecodeETC1( const struct texture_buf_s *src, const struct base_format_def_s  *desc, struct texture_buf_s *dest )
+void T_BlockDecodeETC1( const struct texture_buf_s *src, struct texture_buf_s *dest )
 {
 	assert( dest );
 	assert( src );
 	assert( src->def );
-	assert(desc->base == R_BASE_FORMAT_FIXED_8);
+	assert( dest->def->base == R_BASE_FORMAT_FIXED_8 );
 
-	const uint16_t logicalWidth = T_LogicalW( src );
-	const uint16_t logicalHeight = T_LogicalH( src );
+	assert( T_PixelW( src ) == T_PixelW( dest ) );
+	assert( T_PixelH( src ) == T_PixelH( dest ) );
+
+	const uint32_t logicalWidth = T_LogicalW( src );
+	const uint32_t logicalHeight = T_LogicalH( src );
+
+	const uint32_t width = T_PixelW(src);
+	const uint32_t height = T_PixelH(src);
+
 	struct uint_8_4 decodeColors[ETC1_BLOCK_WIDTH * ETC1_BLOCK_HEIGHT];
 	for( size_t row = 0; row < logicalHeight; row++ ) {
 		for( size_t column = 0; column < logicalWidth; column++ ) {
-			uint8_t *block = &src->buffer[src->rowPitch * row + ( column * dest->def->compressed.blockByteSize )];
+			uint8_t *block = &src->buffer[(src->rowPitch * row) + ( column * RT_BlockSize(src->def))];
 			R_ETC1DecodeBlock_RGBA8( block, decodeColors );
 			for( uint16_t subRow = 0; subRow < ETC1_BLOCK_HEIGHT; subRow++ ) {
 				for( uint16_t subCol = 0; subCol < ETC1_BLOCK_WIDTH; subCol++ ) {
+					const uint32_t destX = ( ( column * ETC1_BLOCK_WIDTH ) + subCol );
+					const uint32_t destY = ( ( row * ETC1_BLOCK_HEIGHT ) + subRow );
+					if(destX >= width || destY >= height)
+						continue;
 					const struct uint_8_4* color = &decodeColors[( subRow * ETC1_BLOCK_HEIGHT ) + subCol];
-					uint8_t *const destBlock = &dest->buffer[dest->rowPitch * ( ( row * ETC1_BLOCK_HEIGHT ) + subRow ) + ( ( column * ETC1_BLOCK_WIDTH ) + subCol )];
-					memset( destBlock, 0, desc->fixed_8.numChannels );
-					for( uint8_t c = 0; c < desc->fixed_8.numChannels; c++ ) {
-						switch( desc->fixed_8.channels[c] ) {
+					uint8_t *const destBlock = &dest->buffer[( dest->rowPitch * destY ) + ( destX * RT_BlockSize( dest->def ) )];
+					for( uint8_t c = 0; c < dest->def->fixed_8.numChannels; c++ ) {
+						switch( dest->def->fixed_8.channels[c] ) {
 							case R_LOGICAL_C_RED:
 								( *(destBlock + c) ) = color->r;
 								break;
@@ -254,6 +269,7 @@ void T_BlockDecodeETC1( const struct texture_buf_s *src, const struct base_forma
 								( *(destBlock + c) ) = color->b;
 								break;
 							default:
+								( *(destBlock + c)) = 0;
 								break;
 						}
 					}
