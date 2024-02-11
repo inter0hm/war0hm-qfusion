@@ -1438,8 +1438,6 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 	if( header->type == 0 )
 	{
 		int mips = numMips;
-		int mip;
-		int scaledWidth, scaledHeight;
 
 		if( ( header->numberOfMipmapLevels == 1 ) && ( image->flags & IT_NOMIPMAP ) )
 		{
@@ -1451,15 +1449,17 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 			goto error;
 		}
 
-		mip = R_ScaledImageSize( header->pixelWidth, header->pixelHeight, &scaledWidth, &scaledHeight,
+		int scaledWidth, scaledHeight;
+		const int minMipLevels = R_ScaledImageSize( header->pixelWidth, header->pixelHeight, &scaledWidth, &scaledHeight,
 			image->flags, mips, image->minmipsize, false );
+		//const uint32_t minMipLevels = mip;
 
 		image->upload_width = scaledWidth;
 		image->upload_height = scaledHeight;
 
 		// If different compression formats are added, make this more general-purpose!
 
-		if( !glConfig.ext.texture_compression || !( glConfig.ext.compressed_ETC1_RGB8_texture || glConfig.ext.ES3_compatibility ) || ( mip < 0 ) )
+		if( !glConfig.ext.texture_compression || !( glConfig.ext.compressed_ETC1_RGB8_texture || glConfig.ext.ES3_compatibility ) || ( minMipLevels < 0 ) )
 		{
 			int inSize = ( ( ALIGN( header->pixelWidth, 4 ) * ALIGN( header->pixelHeight, 4 ) ) >> 4 ) * 8;
 			int outSize = ALIGN( header->pixelWidth * 3, 4 ) * header->pixelHeight;
@@ -1480,43 +1480,19 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		else
 		{
 			int target;
-			int compressedFormat = glConfig.ext.ES3_compatibility ? GL_COMPRESSED_RGB8_ETC2 : GL_ETC1_RGB8_OES;
-			size_t faceSize;
-
+			const int compressedFormat = glConfig.ext.ES3_compatibility ? GL_COMPRESSED_RGB8_ETC2 : GL_ETC1_RGB8_OES;
 			R_TextureTarget( image->flags, &target );
 
 			R_SetupTexParameters( image->flags, scaledWidth, scaledHeight, image->minmipsize );
-
-			for( i = 0; i < mip; ++i )
-			{
-				data += sizeof( int ) + numFaces * ( (
-					ALIGN( max( header->pixelWidth >> i, 1 ), 4 ) *
-					ALIGN( max( header->pixelHeight >> i, 1 ), 4 )
-				) >> 4 ) * 8;
-			}
-
-			mips -= mip;
-			for( i = 0; i < mips; ++i )
-			{
-				
-				faceSize = ( ( ALIGN( scaledWidth, 4 ) * ALIGN( scaledHeight, 4 ) ) >> 4 ) * 8;
-				data += sizeof( int );
-				for( j = 0; j < numFaces; ++j )
-				{
-					struct texture_buf_s *texBuffer = R_KTXResolveBuffer( &ktxContext, i, j, 0 );
-					assert(texBuffer);
-					assert(texBuffer->buffer == data);
-					qglCompressedTexImage2DARB( target + j, i, compressedFormat,
-						scaledWidth, scaledHeight, 0, faceSize, texBuffer->buffer);
-					data += faceSize;
-				}
-				scaledWidth >>= 1;
-				scaledHeight >>= 1;
-				if( !scaledWidth )
-					scaledWidth = 1;
-				if( !scaledHeight )
-					scaledHeight = 1;
-			}
+		  const uint16_t numberOfMipLevels = R_KTXGetNumberMips(&ktxContext);
+		  uint16_t mip = 0;
+		  uint16_t mipIndex; 
+		  for(mipIndex = minMipLevels, mip = 0; mipIndex < numberOfMipLevels; mipIndex++, mip++) {
+		  	for(uint32_t face = 0; face < numFaces; ++face ) {
+		  		struct texture_buf_s *texBuffer = R_KTXResolveBuffer( &ktxContext, mipIndex, face, 0 );
+		  		qglCompressedTexImage2DARB( target + face, mip, compressedFormat, texBuffer->width, texBuffer->height, 0, texBuffer->size, texBuffer->buffer );
+		  	}
+		  }
 		}
 
 		image->samples = 3;

@@ -7,7 +7,7 @@ uint16_t T_LogicalH( struct texture_buf_s *buf )
 {
 	switch( buf->def->base ) {
 		case R_BASE_BLOCKED_COMPRESSED:
-			return ( buf->width / buf->def->compressed.blockWidth ) + ( buf->width % buf->def->compressed.blockWidth == 0 ? 0 : 1 );
+			return ( buf->width / buf->def->compressed.blockWidth ) + ( (buf->width % buf->def->compressed.blockWidth) == 0 ? 0 : 1 );
 		default:
 			break;
 	}
@@ -17,7 +17,7 @@ uint16_t T_LogicalW( struct texture_buf_s *buf )
 {
 	switch( buf->def->base ) {
 		case R_BASE_BLOCKED_COMPRESSED:
-			return ( buf->height / buf->def->compressed.blockHeight ) + ( buf->width % buf->def->compressed.blockHeight == 0 ? 0 : 1 );
+			return ( buf->height / buf->def->compressed.blockHeight ) + ( (buf->height % buf->def->compressed.blockHeight) == 0 ? 0 : 1 );
 		default:
 			break;
 	}
