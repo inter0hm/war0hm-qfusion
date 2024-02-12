@@ -1447,7 +1447,7 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		const enum texture_logical_channel_e expectA[] = { R_LOGICAL_C_ALPHA };
 		const bool isBGRTexture = 
 				RT_ExpectChannelsMatch( definition, expectBGR, Q_ARRAY_COUNT( expectBGR ) ) || 
-				RT_ExpectChannelsMatch( definition, expectBGRA, Q_ARRAY_COUNT( expectBGR ) ); 
+				RT_ExpectChannelsMatch( definition, expectBGRA, Q_ARRAY_COUNT( expectBGRA ) ); 
 		image->flags |= (
 			(isBGRTexture  ? IT_BGRA : 0 ) |
 			(RT_ExpectChannelsMatch( definition, expectA, Q_ARRAY_COUNT( expectA ) ) ? IT_ALPHAMASK : 0));
