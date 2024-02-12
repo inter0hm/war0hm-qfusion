@@ -535,7 +535,6 @@ const bool RT_ExpectChannelsMatch( const struct base_format_def_s *defs, const e
 	if( numChannels != expectCount )
 		return false;
 	const enum texture_logical_channel_e *channels = RT_Channels( defs );
-
 	for( uint_fast16_t c = 0; c < numChannels; c++ )
 		if( ( *( c + channels ) ) != ( *( expect + c ) ) )
 			return false;
