@@ -1338,7 +1338,7 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		return false;
 
 	uint8_t *buffer;
-	size_t bufferSize = R_LoadFile( pathname, ( void ** )&buffer );
+	const size_t bufferSize = R_LoadFile( pathname, ( void ** )&buffer );
 	if( !buffer )
 		return false;
 
@@ -1353,7 +1353,7 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 				ri.Com_Printf( S_COLOR_YELLOW "R_LoadKTX: Unhandeled texture (type: %04x internalFormat %04x): %s\n", err.errTextureType.type, err.errTextureType.internalFormat, pathname );
 				break;
 			case KTX_ERR_TRUNCATED:
-				ri.Com_Printf( S_COLOR_YELLOW "R_LoadKTX: Truncated Data (size: %lu expected: %lu): %s\n", err.errTruncated.size, err.errTruncated.expected, pathname);
+				ri.Com_Printf( S_COLOR_YELLOW "R_LoadKTX: Truncated Data (size: %lu expected: %lu): %s\n", err.errTruncated.size, err.errTruncated.expected, pathname );
 				break;
 			case KTX_ERR_ZER_TEXTURE_SIZE:
 				ri.Com_Printf( S_COLOR_YELLOW "R_LoadKTX: Zero texture size: %s\n", pathname );
@@ -1405,45 +1405,40 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		image->upload_height = scaledHeight;
 
 		// If different compression formats are added, make this more general-purpose!
-		if( (!glConfig.ext.texture_compression || !( glConfig.ext.compressed_ETC1_RGB8_texture || glConfig.ext.ES3_compatibility ) || ( minMipLevels < 0 )) && glConfig.ext.texture_non_power_of_two )
-		{
-			uint8_t *decompressed[6];
-			struct texture_buf_s decodeTextures[8] = {0};
-			for( size_t faceIdx = 0; faceIdx < numFaces; ++faceIdx ) {
-				struct texture_buf_s *tex = R_KTXResolveBuffer( &ktxContext, 0, faceIdx, 0 );
-				struct texture_buf_desc_s decodeDesc = {
-					.width = T_PixelW( tex ), 
-					.height = T_PixelH( tex ), 
-					.def = glConfig.ext.bgra ? R_BaseFormatDef( R_FORMAT_BGR8_UNORM ) : R_BaseFormatDef( R_FORMAT_RGB8_UNORM ), 
-					.alignment = 1 
-				};
-				T_ReallocTextureBuf( &decodeTextures[faceIdx], &decodeDesc );
-				T_BlockDecodeETC1( tex, &decodeTextures[faceIdx] );
-				decompressed[faceIdx] = decodeTextures[faceIdx].buffer;
-			}
-			R_UploadMipmapped( ctx, decompressed, R_KTXWidth(&ktxContext), R_KTXHeight(&ktxContext), 1,
-				image->flags, image->minmipsize, &image->upload_width, &image->upload_height,
-				glConfig.ext.bgra ? GL_BGR_EXT : GL_RGB, GL_UNSIGNED_BYTE );
-			for(size_t faceIdx = 0; faceIdx < numFaces; faceIdx++ ) {
-				T_FreeTextureBuf( &decodeTextures[faceIdx] );
-			}
-		}
-		else
-		{
+
+		if( ( glConfig.ext.texture_compression && ( glConfig.ext.compressed_ETC1_RGB8_texture || glConfig.ext.ES3_compatibility ) ) && minMipLevels >= 0 && glConfig.ext.texture_non_power_of_two ) {
 			int target;
 			const int compressedFormat = glConfig.ext.ES3_compatibility ? GL_COMPRESSED_RGB8_ETC2 : GL_ETC1_RGB8_OES;
 			R_TextureTarget( image->flags, &target );
 			R_SetupTexParameters( image->flags, scaledWidth, scaledHeight, image->minmipsize );
-		  const uint16_t numberOfMipLevels = R_KTXGetNumberMips(&ktxContext);
-		  uint16_t mip = 0;
-		  uint16_t mipIndex; 
-		  for(mipIndex = minMipLevels, mip = 0; mipIndex < numberOfMipLevels; mipIndex++, mip++) {
-		  	for(uint32_t face = 0; face < numFaces; ++face ) {
-		  		struct texture_buf_s *texBuffer = R_KTXResolveBuffer( &ktxContext, mipIndex, face, 0 );
-		  		qglCompressedTexImage2DARB( target + face, mip, compressedFormat, texBuffer->width, texBuffer->height, 0, texBuffer->size, texBuffer->buffer );
-		  	}
-		  }
+			const uint16_t numberOfMipLevels = R_KTXGetNumberMips( &ktxContext );
+			uint16_t mip = 0;
+			uint16_t mipIndex;
+			for( mipIndex = minMipLevels, mip = 0; mipIndex < numberOfMipLevels; mipIndex++, mip++ ) {
+				for( uint32_t face = 0; face < numFaces; ++face ) {
+					struct texture_buf_s *texBuffer = R_KTXResolveBuffer( &ktxContext, mipIndex, face, 0 );
+					qglCompressedTexImage2DARB( target + face, mip, compressedFormat, texBuffer->width, texBuffer->height, 0, texBuffer->size, texBuffer->buffer );
+				}
+			}
+
+		} else {
+			uint8_t *decompressed[6];
+			struct texture_buf_s decodeTextures[8] = { 0 };
+			for( size_t faceIdx = 0; faceIdx < numFaces; ++faceIdx ) {
+				struct texture_buf_s *tex = R_KTXResolveBuffer( &ktxContext, 0, faceIdx, 0 );
+				struct texture_buf_desc_s decodeDesc = {
+					.width = T_PixelW( tex ), .height = T_PixelH( tex ), .def = glConfig.ext.bgra ? R_BaseFormatDef( R_FORMAT_BGR8_UNORM ) : R_BaseFormatDef( R_FORMAT_RGB8_UNORM ), .alignment = 1 };
+				T_ReallocTextureBuf( &decodeTextures[faceIdx], &decodeDesc );
+				T_BlockDecodeETC1( tex, &decodeTextures[faceIdx] );
+				decompressed[faceIdx] = decodeTextures[faceIdx].buffer;
+			}
+			R_UploadMipmapped( ctx, decompressed, R_KTXWidth( &ktxContext ), R_KTXHeight( &ktxContext ), 1, image->flags, image->minmipsize, &image->upload_width, &image->upload_height,
+							   glConfig.ext.bgra ? GL_BGR_EXT : GL_RGB, GL_UNSIGNED_BYTE );
+			for( size_t faceIdx = 0; faceIdx < numFaces; faceIdx++ ) {
+				T_FreeTextureBuf( &decodeTextures[faceIdx] );
+			}
 		}
+
 		image->samples = 3;
 	} else {
 		const struct base_format_def_s *definition = ktxContext.desc;

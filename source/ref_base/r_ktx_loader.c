@@ -158,14 +158,14 @@ bool R_InitKTXContext(struct ktx_context_s *cntx, uint8_t *memory, size_t size, 
 	uint32_t height = cntx->pixelHeight;
 	size_t offset = dataOffset;
 	for( uint_fast16_t mipLevel = 0; mipLevel < numberOfMips; mipLevel++ ) {
-		size_t bufferLen  = (*( (uint32_t *)( cntx->buffer + offset ) )) ;
+		size_t bufferLen  = *((uint32_t *)&cntx->buffer[offset]);
 		bufferLen = (cntx->swapEndianess == true) ? LongSwap(bufferLen) : bufferLen;
 
 		offset += sizeof( uint32_t );
 		if(bufferLen + offset > size) {
 			err->type = KTX_ERR_TRUNCATED;
 			err->errTruncated.size = size;
-			err->errTruncated.expected = offset;
+			err->errTruncated.expected = bufferLen + offset;
 			goto error;
 		}
 
@@ -185,7 +185,6 @@ bool R_InitKTXContext(struct ktx_context_s *cntx, uint8_t *memory, size_t size, 
 	}
   return true;
 error:
-  R_KTXFreeContext(cntx);
   return false;
 }
 uint16_t R_KTXGetNumberMips( const struct ktx_context_s *cntx )
@@ -208,6 +207,7 @@ void R_KTXFreeContext( struct ktx_context_s *context )
 {
 	assert( context );
 	arrfree( context->textures );
+	context->textures = 0;
 }
 
 bool R_KTXIsCompressed(struct ktx_context_s* cntx) {
