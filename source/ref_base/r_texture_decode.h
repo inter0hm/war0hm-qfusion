@@ -19,7 +19,6 @@ struct uint_8_4 {
   };
 };
 
-
 /**
 * decodes a 4x4 block into 4x4x3 R_FORMAT_RGB8_UNORM
 *

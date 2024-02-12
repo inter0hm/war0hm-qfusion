@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_ktx_loader.h"
 #include "r_texture_buf.h"
 #include "r_texture_format.h"
+#include <stdint.h>
 
 #define	MAX_GLIMAGES	    8192
 #define IMAGES_HASH_SIZE    64
@@ -1357,128 +1358,99 @@ typedef struct ktx_header_s
 */
 static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 {
-	int i, j;
-	uint8_t *buffer;
-	ktx_header_t *header;
-	bool swapEndian;
-	uint8_t *data;
-	int numFaces = ( ( image->flags & IT_CUBEMAP ) ? 6 : 1 ), numMips;
-
+	const uint_fast16_t numFaces = ( ( image->flags & IT_CUBEMAP ) ? 6 : 1 );
 	if( image->flags & ( IT_FLIPX|IT_FLIPY|IT_FLIPDIAGONAL ) )
 		return false;
 
-	size_t size = R_LoadFile( pathname, ( void ** )&buffer );
+	uint8_t *buffer;
+	size_t bufferSize = R_LoadFile( pathname, ( void ** )&buffer );
 	if( !buffer )
 		return false;
 
 	struct ktx_context_s ktxContext = {};
-	enum ktx_context_result_e res = R_InitKTXContext( buffer, size, &ktxContext );
-	if( res != KTX_ERR_NONE ) {
-		return false;
-	}
-
-	header = ( ktx_header_t * )buffer;
-	if( memcmp( header->identifier, "\xABKTX 11\xBB\r\n\x1A\n", 12 ) )
-	{
-		ri.Com_DPrintf( S_COLOR_YELLOW "R_LoadKTX: Bad file identifier: %s\n", pathname );
+	struct ktx_context_err_s err = {};
+	if( !R_InitKTXContext( &ktxContext, buffer, bufferSize, &err ) ) {
+		switch(err.type) {
+			case KTX_ERR_INVALID_IDENTIFIER:
+				ri.Com_Printf( S_COLOR_YELLOW "R_LoadKTX: Bad file identifier: %s\n", pathname );
+				break;
+			case KTX_ERR_UNHANDLED_TEXTURE_TYPE:
+				ri.Com_Printf( S_COLOR_YELLOW "R_LoadKTX: Unhandeled texture (type: %04x internalFormat %04x): %s\n", err.errTextureType.type, err.errTextureType.internalFormat, pathname );
+				break;
+			case KTX_ERR_TRUNCATED:
+				ri.Com_Printf( S_COLOR_YELLOW "R_LoadKTX: Truncated Data (size: %lu expected: %lu): %s\n", err.errTruncated.size, err.errTruncated.expected, pathname);
+				break;
+			case KTX_ERR_ZER_TEXTURE_SIZE:
+				ri.Com_Printf( S_COLOR_YELLOW "R_LoadKTX: Zero texture size: %s\n", pathname );
+				break;
+		}
 		goto error;
 	}
 
-	swapEndian = ( header->endianness == 0x01020304 ) ? true : false;
-	if( swapEndian )
+	if( ktxContext.format && ( ktxContext.format != ktxContext.baseInternalFormat ) )
 	{
-		for( i = 3; i < 16; ++i )
-			( ( int * )header )[i] = LongSwap( ( ( int * )header )[i] );
-	}
-
-	if( header->format && ( header->format != header->baseInternalFormat ) )
-	{
-		ri.Com_DPrintf( S_COLOR_YELLOW "R_LoadKTX: Pixel format doesn't match internal format: %s\n", pathname );
+		ri.Com_Printf( S_COLOR_YELLOW "R_LoadKTX: Pixel format doesn't match internal format: %s\n", pathname );
 		goto error;
 	}
-	if( !R_IsKTXFormatValid( header->format ? header->baseInternalFormat : header->internalFormat, header->type ) )
+	if( !R_IsKTXFormatValid( ktxContext.format ? ktxContext.baseInternalFormat : ktxContext.internalFormat, ktxContext.type ) )
 	{
-		ri.Com_DPrintf( S_COLOR_YELLOW "R_LoadKTX: Unsupported pixel format: %s\n", pathname );
+		ri.Com_Printf( S_COLOR_YELLOW "R_LoadKTX: Unsupported pixel format: %s\n", pathname );
 		goto error;
 	}
-	if( ( header->pixelWidth < 1 ) || ( header->pixelHeight < 0 ) )
-	{
-		ri.Com_DPrintf( S_COLOR_YELLOW "R_LoadKTX: Zero texture size: %s\n", pathname );
-		goto error;
-	}
-	if( !header->pixelHeight )
-		header->pixelHeight = 1;
-	if( !header->type && ( ( header->pixelWidth & ( header->pixelWidth - 1 ) ) || ( header->pixelHeight & ( header->pixelHeight - 1 ) ) ) )
+	if( R_KTXIsCompressed(&ktxContext) && ( ( ktxContext.pixelWidth & ( ktxContext.pixelWidth - 1 ) ) || ( ktxContext.pixelHeight & ( ktxContext.pixelHeight - 1 ) ) ) )
 	{
 		// NPOT compressed textures may crash on certain drivers/GPUs
-		ri.Com_DPrintf( S_COLOR_YELLOW "R_LoadKTX: Compressed image must be power-of-two: %s\n", pathname );
+		ri.Com_Printf( S_COLOR_YELLOW "R_LoadKTX: Compressed image must be power-of-two: %s\n", pathname );
 		goto error;
 	}
-	if( ( image->flags & IT_CUBEMAP ) && ( header->pixelWidth != header->pixelHeight ) )
+	if( ( image->flags & IT_CUBEMAP ) && ( ktxContext.pixelWidth != ktxContext.pixelHeight ) )
 	{
 		ri.Com_DPrintf( S_COLOR_YELLOW "R_LoadKTX: Not square cubemap image: %s\n", pathname );
 		goto error;
 	}
-	if( ( header->pixelDepth > 1 ) || ( header->numberOfArrayElements > 1 ) )
+	if( ( ktxContext.pixelDepth > 1 ) || ( ktxContext.numberOfArrayElements > 1 ) )
 	{
 		ri.Com_DPrintf( S_COLOR_YELLOW "R_LoadKTX: 3D textures and texture arrays are not supported: %s\n", pathname );
 		goto error;
 	}
-	if( header->numberOfFaces != numFaces )
+	if( ktxContext.numberOfFaces != numFaces )
 	{
 		ri.Com_DPrintf( S_COLOR_YELLOW "R_LoadKTX: Bad number of cubemap faces: %s\n", pathname );
 		goto error;
 	}
-	if( header->numberOfMipmapLevels < 1 )
-		header->numberOfMipmapLevels = 1;
 
-	numMips = R_MipCount( header->pixelWidth, header->pixelHeight, image->minmipsize );
-
-	data = buffer + sizeof( ktx_header_t ) + header->bytesOfKeyValueData;
-	
 	R_BindImage( image );
 
-	if( header->type == 0 )
-	{
-		int mips = numMips;
-
-		if( ( header->numberOfMipmapLevels == 1 ) && ( image->flags & IT_NOMIPMAP ) )
-		{
-			mips = 1;
-		}
-		else if( header->numberOfMipmapLevels < mips )
-		{
-			ri.Com_DPrintf( S_COLOR_YELLOW "R_LoadKTX: Compressed image has too few mip levels: %s\n", pathname );
-			goto error;
-		}
-
+	if( R_KTXIsCompressed( &ktxContext ) ) {
+		const uint_fast16_t numberMipLevels = R_KTXGetNumberMips(&ktxContext);
+		
 		int scaledWidth, scaledHeight;
-		const int minMipLevels = R_ScaledImageSize( header->pixelWidth, header->pixelHeight, &scaledWidth, &scaledHeight, image->flags, mips, image->minmipsize, false );
+		const int minMipLevels = R_ScaledImageSize(R_KTXWidth(&ktxContext), R_KTXHeight(&ktxContext), &scaledWidth, &scaledHeight, image->flags, numberMipLevels, image->minmipsize, false );
 		image->upload_width = scaledWidth;
 		image->upload_height = scaledHeight;
 
 		// If different compression formats are added, make this more general-purpose!
-		if( !glConfig.ext.texture_compression || !( glConfig.ext.compressed_ETC1_RGB8_texture || glConfig.ext.ES3_compatibility ) || ( minMipLevels < 0 ) )
+		if( (!glConfig.ext.texture_compression || !( glConfig.ext.compressed_ETC1_RGB8_texture || glConfig.ext.ES3_compatibility ) || ( minMipLevels < 0 )) && glConfig.ext.texture_non_power_of_two )
 		{
 			uint8_t *decompressed[6];
 			struct texture_buf_s decodeTextures[8] = {0};
-			for( i = 0; i < numFaces; ++i ) {
-		  	struct texture_buf_s *tex= R_KTXResolveBuffer( &ktxContext, 0, i, 0 );
+			for( size_t faceIdx = 0; faceIdx < numFaces; ++faceIdx ) {
+				struct texture_buf_s *tex = R_KTXResolveBuffer( &ktxContext, 0, faceIdx, 0 );
 				struct texture_buf_desc_s decodeDesc = {
-					.width = T_PixelW(tex),  
-					.height = T_PixelH(tex),
-					.def = glConfig.ext.bgra ? R_BaseFormatDef(R_FORMAT_BGR8_UNORM): R_BaseFormatDef(R_FORMAT_RGB8_UNORM),
+					.width = T_PixelW( tex ), 
+					.height = T_PixelH( tex ), 
+					.def = glConfig.ext.bgra ? R_BaseFormatDef( R_FORMAT_BGR8_UNORM ) : R_BaseFormatDef( R_FORMAT_RGB8_UNORM ), 
 					.alignment = 1 
 				};
-				T_ReallocTextureBuf(&decodeTextures[i], &decodeDesc);
-				T_BlockDecodeETC1( tex, &decodeTextures[i] );
-				decompressed[i] = decodeTextures[i].buffer;
+				T_ReallocTextureBuf( &decodeTextures[faceIdx], &decodeDesc );
+				T_BlockDecodeETC1( tex, &decodeTextures[faceIdx] );
+				decompressed[faceIdx] = decodeTextures[faceIdx].buffer;
 			}
-			R_UploadMipmapped( ctx, decompressed, header->pixelWidth, header->pixelHeight, 1,
+			R_UploadMipmapped( ctx, decompressed, R_KTXWidth(&ktxContext), R_KTXHeight(&ktxContext), 1,
 				image->flags, image->minmipsize, &image->upload_width, &image->upload_height,
 				glConfig.ext.bgra ? GL_BGR_EXT : GL_RGB, GL_UNSIGNED_BYTE );
-			for( i = 0; i < numFaces; i++ ) {
-				T_FreeTextureBuf( &decodeTextures[i] );
+			for(size_t faceIdx = 0; faceIdx < numFaces; faceIdx++ ) {
+				T_FreeTextureBuf( &decodeTextures[faceIdx] );
 			}
 		}
 		else
@@ -1498,9 +1470,7 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		  }
 		}
 		image->samples = 3;
-	}
-	else
-	{
+	} else {
 		const struct base_format_def_s *definition = ktxContext.desc;
 		const enum texture_logical_channel_e expectBGR[] = { R_LOGICAL_C_BLUE, R_LOGICAL_C_GREEN, R_LOGICAL_C_RED };
 		const enum texture_logical_channel_e expectBGRA[] = { R_LOGICAL_C_BLUE, R_LOGICAL_C_GREEN, R_LOGICAL_C_RED, R_LOGICAL_C_ALPHA };
@@ -1531,19 +1501,18 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 				images[mipIndex * numFaces + faceIndex] = texBuffer->buffer;
 			}
 		}
-		R_UploadMipmapped( ctx, images, header->pixelWidth, header->pixelHeight, numberOfMipLevels, image->flags, image->minmipsize,
-			&image->upload_width, &image->upload_height, header->baseInternalFormat, header->type );
+		R_UploadMipmapped( ctx, images, R_KTXWidth(&ktxContext), R_KTXHeight(&ktxContext), numberOfMipLevels, image->flags, image->minmipsize,
+			&image->upload_width, &image->upload_height, ktxContext.baseInternalFormat, ktxContext.type );
 	}
 
 	Q_strncpyz( image->extension, ".ktx", sizeof( image->extension ) );
-	image->width = header->pixelWidth;
-	image->height = header->pixelHeight;
+	image->width = R_KTXWidth(&ktxContext);
+	image->height = R_KTXHeight(&ktxContext);
 
 	R_KTXFreeContext(&ktxContext);
 	R_FreeFile( buffer );
 	R_DeferDataSync();
 	return true;
-
 error: // must not be reached after actually starting uploading the texture
 	R_KTXFreeContext(&ktxContext);
 	R_FreeFile( buffer );

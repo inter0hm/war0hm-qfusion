@@ -125,7 +125,7 @@ enum texture_format_e {
 };
 
 struct texture_format_def_fixed_8_s {
-	uint16_t numChannels;
+	int_fast16_t numChannels;
 	enum texture_logical_channel_e channels[R_LOGICAL_C_MAX];
   uint32_t normalized: 1;
   uint32_t sign: 1;
@@ -134,16 +134,16 @@ struct texture_format_def_fixed_8_s {
 };
 
 struct texture_format_packed_def_16_s {
-	uint16_t numChannels;
+	int_fast16_t numChannels;
 	struct {
-		uint32_t offset;
-		uint32_t mask;
+		size_t offset;
+		size_t mask;
 	} bits[R_LOGICAL_C_MAX];
 	enum texture_logical_channel_e channels[R_LOGICAL_C_MAX];
 };
 
 struct texture_format_fixed_def_16_s {
-	uint16_t numChannels;
+	int_fast16_t numChannels;
 	enum texture_logical_channel_e channels[R_LOGICAL_C_MAX];
   uint32_t normalized: 1;
   uint32_t sign: 1;
@@ -152,7 +152,7 @@ struct texture_format_fixed_def_16_s {
 };
 
 struct texture_format_fixed_def_32_s {
-	uint16_t numChannels;
+	int_fast16_t numChannels;
 	enum texture_logical_channel_e channels[R_LOGICAL_C_MAX];
   uint32_t normalized: 1;
   uint32_t sign: 1;
@@ -163,12 +163,12 @@ struct texture_format_fixed_def_32_s {
 struct texture_format_def_compressed_s {
 	uint8_t blockWidth;
 	uint8_t blockHeight;
-  uint16_t blockByteSize;
+  int_fast16_t blockByteSize;
 };
 
 struct base_format_def_s {
-	enum texture_format_e format; 
-	enum texture_base_format_e base;
+	enum texture_format_e format;  
+	enum texture_base_format_e base; 
 	union {
 		struct texture_format_def_compressed_s compressed;
 		struct texture_format_def_fixed_8_s fixed_8;
@@ -180,7 +180,7 @@ struct base_format_def_s {
 
 const struct base_format_def_s* R_BaseFormatDef(enum texture_format_e format);
 const size_t RT_BlockSize(const struct base_format_def_s* defs);
-const uint16_t RT_NumberChannels(const struct base_format_def_s* defs);
+const uint_fast16_t RT_NumberChannels(const struct base_format_def_s* defs);
 const enum texture_logical_channel_e* RT_Channels(const struct base_format_def_s* defs);
 const bool RT_ExpectChannelsMatch( const struct base_format_def_s *defs, const enum texture_logical_channel_e *channels, uint16_t numChannels );
 

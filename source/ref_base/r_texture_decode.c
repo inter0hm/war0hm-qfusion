@@ -1,5 +1,6 @@
 #include "r_texture_decode.h"
 #include "../gameshared/q_math.h"
+#include "../gameshared/q_arch.h"
 
 void R_ETC1DecodeBlock_RGBA8(uint8_t* block, struct uint_8_4 colors[ETC1_BLOCK_WIDTH * ETC1_BLOCK_HEIGHT]) {
 
@@ -51,7 +52,7 @@ void R_ETC1DecodeBlock_RGBA8(uint8_t* block, struct uint_8_4 colors[ETC1_BLOCK_W
   #define BCF_CW1(value) ((value >> 5) & 7) 
 
   // sub pixel colors
-  static const int ETC1_ModifierTable[] =
+  static const int_fast16_t ETC1_ModifierTable[] =
   {
 	  2, 8, -2, -8,
 	  5, 17, -5, -17,
@@ -62,64 +63,63 @@ void R_ETC1DecodeBlock_RGBA8(uint8_t* block, struct uint_8_4 colors[ETC1_BLOCK_W
 	  33, 106, -33, -106,
 	  47, 183, -47, -183
   };
-  static const int ETC1_Lookup[] = { 0, 1, 2, 3, -4, -3, -2, -1 };
+  static const int_fast16_t ETC1_Lookup[] = { 0, 1, 2, 3, -4, -3, -2, -1 };
 
-	const uint64_t baseColorsAndFlags = ( block[0] << 24 ) | ( block[1] << 16 ) | ( block[2] << 8 ) | block[3];
-	const uint64_t pixels = ( block[4] << 24 ) | ( block[5] << 16 ) | ( block[6] << 8 ) | block[7];
-	int r1, r2, g1, g2, b1, b2;
+	const uint_fast64_t baseColorsAndFlags = ( block[0] << 24 ) | ( block[1] << 16 ) | ( block[2] << 8 ) | block[3];
+	const uint_fast64_t pixels = ( block[4] << 24 ) | ( block[5] << 16 ) | ( block[6] << 8 ) | block[7];
+	int_fast32_t r1, r2, g1, g2, b1, b2;
 	if( BCF_DIFF_SET( baseColorsAndFlags ) ) {
-    // we are constructing an 8 bit word
-    // copy the top 3 bits to the bottom order bits
-    // for the second half we use the etc1lookup to look up the intensity
-    r1 = (BCF_C1_R1_DIFF(baseColorsAndFlags) << 3) | (BCF_C1_R1_DIFF(baseColorsAndFlags) >> 2);
-    const int r2_ = (BCF_C1_R1_DIFF(baseColorsAndFlags) + ETC1_Lookup[BCF_C2_DR2_DIFF(baseColorsAndFlags)]) & 0x1F;
-    r2 = (r2_ << 3) | (r2_ >> 2);
+		// we are constructing an 8 bit word
+		// copy the top 3 bits to the bottom order bits
+		// for the second half we use the etc1lookup to look up the intensity
+		r1 = ( BCF_C1_R1_DIFF( baseColorsAndFlags ) << 3 ) | ( BCF_C1_R1_DIFF( baseColorsAndFlags ) >> 2 );
+		const int r2_ = ( BCF_C1_R1_DIFF( baseColorsAndFlags ) + ETC1_Lookup[BCF_C2_DR2_DIFF( baseColorsAndFlags )] ) & 0x1F;
+		r2 = ( r2_ << 3 ) | ( r2_ >> 2 );
 
-    g1 = (BCF_C1_G1_DIFF(baseColorsAndFlags) << 3) | (BCF_C1_G1_DIFF(baseColorsAndFlags) >> 2); 
-    const int g2_ = (BCF_C1_G1_DIFF(baseColorsAndFlags) + ETC1_Lookup[BCF_C2_DG2_DIFF(baseColorsAndFlags)]) & 0x1F;
-    g2 = (g2_ << 3) | (g2_ >> 2);
+		g1 = ( BCF_C1_G1_DIFF( baseColorsAndFlags ) << 3 ) | ( BCF_C1_G1_DIFF( baseColorsAndFlags ) >> 2 );
+		const int g2_ = ( BCF_C1_G1_DIFF( baseColorsAndFlags ) + ETC1_Lookup[BCF_C2_DG2_DIFF( baseColorsAndFlags )] ) & 0x1F;
+		g2 = ( g2_ << 3 ) | ( g2_ >> 2 );
 
-    b1 = (BCF_C1_B1_DIFF(baseColorsAndFlags) << 3) | (BCF_C1_B1_DIFF(baseColorsAndFlags) >> 2); 
-    const int b2_ = (BCF_C1_B1_DIFF(baseColorsAndFlags) + ETC1_Lookup[BCF_C2_DB2_DIFF(baseColorsAndFlags)]) & 0x1F;
-    b2 = (b2_ << 3) | (b2_ >> 2); 
+		b1 = ( BCF_C1_B1_DIFF( baseColorsAndFlags ) << 3 ) | ( BCF_C1_B1_DIFF( baseColorsAndFlags ) >> 2 );
+		const int b2_ = ( BCF_C1_B1_DIFF( baseColorsAndFlags ) + ETC1_Lookup[BCF_C2_DB2_DIFF( baseColorsAndFlags )] ) & 0x1F;
+		b2 = ( b2_ << 3 ) | ( b2_ >> 2 );
 	} else {
-	  // indvidual mode
-	  //by replicating the four higher orderbits in the four lower order bits
-    r1 = (BCF_C1_R1_NO_DIFF(baseColorsAndFlags) << 4) | (BCF_C1_R1_NO_DIFF(baseColorsAndFlags));
-    r2 = (BCF_C2_R2_NO_DIFF(baseColorsAndFlags) << 4) | (BCF_C2_R2_NO_DIFF(baseColorsAndFlags));
-    g1 = (BCF_C1_G1_NO_DIFF(baseColorsAndFlags) << 4) | (BCF_C1_G1_NO_DIFF(baseColorsAndFlags));
-    g2 = (BCF_C2_G2_NO_DIFF(baseColorsAndFlags) << 4) | (BCF_C2_G2_NO_DIFF(baseColorsAndFlags));
-    b1 = (BCF_C1_B1_NO_DIFF(baseColorsAndFlags) << 4) | (BCF_C1_B1_NO_DIFF(baseColorsAndFlags));
-    b2 = (BCF_C2_B2_NO_DIFF(baseColorsAndFlags) << 4) | (BCF_C2_B2_NO_DIFF(baseColorsAndFlags));
+		// indvidual mode
+		// by replicating the four higher orderbits in the four lower order bits
+		r1 = ( BCF_C1_R1_NO_DIFF( baseColorsAndFlags ) << 4 ) | ( BCF_C1_R1_NO_DIFF( baseColorsAndFlags ) );
+		r2 = ( BCF_C2_R2_NO_DIFF( baseColorsAndFlags ) << 4 ) | ( BCF_C2_R2_NO_DIFF( baseColorsAndFlags ) );
+		g1 = ( BCF_C1_G1_NO_DIFF( baseColorsAndFlags ) << 4 ) | ( BCF_C1_G1_NO_DIFF( baseColorsAndFlags ) );
+		g2 = ( BCF_C2_G2_NO_DIFF( baseColorsAndFlags ) << 4 ) | ( BCF_C2_G2_NO_DIFF( baseColorsAndFlags ) );
+		b1 = ( BCF_C1_B1_NO_DIFF( baseColorsAndFlags ) << 4 ) | ( BCF_C1_B1_NO_DIFF( baseColorsAndFlags ) );
+		b2 = ( BCF_C2_B2_NO_DIFF( baseColorsAndFlags ) << 4 ) | ( BCF_C2_B2_NO_DIFF( baseColorsAndFlags ) );
 	}
 
 	for( size_t index = 0; index < 8; index++ ) {
+		const uint_fast16_t x = ( BCF_FLIP_SET( baseColorsAndFlags ) ? ( index >> 1 ) : ( index >> 2 ) );
+		const uint_fast16_t y = ( BCF_FLIP_SET( baseColorsAndFlags ) ? ( index & 1 ) : ( index & 3 ) );
+		const uint_fast16_t k = y + ( x * 4 );
+		const uint_fast16_t delta = ( ETC1_ModifierTable + ( BCF_CW1( baseColorsAndFlags ) << 2 ) )[( ( pixels >> k ) & 1 ) | ( ( pixels >> ( k + 15 ) ) & 2 )];
+		assert( x < ETC1_BLOCK_WIDTH );
+		assert( y < ETC1_BLOCK_HEIGHT );
 
-		const uint32_t x = ( BCF_FLIP_SET( baseColorsAndFlags ) ? ( index >> 1 ) : ( index >> 2 ) ); 
-		const uint32_t y = ( BCF_FLIP_SET( baseColorsAndFlags ) ? ( index & 1 ) : ( index & 3 ) );
-		const uint32_t k = y + ( x * 4 );
-		const uint32_t delta = (ETC1_ModifierTable + (BCF_CW1(baseColorsAndFlags) << 2))[( ( pixels >> k ) & 1 ) | ( ( pixels >> ( k + 15 ) ) & 2 )];
-		assert(x < ETC1_BLOCK_WIDTH);
-		assert(y < ETC1_BLOCK_HEIGHT);
-
-	  colors[( y * ETC1_BLOCK_WIDTH ) + x].r = bound( 0, r1 + delta, 255 );
-	  colors[( y * ETC1_BLOCK_WIDTH ) + x].g = bound( 0, g1 + delta, 255 );
-	  colors[( y * ETC1_BLOCK_WIDTH ) + x].b = bound( 0, b1 + delta, 255 );
-	  colors[( y * ETC1_BLOCK_WIDTH ) + x].a = 0;
+		colors[( y * ETC1_BLOCK_WIDTH ) + x].r = bound( 0, r1 + delta, 255 );
+		colors[( y * ETC1_BLOCK_WIDTH ) + x].g = bound( 0, g1 + delta, 255 );
+		colors[( y * ETC1_BLOCK_WIDTH ) + x].b = bound( 0, b1 + delta, 255 );
+		colors[( y * ETC1_BLOCK_WIDTH ) + x].a = 0;
 	}
 
 	for( size_t index = 0; index < 8; index++ ) {
-		const uint32_t x = ( BCF_FLIP_SET( baseColorsAndFlags ) ? ( index >> 1 ) : ( index >> 2 ) + 2 );
-		const uint32_t y = ( BCF_FLIP_SET( baseColorsAndFlags ) ? ( index & 1 ) + 2 : ( index & 3 ) );
-		const uint32_t k = y + ( x * 4 );
-		const uint32_t delta = (ETC1_ModifierTable + (BCF_CW2(baseColorsAndFlags) << 2))[( ( pixels >> k ) & 1 ) | ( ( pixels >> ( k + 15 ) ) & 2 )];
-		assert(x < ETC1_BLOCK_WIDTH);
-		assert(y < ETC1_BLOCK_HEIGHT);
+		const uint_fast16_t x = ( BCF_FLIP_SET( baseColorsAndFlags ) ? ( index >> 1 ) : ( index >> 2 ) + 2 );
+		const uint_fast16_t y = ( BCF_FLIP_SET( baseColorsAndFlags ) ? ( index & 1 ) + 2 : ( index & 3 ) );
+		const uint_fast16_t k = y + ( x * 4 );
+		const uint_fast16_t delta = ( ETC1_ModifierTable + ( BCF_CW2( baseColorsAndFlags ) << 2 ) )[( ( pixels >> k ) & 1 ) | ( ( pixels >> ( k + 15 ) ) & 2 )];
+		assert( x < ETC1_BLOCK_WIDTH );
+		assert( y < ETC1_BLOCK_HEIGHT );
 
-	  colors[( y * ETC1_BLOCK_WIDTH ) + x].r = bound( 0, r2 + delta, 255 );
-	  colors[( y * ETC1_BLOCK_WIDTH ) + x].g = bound( 0, g2 + delta, 255 );
-	  colors[( y * ETC1_BLOCK_WIDTH ) + x].b = bound( 0, b2 + delta, 255 );
-	  colors[( y * ETC1_BLOCK_WIDTH ) + x].a = 0;
+		colors[( y * ETC1_BLOCK_WIDTH ) + x].r = bound( 0, r2 + delta, 255 );
+		colors[( y * ETC1_BLOCK_WIDTH ) + x].g = bound( 0, g2 + delta, 255 );
+		colors[( y * ETC1_BLOCK_WIDTH ) + x].b = bound( 0, b2 + delta, 255 );
+		colors[( y * ETC1_BLOCK_WIDTH ) + x].a = 0;
 	}
 
 #undef BCF_C1_R1_NO_DIFF

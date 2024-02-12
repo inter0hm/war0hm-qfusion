@@ -1,5 +1,6 @@
 #include "r_texture_format.h"
 #include "../gameshared/q_math.h"
+#include <stdint.h>
 
 static const struct base_format_def_s baseFormats[] = {
   [R_FORMAT_ETC1_R8G8B8_OES ] = {
@@ -495,7 +496,7 @@ const size_t RT_BlockSize(const struct base_format_def_s* def) {
 	return 0;
 }
 
-const uint16_t RT_NumberChannels(const struct base_format_def_s* def) {
+const uint_fast16_t RT_NumberChannels(const struct base_format_def_s* def) {
 	switch( def->base ) {
 		case R_BASE_FORMAT_FIXED_8:
 			return def->fixed_8.numChannels;
@@ -536,7 +537,7 @@ const bool RT_ExpectChannelsMatch( const struct base_format_def_s *defs, const e
 	if( numChannels != expectCount )
 		return false;
 
-	for( uint16_t c = 0; c < numChannels; c++ )
+	for( uint_fast16_t c = 0; c < numChannels; c++ )
 		if( ( *( c + channels ) ) != ( *( expect + c ) ) )
 			return false;
 

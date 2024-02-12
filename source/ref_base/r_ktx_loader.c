@@ -7,6 +7,7 @@
 #include "gl_format.h"
 
 #include "stb_ds.h"
+#include <stdint.h>
 
 #pragma pack( push, 1 )
 struct __raw_ktx_header_s {
@@ -26,7 +27,6 @@ struct __raw_ktx_header_s {
 	int bytesOfKeyValueData;
 };
 #pragma pack( pop )
-
 
 static struct ktx_image_s *R_KTXGetImage( const struct ktx_context_s *cntx, uint32_t mipLevel, uint32_t faceIndex, uint32_t arrayOffset )
 {
@@ -55,7 +55,7 @@ struct texture_buf_s *R_KTXResolveBuffer( struct ktx_context_s *cntx, uint32_t m
 	}
 	return &img->texture;
 }
-enum ktx_context_result_e  R_InitKTXContext( uint8_t *memory, size_t size, struct ktx_context_s *cntx ) {
+bool R_InitKTXContext(struct ktx_context_s *cntx, uint8_t *memory, size_t size, struct ktx_context_err_s* err) {
 	assert( sizeof( struct __raw_ktx_header_s ) == 64 );
 	struct __raw_ktx_header_s *rawHeader = (struct __raw_ktx_header_s *)memory;
 	if( memcmp( rawHeader->identifier, "\xABKTX 11\xBB\r\n\x1A\n", 12 ) ) {
@@ -63,21 +63,24 @@ enum ktx_context_result_e  R_InitKTXContext( uint8_t *memory, size_t size, struc
 	}
   assert(cntx->pixelDepth == 0);
 
-	const bool swapEndian = ( rawHeader->endianness == 0x01020304 ) ? true : false;
 	cntx->buffer = memory;
-	cntx->swapEndianess = swapEndian;
-	cntx->type = swapEndian ? LongSwap( rawHeader->type ) : rawHeader->type;
-	cntx->typeSize = swapEndian ? LongSwap( rawHeader->typeSize ) : rawHeader->typeSize;
-	cntx->format = swapEndian ? LongSwap( rawHeader->format ) : rawHeader->format;
-	cntx->internalFormat = swapEndian ? LongSwap( rawHeader->internalFormat ) : rawHeader->internalFormat;
-	cntx->baseInternalFormat = swapEndian ? LongSwap( rawHeader->baseInternalFormat ) : rawHeader->baseInternalFormat;
-	cntx->pixelWidth = swapEndian ? LongSwap( rawHeader->pixelWidth ) : rawHeader->pixelWidth;
-	cntx->pixelHeight = swapEndian ? LongSwap( rawHeader->pixelHeight ) : rawHeader->pixelHeight;
-	cntx->pixelDepth = swapEndian ? LongSwap( rawHeader->pixelDepth ) : rawHeader->pixelDepth;
-	cntx->numberOfArrayElements = swapEndian ? LongSwap( rawHeader->numberOfArrayElements ) : rawHeader->numberOfArrayElements;
-	cntx->numberOfFaces = swapEndian ? LongSwap( rawHeader->numberOfFaces ) : rawHeader->numberOfFaces;
-	cntx->numberOfMipmapLevels = swapEndian ? LongSwap( rawHeader->numberOfMipmapLevels ) : rawHeader->numberOfMipmapLevels;
-	cntx->bytesOfKeyValueData = swapEndian ? LongSwap( rawHeader->bytesOfKeyValueData ) : rawHeader->bytesOfKeyValueData;
+	cntx->swapEndianess = ( rawHeader->endianness == 0x01020304 ) ? true : false;
+	cntx->type = cntx->swapEndianess ? LongSwap( rawHeader->type ) : rawHeader->type;
+	cntx->typeSize = cntx->swapEndianess  ? LongSwap( rawHeader->typeSize ) : rawHeader->typeSize;
+	cntx->format = cntx->swapEndianess ? LongSwap( rawHeader->format ) : rawHeader->format;
+	cntx->internalFormat = cntx->swapEndianess ? LongSwap( rawHeader->internalFormat ) : rawHeader->internalFormat;
+	cntx->baseInternalFormat = cntx->swapEndianess ? LongSwap( rawHeader->baseInternalFormat ) : rawHeader->baseInternalFormat;
+	cntx->pixelWidth = cntx->swapEndianess ? LongSwap( rawHeader->pixelWidth ) : rawHeader->pixelWidth;
+	cntx->pixelHeight = cntx->swapEndianess ? LongSwap( rawHeader->pixelHeight ) : rawHeader->pixelHeight;
+	cntx->pixelDepth = cntx->swapEndianess ? LongSwap( rawHeader->pixelDepth ) : rawHeader->pixelDepth;
+	cntx->numberOfArrayElements = cntx->swapEndianess ? LongSwap( rawHeader->numberOfArrayElements ) : rawHeader->numberOfArrayElements;
+	cntx->numberOfFaces = cntx->swapEndianess ? LongSwap( rawHeader->numberOfFaces ) : rawHeader->numberOfFaces;
+	cntx->numberOfMipmapLevels = cntx->swapEndianess ? LongSwap( rawHeader->numberOfMipmapLevels ) : rawHeader->numberOfMipmapLevels;
+	cntx->bytesOfKeyValueData = cntx->swapEndianess ? LongSwap( rawHeader->bytesOfKeyValueData ) : rawHeader->bytesOfKeyValueData;
+
+  if((cntx->pixelWidth <= 0 ) || ( cntx->pixelHeight <= 0)) {
+  	return KTX_ERR_ZER_TEXTURE_SIZE;
+  }
 
 	const size_t numberOfArrayElements = max( 1, cntx->numberOfArrayElements );
 	const size_t numberOfFaces = max( 1, cntx->numberOfFaces );
@@ -95,8 +98,10 @@ enum ktx_context_result_e  R_InitKTXContext( uint8_t *memory, size_t size, struc
 				cntx->desc  = R_BaseFormatDef( R_FORMAT_ETC2_R8G8B8_UNORM );
 				break;
 			default:
-				assert(false);
-				return KTX_ERR_UNHANDLED_TYPE;
+				err->type = KTX_ERR_UNHANDLED_TEXTURE_TYPE;
+				err->errTextureType.type = cntx->type;
+				err->errTextureType.type = cntx->baseInternalFormat;
+				goto error;
 		}
 	} else {
 		switch( cntx->type ) {
@@ -133,14 +138,18 @@ enum ktx_context_result_e  R_InitKTXContext( uint8_t *memory, size_t size, struc
 				    cntx->desc = R_BaseFormatDef( R_FORMAT_A8_UNORM );
 						break;
 					default:
-				    assert(false);
-						return KTX_ERR_UNHANDLED_TYPE;
+						err->type = KTX_ERR_UNHANDLED_TEXTURE_TYPE;
+						err->errTextureType.type = cntx->type;
+						err->errTextureType.type = cntx->baseInternalFormat;
+						goto error;
 				}
 				break;
 			}
 			default:
-				assert(false);
-				return KTX_ERR_UNHANDLED_TYPE;
+				err->type = KTX_ERR_UNHANDLED_TEXTURE_TYPE;
+				err->errTextureType.type = cntx->type;
+				err->errTextureType.type = cntx->baseInternalFormat;
+			  goto error;
 		}
 	}
 
@@ -149,9 +158,17 @@ enum ktx_context_result_e  R_InitKTXContext( uint8_t *memory, size_t size, struc
 	uint32_t width = cntx->pixelWidth;
 	uint32_t height = cntx->pixelHeight;
 	size_t offset = dataOffset;
-	for( size_t mipLevel = 0; mipLevel < numberOfMips; mipLevel++ ) {
-		uint32_t bufferLen = cntx->swapEndianess ? LongSwap( *( (uint32_t *)( cntx->buffer + offset ) ) ) : ( *( (uint32_t *)( cntx->buffer + offset ) ) );
+	for( uint_fast16_t mipLevel = 0; mipLevel < numberOfMips; mipLevel++ ) {
+		size_t bufferLen  = (*( (uint32_t *)( cntx->buffer + offset ) )) ;
+		bufferLen = (cntx->swapEndianess == true) ? LongSwap(bufferLen) : bufferLen;
+
 		offset += sizeof( uint32_t );
+		if(bufferLen + offset > size) {
+			err->type = KTX_ERR_TRUNCATED;
+			err->errTruncated.size = size;
+			err->errTruncated.expected = offset;
+			goto error;
+		}
 
 		size_t imgOffset = 0;
 		for( size_t arrayIdx = 0; arrayIdx < numberOfArrayElements; arrayIdx++ ) {
@@ -163,15 +180,14 @@ enum ktx_context_result_e  R_InitKTXContext( uint8_t *memory, size_t size, struc
 				imgOffset += img->texture.size;
 			}
 		}
-		offset = ALIGN( offset + bufferLen, 4 );
+		offset = ALIGN( (offset + bufferLen), 4 );
 		width = max( 1, width >> 1 );
 		height = max( 1, height >> 1 );
 	}
-
-  if(offset > size ) {
-    return KTX_ERR_TRUNCATED; 
-  }
-  return KTX_ERR_NONE;
+  return true;
+error:
+  R_KTXFreeContext(cntx);
+  return false;
 }
 uint16_t R_KTXGetNumberMips( const struct ktx_context_s *cntx )
 {
@@ -193,4 +209,18 @@ void R_KTXFreeContext( struct ktx_context_s *context )
 {
 	assert( context );
 	arrfree( context->textures );
+}
+
+bool R_KTXIsCompressed(struct ktx_context_s* cntx) {
+	assert( cntx);
+	return cntx->type == 0;
+}
+
+uint16_t R_KTXWidth(const struct ktx_context_s* cntx) {
+	assert( cntx);
+	return cntx->pixelWidth;
+}
+uint16_t R_KTXHeight(const struct ktx_context_s* cntx) {
+	assert( cntx);
+	return cntx->pixelHeight;
 }
