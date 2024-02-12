@@ -5,7 +5,6 @@
 #include "r_texture_format.h"
 
 #include "r_texture_buf.h"
-#include <bits/stdint-uintn.h>
 
 uint16_t T_LogicalH(const  struct texture_buf_s *buf )
 {
