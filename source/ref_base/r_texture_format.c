@@ -486,13 +486,61 @@ const size_t RT_BlockSize(const struct base_format_def_s* def) {
 		case R_BASE_FORMAT_FIXED_16:
 			return def->fixed_16.numChannels * sizeof( uint16_t );
 		case R_BASE_FORMAT_FIXED_32:
-			return def->fixed_32.numChannels * sizeof( uint16_t );
+			return def->fixed_32.numChannels * sizeof( uint32_t );
 		case R_BASE_FORMAT_PACKED_16:
 			return sizeof( uint16_t );
 		default:
 			break;
 	}
 	return 0;
+}
+
+const uint16_t RT_NumberChannels(const struct base_format_def_s* def) {
+	switch( def->base ) {
+		case R_BASE_FORMAT_FIXED_8:
+			return def->fixed_8.numChannels;
+		case R_BASE_FORMAT_FIXED_16:
+			return def->fixed_16.numChannels;
+		case R_BASE_FORMAT_FIXED_32:
+			return def->fixed_32.numChannels;
+		case R_BASE_FORMAT_PACKED_16:
+			return sizeof( uint16_t );
+		default:
+			break;
+	}
+	return 0;
+
+}
+const enum texture_logical_channel_e* RT_Channels(const struct base_format_def_s* def) {
+	switch( def->base ) {
+		case R_BASE_FORMAT_FIXED_8:
+			return def->fixed_8.channels;
+		case R_BASE_FORMAT_FIXED_16:
+			return def->fixed_16.channels;
+		case R_BASE_FORMAT_FIXED_32:
+			return def->fixed_32.channels;
+	 // case R_BASE_FORMAT_PACKED_16:
+	 // 	return sizeof( uint16_t );
+		default:
+			break;
+	}
+	return NULL;
+}
+
+const bool RT_ExpectChannelsMatch( const struct base_format_def_s *defs, const enum texture_logical_channel_e *expect, uint16_t expectCount) {
+	const uint32_t numChannels = RT_NumberChannels( defs );
+	if( numChannels == 0 )
+		return false;
+
+	const enum texture_logical_channel_e *channels = RT_Channels( defs );
+	if( numChannels != expectCount )
+		return false;
+
+	for( uint16_t c = 0; c < numChannels; c++ )
+		if( ( *( c + channels ) ) != ( *( expect + c ) ) )
+			return false;
+
+	return true;
 }
 
 const struct base_format_def_s* R_BaseFormatDef(enum texture_format_e format) {

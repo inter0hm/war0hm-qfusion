@@ -5,6 +5,7 @@
 #include "r_texture_format.h"
 
 #include "r_texture_buf.h"
+#include <bits/stdint-uintn.h>
 
 uint16_t T_LogicalH(const  struct texture_buf_s *buf )
 {
@@ -227,13 +228,12 @@ void T_FreePogoBuffer( struct texture_buf_pogo_s *pogo )
 	T_FreeTextureBuf( &pogo->textures[1] );
 }
 
-
 void T_BlockDecodeETC1( const struct texture_buf_s *src, struct texture_buf_s *dest )
 {
 	assert( dest );
 	assert( src );
 	assert( src->def );
-	assert( dest->def->base == R_BASE_FORMAT_FIXED_8 );
+	assert( dest->def->base == R_BASE_FORMAT_FIXED_8 ); 
 
 	assert( T_PixelW( src ) == T_PixelW( dest ) );
 	assert( T_PixelH( src ) == T_PixelH( dest ) );
@@ -277,4 +277,56 @@ void T_BlockDecodeETC1( const struct texture_buf_s *src, struct texture_buf_s *d
 			}
 		}
 	}
+}
+
+void T_SwizzleInplace(struct texture_buf_s* tex, enum texture_logical_channel_e* channels) {
+	// can't swizzle compressed formats
+	const uint32_t logicalWidth = T_LogicalW( tex);
+	const uint32_t logicalHeight = T_LogicalH( tex);
+	
+	switch(tex->def->base) {
+		case R_BASE_FORMAT_FIXED_8: {
+		  uint8_t values[R_LOGICAL_C_MAX];	
+			for( size_t row = 0; row < logicalHeight; row++ ) {
+				for( size_t column = 0; column < logicalWidth; column++ ) {
+					uint8_t * const block = &tex->buffer[(tex->rowPitch * row) + ( column * RT_BlockSize(tex->def))];
+					// save the values 
+					for(uint8_t c  = 0; c < tex->def->fixed_8.numChannels; c++) {
+						assert(tex->def->fixed_8.channels[c] < R_LOGICAL_C_MAX);
+						values[tex->def->fixed_8.channels[c]] = *(block + c); 
+					}
+					// write the new values to the block
+					for(uint8_t c  = 0; c < tex->def->fixed_8.numChannels; c++) {
+						assert(channels[c] < R_LOGICAL_C_MAX);
+						(*(block + c)) = values[channels[c]];
+					}
+				}
+			}
+			break;
+		}
+		case R_BASE_FORMAT_FIXED_16: {
+		  uint16_t values[R_LOGICAL_C_MAX];	
+			for( size_t row = 0; row < logicalHeight; row++ ) {
+				for( size_t column = 0; column < logicalWidth; column++ ) {
+					uint16_t * const block = (uint16_t*)(&tex->buffer[(tex->rowPitch * row) + ( column * RT_BlockSize(tex->def))]);
+					// save the values 
+					for(uint16_t c  = 0; c < tex->def->fixed_8.numChannels; c++) {
+						assert(tex->def->fixed_16.channels[c] < R_LOGICAL_C_MAX);
+						values[tex->def->fixed_16.channels[c]] = *(block + c); 
+					}
+					// write the new values to the block
+					for(uint8_t c  = 0; c < tex->def->fixed_8.numChannels; c++) {
+						assert(channels[c] < R_LOGICAL_C_MAX);
+						(*(block + c)) = values[channels[c]];
+					}
+				}
+			}
+			break;
+		}
+		default:
+			assert( 0 );
+			break;
+	}
+
+
 }

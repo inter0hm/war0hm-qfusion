@@ -1302,6 +1302,7 @@ static void R_UploadMipmapped( int ctx, uint8_t **data,
 	}
 }
 
+
 /*
 * R_IsKTXFormatValid
 */
@@ -1500,89 +1501,37 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 	}
 	else
 	{
-		int mips = ( image->flags & IT_NOMIPMAP ) ? 1 : min( header->numberOfMipmapLevels, numMips );
-		uint8_t *images[32 * 6];
-		int mipWidth = header->pixelWidth, mipHeight = header->pixelHeight;
-		size_t pixelSize = 2;
-		size_t faceSize;
-
-		switch( header->baseInternalFormat )
-		{
-		case GL_RGBA:
-			image->samples = 4;
-			break;
-		case GL_BGRA_EXT:
-			image->samples = 4;
-			image->flags |= IT_BGRA;
-			break;
-		case GL_RGB:
-			image->samples = 3;
-			break;
-		case GL_BGR_EXT:
-			image->samples = 3;
-			image->flags |= IT_BGRA;
-			break;
-		case GL_LUMINANCE_ALPHA:
-			image->samples = 2;
-			break;
-		case GL_LUMINANCE:
-			image->samples = 1;
-			break;
-		case GL_ALPHA:
-			image->samples = 1;
-			image->flags |= IT_ALPHAMASK;
-			break;
-		}
-
-		if( header->type == GL_UNSIGNED_BYTE )
-			pixelSize = image->samples;
-
-		for( i = 0; i < mips; i++ )
-		{
-			faceSize = ALIGN( max( header->pixelWidth >> i, 1 ) * pixelSize, 4 ) * max( header->pixelHeight >> i, 1 );
-			data += sizeof( int );
-			for( j = 0; j < numFaces; j++ )
-				images[i * numFaces + j] = data + faceSize * j;
-			data += faceSize * numFaces;
-		}
-
-		if( !glConfig.ext.bgra &&
-			( ( header->baseInternalFormat == GL_BGR_EXT ) || ( header->baseInternalFormat == GL_BGRA_EXT ) ) )
-		{
-			for( i = 0; i < mips; i++ )
-			{
-				for( j = 0; j < numFaces; j++ )
-				{
-					R_SwapBlueRed( images[i * numFaces + j], mipWidth, mipHeight,
-						( header->baseInternalFormat == GL_BGR_EXT ) ? 3 : 4, 4 );
+		const struct base_format_def_s *definition = ktxContext.desc;
+		const enum texture_logical_channel_e expectBGR[] = { R_LOGICAL_C_BLUE, R_LOGICAL_C_GREEN, R_LOGICAL_C_RED };
+		const enum texture_logical_channel_e expectBGRA[] = { R_LOGICAL_C_BLUE, R_LOGICAL_C_GREEN, R_LOGICAL_C_RED, R_LOGICAL_C_ALPHA };
+		const enum texture_logical_channel_e expectA[] = { R_LOGICAL_C_ALPHA };
+		const bool isBGRTexture = 
+				RT_ExpectChannelsMatch( definition, expectBGR, Q_ARRAY_COUNT( expectBGR ) ) || 
+				RT_ExpectChannelsMatch( definition, expectBGRA, Q_ARRAY_COUNT( expectBGR ) ); 
+		image->flags |= (
+			(isBGRTexture  ? IT_BGRA : 0 ) |
+			(RT_ExpectChannelsMatch( definition, expectA, Q_ARRAY_COUNT( expectA ) ) ? IT_ALPHAMASK : 0));
+		image->samples = RT_NumberChannels(definition);
+		const uint16_t numberOfMipLevels = ( image->flags & IT_NOMIPMAP ) ? 1 : R_KTXGetNumberMips(&ktxContext);
+		const uint32_t numberOfFaces = R_KTXGetNumberFaces(&ktxContext);
+		
+		uint8_t *images[32 * 6] = {0};
+    enum texture_logical_channel_e swizzleChannel[R_LOGICAL_C_MAX ] = {};
+		for( uint16_t mipIndex = 0; mipIndex < numberOfMipLevels; mipIndex++ ) {
+			for( uint32_t faceIndex = 0; faceIndex < numberOfFaces; faceIndex++ ) {
+				struct texture_buf_s *texBuffer = R_KTXResolveBuffer( &ktxContext, mipIndex, faceIndex, 0 );
+				if( !glConfig.ext.bgra && isBGRTexture ) {
+					assert( RT_NumberChannels( definition ) >= 3 );
+					memcpy( swizzleChannel, RT_Channels( definition ), RT_NumberChannels( definition ) );
+					swizzleChannel[0] = R_LOGICAL_C_RED;
+					swizzleChannel[1] = R_LOGICAL_C_GREEN;
+					swizzleChannel[2] = R_LOGICAL_C_BLUE;
+					T_SwizzleInplace( texBuffer, swizzleChannel );
 				}
-				mipWidth >>= 1;
-				mipHeight >>= 1;
-				if( !mipWidth )
-					mipWidth = 1;
-				if( !mipHeight )
-					mipHeight = 1;
-			}
-			header->baseInternalFormat = ( ( header->baseInternalFormat == GL_BGR_EXT ) ? GL_RGB : GL_RGBA );
-		}
-		else if( swapEndian && (
-			( header->type == GL_UNSIGNED_SHORT_4_4_4_4 ) || ( header->type == GL_UNSIGNED_SHORT_5_5_5_1 ) ||
-			( header->type == GL_UNSIGNED_SHORT_5_6_5 ) ) )
-		{
-			for( i = 0; i < mips; i++ )
-			{
-				for( j = 0; j < numFaces; j++ )
-					R_EndianSwap16BitImage( ( unsigned short * )( images[i * numFaces + j] ), mipWidth, mipHeight );
-				mipWidth >>= 1;
-				mipHeight >>= 1;
-				if( !mipWidth )
-					mipWidth = 1;
-				if( !mipHeight )
-					mipHeight = 1;
+				images[mipIndex * numFaces + faceIndex] = texBuffer->buffer;
 			}
 		}
-
-		R_UploadMipmapped( ctx, images, header->pixelWidth, header->pixelHeight, mips, image->flags, image->minmipsize,
+		R_UploadMipmapped( ctx, images, header->pixelWidth, header->pixelHeight, numberOfMipLevels, image->flags, image->minmipsize,
 			&image->upload_width, &image->upload_height, header->baseInternalFormat, header->type );
 	}
 

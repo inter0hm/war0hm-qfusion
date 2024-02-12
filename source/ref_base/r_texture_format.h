@@ -180,6 +180,9 @@ struct base_format_def_s {
 
 const struct base_format_def_s* R_BaseFormatDef(enum texture_format_e format);
 const size_t RT_BlockSize(const struct base_format_def_s* defs);
+const uint16_t RT_NumberChannels(const struct base_format_def_s* defs);
+const enum texture_logical_channel_e* RT_Channels(const struct base_format_def_s* defs);
+const bool RT_ExpectChannelsMatch( const struct base_format_def_s *defs, const enum texture_logical_channel_e *channels, uint16_t numChannels );
 
 bool R_FormatIsCompressed(enum texture_format_e format);
 uint32_t R_FormatBlockWidth( enum texture_format_e format );

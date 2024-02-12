@@ -58,5 +58,11 @@ void T_FreePogoBuffer(struct texture_buf_pogo_s* pogo);
 void T_BlockDecodeETC1( const struct texture_buf_s *src, struct texture_buf_s *dest );
 void T_MipMapQuarterInPlace( struct texture_buf_s *tex);
 void T_SwapEndianness( struct texture_buf_s *tex);
+/**
+*
+* swizzle channels in place make sure the number of channels in the definition matches the 
+* number of channels submitted
+**/
+void T_SwizzleInplace(struct texture_buf_s* tex, enum texture_logical_channel_e* channels);
 
 #endif
