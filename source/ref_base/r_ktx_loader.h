@@ -3,7 +3,6 @@
 
 #include "r_texture_buf.h"
 #include "r_texture_format.h"
-#include "../gameshared/q_arch.h"
 
 struct ktx_image_s {
   bool updated;

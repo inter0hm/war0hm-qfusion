@@ -1,7 +1,6 @@
 #ifndef R_TEXTURE_BUF_H
 #define R_TEXTURE_BUF_H
 
-#include "../gameshared/q_arch.h"
 #include "r_texture_format.h"
 
 enum texture_buf_flags_e {

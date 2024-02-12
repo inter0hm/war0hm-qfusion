@@ -1,9 +1,9 @@
 #include "r_texture_buf.h"
 #include "../gameshared/q_math.h"
 #include "../gameshared/q_shared.h"
+
 #include "r_texture_decode.h"
 #include "r_texture_format.h"
-
 #include "r_texture_buf.h"
 
 uint16_t T_LogicalH(const  struct texture_buf_s *buf )

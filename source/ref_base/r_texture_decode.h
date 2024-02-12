@@ -3,7 +3,6 @@
 
 #include "../gameshared/q_arch.h"
 
-
 #define ETC1_BLOCK_WIDTH 4
 #define ETC1_BLOCK_HEIGHT 4
 

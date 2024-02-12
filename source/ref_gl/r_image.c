@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_ktx_loader.h"
 #include "r_texture_buf.h"
 #include "r_texture_format.h"
-#include <stdint.h>
 
 #define	MAX_GLIMAGES	    8192
 #define IMAGES_HASH_SIZE    64
@@ -1304,9 +1303,6 @@ static void R_UploadMipmapped( int ctx, uint8_t **data,
 }
 
 
-/*
-* R_IsKTXFormatValid
-*/
 static bool R_IsKTXFormatValid( int format, int type )
 {
 	switch( type )
@@ -1335,27 +1331,6 @@ static bool R_IsKTXFormatValid( int format, int type )
 	return false;
 }
 
-typedef struct ktx_header_s
-{
-	char identifier[12];
-	int endianness;
-	int type;
-	int typeSize;
-	int format;
-	int internalFormat;
-	int baseInternalFormat;
-	int pixelWidth;
-	int pixelHeight;
-	int pixelDepth;
-	int numberOfArrayElements;
-	int numberOfFaces;
-	int numberOfMipmapLevels;
-	int bytesOfKeyValueData;
-} ktx_header_t;
-
-/*
-* R_LoadKTX
-*/
 static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 {
 	const uint_fast16_t numFaces = ( ( image->flags & IT_CUBEMAP ) ? 6 : 1 );
@@ -1928,7 +1903,7 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 					break;
 			}
 		}
-	// don't confuse paths such as /ui/xyz.cache/123 with file extensions
+		// don't confuse paths such as /ui/xyz.cache/123 with file extensions
 		if( lastDot >= lastSlash ) {
 			// truncate string omitting the extension
 			sdssubstr( resolvedPath, 0, lastDot );

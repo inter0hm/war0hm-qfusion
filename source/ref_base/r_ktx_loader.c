@@ -7,7 +7,6 @@
 #include "gl_format.h"
 
 #include "stb_ds.h"
-#include <stdint.h>
 
 #pragma pack( push, 1 )
 struct __raw_ktx_header_s {
