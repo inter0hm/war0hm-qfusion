@@ -153,7 +153,7 @@ static const struct base_format_def_s baseFormats[] = {
       .normalized = 1
     }
   },
-  [R_TEXTURE_FORMAT_COUNT] = {}
+  [R_TEXTURE_FORMAT_COUNT] = {0}
 }; 
 
 uint32_t R_FormatChannelCount(enum texture_format_e format) {

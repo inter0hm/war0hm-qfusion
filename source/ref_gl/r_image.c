@@ -1342,8 +1342,8 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 	if( !buffer )
 		return false;
 
-	struct ktx_context_s ktxContext = {};
-	struct ktx_context_err_s err = {};
+	struct ktx_context_s ktxContext = {0};
+	struct ktx_context_err_s err = {0};
 	if( !R_InitKTXContext( &ktxContext, buffer, bufferSize, &err ) ) {
 		switch(err.type) {
 			case KTX_ERR_INVALID_IDENTIFIER:
@@ -1461,7 +1461,7 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		const uint32_t numberOfFaces = R_KTXGetNumberFaces(&ktxContext);
 		
 		uint8_t *images[32 * 6] = {0};
-    enum texture_logical_channel_e swizzleChannel[R_LOGICAL_C_MAX ] = {};
+    enum texture_logical_channel_e swizzleChannel[R_LOGICAL_C_MAX ] = {0};
 		for( uint16_t mipIndex = 0; mipIndex < numberOfMipLevels; mipIndex++ ) {
 			for( uint32_t faceIndex = 0; faceIndex < numberOfFaces; faceIndex++ ) {
 				struct texture_buf_s *texBuffer = R_KTXResolveBuffer( &ktxContext, mipIndex, faceIndex, 0 );
