@@ -158,28 +158,35 @@ bool R_InitKTXContext(struct ktx_context_s *cntx, uint8_t *memory, size_t size, 
 	uint32_t height = cntx->pixelHeight;
 	size_t offset = dataOffset;
 	for( uint_fast16_t mipLevel = 0; mipLevel < numberOfMips; mipLevel++ ) {
-		size_t bufferLen  = *((uint32_t *)&cntx->buffer[offset]);
-		bufferLen = (cntx->swapEndianess == true) ? LongSwap(bufferLen) : bufferLen;
-
+		size_t faceLodSize  = *((uint32_t *)&cntx->buffer[offset]);
+		faceLodSize = (cntx->swapEndianess == true) ? LongSwap(faceLodSize) : faceLodSize;
+		faceLodSize = ALIGN(faceLodSize, 4); // pad buffer to multiple of 4
 		offset += sizeof( uint32_t );
-		if(bufferLen + offset > size) {
-			err->type = KTX_ERR_TRUNCATED;
-			err->errTruncated.size = size;
-			err->errTruncated.expected = bufferLen + offset;
-			goto error;
-		}
+	  if( faceLodSize + offset > size ) {
+		err->type = KTX_ERR_TRUNCATED;
+		err->errTruncated.size = size;
+		err->errTruncated.expected = faceLodSize + offset;
+		goto error;
+	  }
 
-		size_t imgOffset = 0;
-		for( size_t arrayIdx = 0; arrayIdx < numberOfArrayElements; arrayIdx++ ) {
-			for( size_t faceIdx = 0; faceIdx < numberOfFaces; faceIdx++ ) {
+		for( size_t faceIdx = 0; faceIdx < numberOfFaces; faceIdx++ ) {
+			size_t arrByteOffset = 0;
+			for( size_t arrayIdx = 0; arrayIdx < numberOfArrayElements; arrayIdx++ ) {
 				struct ktx_image_s *img = R_KTXGetImage( cntx, mipLevel, faceIdx, arrayIdx );
 				memset( img, 0, sizeof( struct ktx_image_s ) );
 				struct texture_buf_desc_s desc = { .width = width, .height = height, .alignment = 4, .def = cntx->desc };
-				T_AliasTextureBuf( &img->texture, &desc, ( cntx->buffer + offset + imgOffset ), 0 );
-				imgOffset += img->texture.size;
+				T_AliasTextureBuf( &img->texture, &desc, ( cntx->buffer + offset + arrByteOffset), 0 );
+				arrByteOffset += img->texture.size;
 			}
+			if(faceLodSize + offset > size) {
+				err->type = KTX_ERR_TRUNCATED;
+				err->errTruncated.size = size;
+				err->errTruncated.expected = faceLodSize + offset;
+				goto error;
+			}
+			offset += faceLodSize;
 		}
-		offset = ALIGN( (offset + bufferLen), 4 );
+
 		width = max( 1, width >> 1 );
 		height = max( 1, height >> 1 );
 	}
