@@ -1426,12 +1426,9 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		  //struct texture_buf_s decodeTextures[8] = { 0 };
 		  for( size_t faceIdx = 0; faceIdx < numFaces; ++faceIdx ) {
 		  	struct texture_buf_s *tex = R_KTXResolveBuffer( &ktxContext, 0, faceIdx, 0 );
-
-				for(size_t i = 0; i < numFaces; ++i )
-				{
-					decompressed[i] = R_PrepareImageBuffer( ctx, TEXTURE_LOADING_BUF0 + i, tex->width * tex->height * 4);
-					DecompressETC1( tex->buffer, tex->width, tex->height, decompressed[i], glConfig.ext.bgra ? true : false );
-				}
+				decompressed[faceIdx] = R_PrepareImageBuffer( ctx, TEXTURE_LOADING_BUF0 + faceIdx, tex->width * tex->height * 4);
+				DecompressETC1( tex->buffer, tex->width, tex->height, decompressed[faceIdx], glConfig.ext.bgra ? true : false );
+				
 		  }
 		  R_UploadMipmapped( ctx, decompressed, R_KTXWidth( &ktxContext ), R_KTXHeight( &ktxContext ), 1, image->flags, image->minmipsize, &image->upload_width, &image->upload_height,
 		  				   glConfig.ext.bgra ? GL_BGR_EXT : GL_RGB, GL_UNSIGNED_BYTE );
