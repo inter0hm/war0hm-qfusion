@@ -1426,7 +1426,7 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		  //struct texture_buf_s decodeTextures[8] = { 0 };
 		  for( size_t faceIdx = 0; faceIdx < numFaces; ++faceIdx ) {
 		  	struct texture_buf_s *tex = R_KTXResolveBuffer( &ktxContext, 0, faceIdx, 0 );
-				decompressed[faceIdx] = R_PrepareImageBuffer( ctx, TEXTURE_LOADING_BUF0 + faceIdx, tex->width * tex->height * 4);
+				decompressed[faceIdx] = R_PrepareImageBuffer( ctx, TEXTURE_LOADING_BUF0 + faceIdx, ALIGN( tex->width * 3, 4 ) * tex->height);
 				DecompressETC1( tex->buffer, tex->width, tex->height, decompressed[faceIdx], glConfig.ext.bgra ? true : false );
 				
 		  }
