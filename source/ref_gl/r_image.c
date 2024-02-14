@@ -978,7 +978,6 @@ static void R_Upload32( int ctx, uint8_t **data, int layer,
 	int i, comp, format, type;
 	int target;
 	int numTextures;
-	uint8_t *scaled = NULL;
 	int scaledWidth, scaledHeight;
 
 	assert( samples );
@@ -1042,18 +1041,13 @@ static void R_Upload32( int ctx, uint8_t **data, int layer,
 	{
 		for( i = 0; i < numTextures; i++, target++ )
 		{
-			uint8_t *mip;
+			if( data[i] == NULL )
+				continue;
 
-			if( !scaled )
-				scaled = R_PrepareImageBuffer( ctx, TEXTURE_RESAMPLING_BUF0, 
-				scaledWidth * scaledHeight * samples );
+			uint8_t *const mip = R_PrepareImageBuffer( ctx, TEXTURE_RESAMPLING_BUF0 + i, ALIGN( scaledWidth * 4, 4 ) * scaledHeight );
 
 			// resample the texture
-			mip = scaled;
-			if( data[i] )
-				R_ResampleTexture( ctx, data[i], width, height, (uint8_t *)mip, scaledWidth, scaledHeight, samples, 1 );
-			else
-				mip = NULL;
+			R_ResampleTexture( ctx, data[i], width, height, (uint8_t *)mip, scaledWidth, scaledHeight, samples, 1 );
 
 			if( flags & ( IT_ARRAY | IT_3D ) )
 				qglTexSubImage3DEXT( target, 0, 0, 0, layer, scaledWidth, scaledHeight, 1, format, type, mip );
