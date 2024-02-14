@@ -1337,7 +1337,7 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 	if( image->flags & ( IT_FLIPX|IT_FLIPY|IT_FLIPDIAGONAL ) )
 		return false;
 
-	uint8_t *buffer;
+	uint8_t *buffer = NULL;
 	const size_t bufferSize = R_LoadFile( pathname, ( void ** )&buffer );
 	if( !buffer )
 		return false;
@@ -1460,8 +1460,9 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 			for( uint32_t faceIndex = 0; faceIndex < numberOfFaces; faceIndex++ ) {
 				struct texture_buf_s *texBuffer = R_KTXResolveBuffer( &ktxContext, mipIndex, faceIndex, 0 );
 				if( !glConfig.ext.bgra && isBGRTexture ) {
-					assert( RT_NumberChannels( definition ) >= 3 );
-					memcpy( swizzleChannel, RT_Channels( definition ), RT_NumberChannels( definition ) );
+					const size_t numberChannels = RT_NumberChannels( definition );
+					assert( numberChannels >= 3 && numberChannels <= Q_ARRAY_COUNT( swizzleChannel ) );
+					memcpy( swizzleChannel, RT_Channels( definition ), numberChannels );
 					swizzleChannel[0] = R_LOGICAL_C_RED;
 					swizzleChannel[1] = R_LOGICAL_C_GREEN;
 					swizzleChannel[2] = R_LOGICAL_C_BLUE;

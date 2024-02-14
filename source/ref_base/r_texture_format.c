@@ -505,7 +505,7 @@ const uint_fast16_t RT_NumberChannels(const struct base_format_def_s* def) {
 		case R_BASE_FORMAT_FIXED_32:
 			return def->fixed_32.numChannels;
 		case R_BASE_FORMAT_PACKED_16:
-			return sizeof( uint16_t );
+			return def->packed_16.numChannels;
 		default:
 			break;
 	}
@@ -520,8 +520,8 @@ const enum texture_logical_channel_e* RT_Channels(const struct base_format_def_s
 			return def->fixed_16.channels;
 		case R_BASE_FORMAT_FIXED_32:
 			return def->fixed_32.channels;
-	 // case R_BASE_FORMAT_PACKED_16:
-	 // 	return sizeof( uint16_t );
+	  case R_BASE_FORMAT_PACKED_16:
+			return def->packed_16.channels;
 		default:
 			break;
 	}
@@ -536,7 +536,7 @@ const bool RT_ExpectChannelsMatch( const struct base_format_def_s *defs, const e
 		return false;
 	const enum texture_logical_channel_e *channels = RT_Channels( defs );
 	for( uint_fast16_t c = 0; c < numChannels; c++ )
-		if( ( *( c + channels ) ) != ( *( expect + c ) ) )
+		if( channels[c] != expect[c] )
 			return false;
 
 	return true;
