@@ -1163,143 +1163,117 @@ static void R_UploadMipmapped( int ctx, uint8_t **data,
 	int *upload_width, int *upload_height,
 	int format, int type )
 {
-	int i, j;
 	int pixelSize = R_PixelFormatSize( format, type );
 	int rMask = 0, gMask = 0, bMask = 0, aMask = 0;
-	int scaledWidth, scaledHeight;
-	int mip;
-	uint8_t *scaled[6] = { NULL };
-	int faces, faceSize = 0;
-	int target, comp;
-	int mips;
-	uint8_t *face;
-	int oldWidth = 0, oldHeight = 0;
+
 
 	switch( type )
 	{
 	case GL_UNSIGNED_SHORT_4_4_4_4:
-		rMask = 15 << 12;
-		gMask = 15 << 8;
-		bMask = 15 << 4;
-		aMask = 15;
-		break;
 	case GL_UNSIGNED_SHORT_5_5_5_1:
-		rMask = 31 << 11;
-		gMask = 31 << 6;
-		bMask = 31 << 1;
-		aMask = 1;
-		break;
 	case GL_UNSIGNED_SHORT_5_6_5:
-		rMask = 31 << 11;
-		gMask = 63 << 5;
-		bMask = 31;
-		break;
+		assert(false);
+		return;
+	// these formats are not going to be handled
+	// case GL_UNSIGNED_SHORT_4_4_4_4:
+	// 	assert(false);
+	// 	rMask = 15 << 12;
+	// 	gMask = 15 << 8;
+	// 	bMask = 15 << 4;
+	// 	aMask = 15;
+	// 	assert(false); // these types are not going to be handled
+	// 	break;
+	// case GL_UNSIGNED_SHORT_5_5_5_1:
+	// 	rMask = 31 << 11;
+	// 	gMask = 31 << 6;
+	// 	bMask = 31 << 1;
+	// 	aMask = 1;
+	// 	assert(false);
+	// 	break;
+	// case GL_UNSIGNED_SHORT_5_6_5:
+	// 	rMask = 31 << 11;
+	// 	gMask = 63 << 5;
+	// 	bMask = 31;
+	// 	assert(false);
+	// 	break;
 	}
-
-	R_TextureTarget( flags, &target );
-
-	faces = ( flags & IT_CUBEMAP ) ? 6 : 1;
-	
-	mip = R_ScaledImageSize( width, height, &scaledWidth, &scaledHeight, flags, mipLevels, minmipsize, false );
+	int scaledWidth, scaledHeight;
+	R_ScaledImageSize( width, height, &scaledWidth, &scaledHeight, flags, mipLevels, minmipsize, false );
 
 	if( upload_width )
 		*upload_width = scaledWidth;
 	if( upload_height )
 		*upload_height = scaledHeight;
 
-	if( mip < 0 )
-	{
-		faceSize = ALIGN( scaledWidth * pixelSize, 4 ) * scaledHeight;
-
-		for( i = 0; i < faces; i++ )
-			scaled[i] = R_PrepareImageBuffer( ctx, TEXTURE_RESAMPLING_BUF0 + i, faceSize );
-
-		// find the mip with the size closest to the target
-		for( mip = 0; mip < ( mipLevels - 1 ); mip++ )
-		{
-			if( ( max( width >> 1, 1 ) < scaledWidth ) || ( max( height >> 1, 1 ) < scaledHeight ) )
-				break;
-			width >>= 1;
-			height >>= 1;
-			if( !width )
-				width = 1;
-			if( !height )
-				height = 1;
-		}
-
-		if( type == GL_UNSIGNED_BYTE )
-		{
-			for( i = 0; i < faces; i++ )
-			{
-				R_ResampleTexture( ctx, data[mip * faces + i], width, height,
-					scaled[i], scaledWidth, scaledHeight, pixelSize, 4 );
-			}
-		}
-		else
-		{
-			for( i = 0; i < faces; i++ )
-			{
-				R_ResampleTexture16( ctx, ( unsigned short * )( data[mip * faces + i] ), width, height,
-					( unsigned short * )( scaled[i] ), scaledWidth, scaledHeight, rMask, gMask, bMask, aMask );
-			}
-		}
-		data = scaled;
-		mip = 0;
-		mipLevels = 1;
-	}
-
+	int target, comp;
+	R_TextureTarget( flags, &target );
 #ifdef GL_ES_VERSION_2_0
 	comp = format;
 #else
 	comp = R_TextureInternalFormat( pixelSize, flags, type );
 #endif
-
 	R_SetupTexParameters( flags, scaledWidth, scaledHeight, minmipsize );
 
+	const uint_fast16_t numFaces = ( flags & IT_CUBEMAP ) ? 6 : 1;
+	#define MIP_INDEX(MIP, FACE) (((MIP) * numFaces) + (FACE))
 	R_UnpackAlignment( ctx, 4 );
 
-	mips = ( flags & IT_NOMIPMAP ) ? 1 : R_MipCount( scaledWidth, scaledHeight, minmipsize );
-	for( i = 0; ( i < mips ) && ( mip < mipLevels ); i++, mip++ )
-	{
-		faceSize = ALIGN( scaledWidth * pixelSize, 4 ) * scaledHeight; // will be used for the first remaining mipmap
-		for( j = 0; j < faces; j++ )
-			qglTexImage2D( target + j, i, comp, scaledWidth, scaledHeight, 0, format, type, data[mip * faces + j] );
-		oldWidth = scaledWidth;
-		oldHeight = scaledHeight;
-		scaledWidth >>= 1;
-		scaledHeight >>= 1;
-		if( !scaledWidth )
-			scaledWidth = 1;
-		if( !scaledHeight )
-			scaledHeight = 1;
-	}
+	if( scaledWidth != width || scaledHeight != height ) {
+		for( uint_fast16_t face = 0; face < numFaces; face++ ) {
+			uint8_t *const mip = R_PrepareImageBuffer( ctx, TEXTURE_RESAMPLING_BUF0 + face, scaledWidth * pixelSize * scaledHeight );
 
-	for( ; i < mips; i++ )
-	{
-		for( j = 0; j < faces; j++ )
-		{
-			if( !( scaled[j] ) )
-			{
-				scaled[j] = R_PrepareImageBuffer( ctx, TEXTURE_RESAMPLING_BUF0 + j, faceSize );
-				memcpy( scaled[j], data[( mip - 1 ) * faces + j], faceSize );
+			// resample the texture
+			R_ResampleTexture( ctx, data[MIP_INDEX( 0, face )], width, height, (uint8_t *)mip, scaledWidth, scaledHeight, pixelSize, 4 );
+
+			qglTexImage2D( target + face, 0, comp, scaledWidth, scaledHeight, 0, format, type, mip );
+			if( !( flags & IT_NOMIPMAP ) ) {
+				int miplevel = 0;
+
+				int w = scaledWidth;
+				int h = scaledHeight;
+				while( w > minmipsize || h > minmipsize ) {
+					R_MipMap( mip, w, h, pixelSize, 4 );
+
+					w = max( w >> 1, 1 );
+					h = max( h >> 1, 1 );
+					miplevel++;
+					qglTexImage2D( target + face, miplevel, comp, w, h, 0, format, type, mip );
+				}
 			}
-			face = scaled[j];
-			if( type == GL_UNSIGNED_BYTE )
-				R_MipMap( face, oldWidth, oldHeight, pixelSize, 4 );
-			else
-				R_MipMap16( ( unsigned short * )face, oldWidth, oldHeight, rMask, gMask, bMask, aMask );
-			qglTexImage2D( target + j, i, comp, scaledWidth, scaledHeight, 0, format, type, face );
 		}
+	} else {
+		for( int face = 0; face < numFaces; face++ ) {
+			qglTexImage2D( target + face, 0, comp, scaledWidth, scaledHeight, 0, format, type, data[MIP_INDEX( 0, face )] );
+			if( !( flags & IT_NOMIPMAP ) ) {
+				int miplevel = 0;
+				int w = scaledWidth;
+				int h = scaledHeight;
 
-		oldWidth = scaledWidth;
-		oldHeight = scaledHeight;
-		scaledWidth >>= 1;
-		scaledHeight >>= 1;
-		if( !scaledWidth )
-			scaledWidth = 1;
-		if( !scaledHeight )
-			scaledHeight = 1;
+				// we try to collect mip levels from data
+				while((miplevel + 1) < mipLevels) {
+				  miplevel++;
+					w = max( w >> 1, 1 );
+					h = max( h >> 1, 1 );
+					qglTexImage2D( target + face, miplevel, comp, w, h, 0, format, type, data[MIP_INDEX( miplevel, face )] );
+				} 
+				
+				// mip map in place
+				uint8_t *const mip = R_PrepareImageBuffer( ctx, TEXTURE_RESAMPLING_BUF0 + face, ALIGN( w * pixelSize, 4 ) * h );
+				memcpy( mip, data[MIP_INDEX( miplevel, face )], ALIGN( w * pixelSize, 4 ) * h);
+				while( w > minmipsize || h > minmipsize ) {
+					R_MipMap( mip, w, h, pixelSize, 4 );
+
+					w = max( w >> 1, 1 );
+					h = max( h >> 1, 1 );
+					miplevel++;
+					qglTexImage2D( target + face, miplevel, comp, w, h, 0, format, type, mip );
+		}
+			}
+		}
 	}
+
+
+#undef MIP_INDEX
 }
 
 
