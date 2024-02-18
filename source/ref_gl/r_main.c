@@ -1722,7 +1722,7 @@ int R_LoadFile_( const char *path, int flags, void **buffer, const char *filenam
 	buf = NULL; // quiet compiler warning
 
 	// look for it in the filesystem or pack files
-	len = ri.FS_FOpenFile( path, &fhandle, FS_READ|flags );
+	len = FS_FOpenFile( path, &fhandle, FS_READ|flags );
 
 	if( !fhandle )
 	{
@@ -1733,7 +1733,7 @@ int R_LoadFile_( const char *path, int flags, void **buffer, const char *filenam
 
 	if( !buffer )
 	{
-		ri.FS_FCloseFile( fhandle );
+		FS_FCloseFile( fhandle );
 		return len;
 	}
 
@@ -1741,8 +1741,8 @@ int R_LoadFile_( const char *path, int flags, void **buffer, const char *filenam
 	buf[len] = 0;
 	*buffer = buf;
 
-	ri.FS_Read( buf, len, fhandle );
-	ri.FS_FCloseFile( fhandle );
+	FS_Read( buf, len, fhandle );
+	FS_FCloseFile( fhandle );
 
 	return len;
 }
