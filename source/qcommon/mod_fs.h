@@ -1,15 +1,15 @@
-#ifndef R_FS_MODULE_H
-#define R_FS_MODULE_H
+#ifndef _FS_MODULE_H
+#define _FS_MODULE_H
 
 #include "../gameshared/q_arch.h"
 #include "../gameshared/q_shared.h"
 
 #define DECLARE_TYPEDEF_METHOD( ret, name, ... ) \
-	typedef ret(*name##Fn )( __VA_ARGS__ ); \
-	ret name (__VA_ARGS__);
+	typedef ret ( *name##Fn )( __VA_ARGS__ );    \
+	ret name( __VA_ARGS__ );
 
-DECLARE_TYPEDEF_METHOD( const char *, FS_GameDirectory, void );
 DECLARE_TYPEDEF_METHOD( const char *, FS_BaseGameDirectory, void );
+DECLARE_TYPEDEF_METHOD( const char *, FS_GameDirectory, void );
 DECLARE_TYPEDEF_METHOD( const char *, FS_WriteDirectory, void );
 DECLARE_TYPEDEF_METHOD( const char *, FS_CacheDirectory, void );
 DECLARE_TYPEDEF_METHOD( const char *, FS_SecureDirectory, void );
@@ -90,6 +90,8 @@ DECLARE_TYPEDEF_METHOD( bool, FS_AddPurePak, unsigned checksum );
 DECLARE_TYPEDEF_METHOD( void, FS_RemovePurePaks, void );
 
 DECLARE_TYPEDEF_METHOD( void, FS_AddFileToMedia, const char *filename );
+
+#undef DECLARE_TYPEDEF_METHOD
 
 struct fs_import_s {
 	FS_GameDirectoryFn FS_GameDirectory;
@@ -221,8 +223,8 @@ static const struct fs_import_s default_fs_imports_s = {
 };
 
 #if FS_DEFINE_INTERFACE_IMPL
-static struct fs_import_s fs_import;
-const char * FS_GameDirectory(void ){ return fs_import.FS_GameDirectory();}
+extern struct fs_import_s fs_import;
+const char * FS_GameDirectory(void){ return fs_import.FS_GameDirectory();}
 const char * FS_BaseGameDirectory(void){ return fs_import.FS_BaseGameDirectory();}
 const char * FS_WriteDirectory(void ){ return fs_import.FS_WriteDirectory();}
 const char * FS_CacheDirectory(void){ return fs_import.FS_CacheDirectory();}
@@ -239,7 +241,7 @@ int FS_Printf( int file, const char *format, ...){
 	int ret;
 	va_list args;
 	va_start(args, format);
-	ret = fs_import.FS_Printf(file, args);
+	ret = fs_import.FS_Printf(file, format, args);
 	va_end(args);
 	return ret;
 }
@@ -292,8 +294,6 @@ bool FS_AddPurePak(unsigned checksum ){ return fs_import.FS_AddPurePak(checksum)
 void FS_RemovePurePaks(void ){ fs_import.FS_RemovePurePaks();}
 void FS_AddFileToMedia(const char *filename ){ fs_import.FS_AddFileToMedia(filename);}
 #endif
-
-#undef DECLARE_TYPEDEF_METHOD
 
 #endif
 
