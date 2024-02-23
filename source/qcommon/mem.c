@@ -536,7 +536,6 @@ void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t alignment, int z, int 
 
 	QMutex_Lock( memMutex );
 
-
 	const size_t realsize = size + ( CanarySize * 2 ) + alignment;
 	void *baseAddress = malloc( realsize );
 	void *reportedAddress = ( baseAddress + CanarySize );
@@ -595,8 +594,10 @@ void *_Mem_Realloc( void *data, size_t size, const char *filename, int fileline 
 		assert( false);
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", filename, fileline );
 	}
-	if( size <= mem->size )
+	if( size <= mem->size ) {
+		QMutex_Unlock( memMutex );
 		return data;
+	}
 
 	void *newdata = Mem_AllocExt( mem->pool, size, 0 );
 	memcpy( newdata, data, mem->size );
@@ -817,20 +818,6 @@ size_t Mem_PoolTotalSize( mempool_t *pool )
 	return pool->totalsize;
 }
 
-void _Mem_CheckSentinels( void *data, const char *filename, int fileline )
-{
-
-	if( data == NULL )
-		_Mem_Error( "Mem_CheckSentinels: data == NULL (sentinel check at %s:%i)", filename, fileline );
-	
-	QMutex_Lock( memMutex );
-	struct memheader_s* mem = __findLinkMemory(data);
-	
-	QMutex_Unlock( memMutex );
-	__validateHeader(mem);
-
-}
-
 static void _Mem_CheckSentinelsPool( mempool_t *pool, const char *filename, int fileline )
 {
 	memheader_t *mem;
@@ -842,7 +829,7 @@ static void _Mem_CheckSentinelsPool( mempool_t *pool, const char *filename, int 
 		for( child = pool->child; child; child = child->next )
 			_Mem_CheckSentinelsPool( child, filename, fileline );
 	}
-
+	
 	assert( pool->sentinel1 == MEMHEADER_SENTINEL1 );
 	assert( pool->sentinel2 == MEMHEADER_SENTINEL1 );
 

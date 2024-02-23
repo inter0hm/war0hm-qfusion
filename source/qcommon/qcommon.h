@@ -804,7 +804,6 @@ void _Mem_FreePool( mempool_t **pool, int musthave, int canthave, const char *fi
 void _Mem_EmptyPool( mempool_t *pool, int musthave, int canthave, const char *filename, int fileline );
 char *_Mem_CopyString( mempool_t *pool, const char *in, const char *filename, int fileline );
 
-void _Mem_CheckSentinels( void *data, const char *filename, int fileline );
 void _Mem_CheckSentinelsGlobal( const char *filename, int fileline );
 
 size_t Mem_PoolTotalSize( mempool_t *pool );
@@ -819,7 +818,6 @@ size_t Mem_PoolTotalSize( mempool_t *pool );
 #define Mem_EmptyPool( pool ) _Mem_EmptyPool( pool, 0, 0, __FILE__, __LINE__ )
 #define Mem_CopyString( pool, str ) _Mem_CopyString( pool, str, __FILE__, __LINE__ )
 
-#define Mem_CheckSentinels( data ) _Mem_CheckSentinels( data, __FILE__, __LINE__ )
 #define Mem_CheckSentinelsGlobal() _Mem_CheckSentinelsGlobal( __FILE__, __LINE__ )
 #ifdef NDEBUG
 #define Mem_DebugCheckSentinelsGlobal()
