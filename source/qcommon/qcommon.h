@@ -789,6 +789,11 @@ void Memory_InitCommands( void );
 void Memory_Shutdown( void );
 void Memory_ShutdownCommands( void );
 
+void *__q_malloc(size_t size, const char* sourceFilename, const char* functionName, int sourceLine);
+void *__q_realloc(void* ptr, size_t size);
+void *__q_all(void* ptr, size_t size);
+void __q_free(void* ptr);
+
 void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t aligment, int z, int musthave, int canthave, const char *filename, int fileline );
 void *_Mem_Alloc( mempool_t *pool, size_t size, int musthave, int canthave, const char *filename, int fileline );
 void *_Mem_Realloc( void *data, size_t size, const char *filename, int fileline );
