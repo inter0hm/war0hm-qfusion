@@ -1,9 +1,9 @@
 #include "../../q_arch.h"
 
 
-#ifdef VECTORMATH_DEBUG
-#include <cstdio>
-#endif // VECTORMATH_DEBUG
+//#ifdef VECTORMATH_DEBUG
+//#include <cstdio>
+//#endif // VECTORMATH_DEBUG
 
 #if defined( _MSC_VER )
 // Visual Studio (MS compiler)
@@ -25,46 +25,48 @@ VECTORMATH_ALIGNED_TYPE_PRE struct vec4i_s {
 } VECTORMATH_ALIGNED_TYPE_POST;
 
 
-VECTORMATH_ALIGNED_TYPE_PRE struct vec2_s {
-	float x, y, z, w;
-} VECTORMATH_ALIGNED_TYPE_POST;
-
-inline const float vec2_element( const struct vec2_s *v1, uint_fast8_t index);
-
-inline const struct vec2_s vec2_create( float x, float y, float z );
-inline const struct vec2_s vec2_create_single( float x);
-inline const struct vec2_s vec2_create_vec2( const struct vec2_s* v);
-
-
-inline const struct vec2_s vec2_slerp( float t, const struct vec2_s *unitVec0, const struct vec2_s *unitVec1 );
-inline const struct vec2_s vec2_add( const struct vec2_s *v1, const struct vec2_s *v2 );
-inline const struct vec2_s vec2_sub( const struct vec2_s *v1, const struct vec2_s *v2 );
-inline const struct vec2_s vec2_mul( const struct vec2_s *v1, const struct vec2_s *v2 );
-
-inline const struct vec3_s vec2_add_scalar( const struct vec2_s *v1, float value);
-inline const struct vec3_s vec2_sub_scalar( const struct vec2_s *v1, float value );
-inline const struct vec3_s vec2_mul_scalar( const struct vec2_s *v1, float value );
-
-inline const struct vec2_s vec2_max_per_element( const struct vec2_s *v1, const struct vec2_s *v2);
-inline const struct vec2_s vec2_min_per_element( const struct vec2_s *v1, const struct vec2_s *v2);
-inline const struct vec2_s vec2_copy_sign_element( const struct vec2_s *v1, const struct vec2_s *v2);
-
-inline const struct vec2_s vec2_max_element( const struct vec2_s *v1);
-inline const struct vec2_s vec2_min_element( const struct vec2_s *v1);
-
-inline const float vec2_normalize( const struct vec2_s *v1);
-inline const float vec2_length( const struct vec2_s *v1);
-inline const float vec2_length_sqr( const struct vec2_s *v1);
-
-inline float sum(const struct vec2_s* vec);
-
-inline const float vec2_outer( const struct vec2_s *v1, const struct vec2_s *v2);
+//VECTORMATH_ALIGNED_TYPE_PRE struct vec2_s {
+//	float x, y;
+//} VECTORMATH_ALIGNED_TYPE_POST;
+//
+//inline const float vec2_element( const struct vec2_s *v1, uint_fast8_t index);
+//
+//inline const struct vec2_s vec2_create( float x, float y );
+//inline const struct vec2_s vec2_create_single( float x);
+//inline const struct vec2_s vec2_create_vec2( const struct vec2_s* v);
+//
+//inline const struct vec2_s __vec2_x( float x );
+//inline const struct vec2_s __vec2_y( float x);
+//inline float vec2_scalar_select(const struct vec2_s *v, unsigned int select );
+//
+//inline const struct vec2_s vec2_slerp( float t, const struct vec2_s *unitVec0, const struct vec2_s *unitVec1 );
+//inline const struct vec2_s vec2_add( const struct vec2_s *v1, const struct vec2_s *v2 );
+//inline const struct vec2_s vec2_sub( const struct vec2_s *v1, const struct vec2_s *v2 );
+//inline const struct vec2_s vec2_mul( const struct vec2_s *v1, const struct vec2_s *v2 );
+//
+//inline const struct vec3_s vec2_add_scalar( const struct vec2_s *v1, float value);
+//inline const struct vec3_s vec2_sub_scalar( const struct vec2_s *v1, float value );
+//inline const struct vec3_s vec2_mul_scalar( const struct vec2_s *v1, float value );
+//
+//inline const struct vec2_s vec2_max_per_element( const struct vec2_s *v1, const struct vec2_s *v2);
+//inline const struct vec2_s vec2_min_per_element( const struct vec2_s *v1, const struct vec2_s *v2);
+//inline const struct vec2_s vec2_copy_sign_element( const struct vec2_s *v1, const struct vec2_s *v2);
+//
+//inline const struct vec2_s vec2_max_element( const struct vec2_s *v1);
+//inline const struct vec2_s vec2_min_element( const struct vec2_s *v1);
+//
+//inline const float vec2_normalize( const struct vec2_s *v1);
+//inline const float vec2_length( const struct vec2_s *v1);
+//inline const float vec2_length_sqr( const struct vec2_s *v1);
+//
+//inline float sum(const struct vec2_s* vec);
+//
+//inline const float vec2_outer( const struct vec2_s *v1, const struct vec2_s *v2);
 
 VECTORMATH_ALIGNED_TYPE_PRE struct vec3_s {
-	float x, y, z, w;
+	float x, y, z;
 } VECTORMATH_ALIGNED_TYPE_POST;
 
-inline const float vec3_element( const struct vec3_s *v1, uint_fast8_t index);
 
 inline const struct vec3_s vec3_create( float x, float y, float z );
 inline const struct vec3_s vec3_create_single_scalar( float x);
@@ -85,6 +87,11 @@ inline const struct vec3_s vec3_copy_sign_element( const struct vec3_s *v1, cons
 
 inline const struct vec3_s vec3_max_element( const struct vec3_s *v1);
 inline const struct vec3_s vec3_min_element( const struct vec3_s *v1);
+
+inline const float vec3_element( const struct vec3_s *v1, uint_fast8_t index);
+inline float __vec3_x(const struct vec3_s* v);
+inline float __vec3_y(const struct vec3_s* v);
+inline float __vec3_z(const struct vec3_s* v);
 
 inline const float vec3_normalize( const struct vec3_s *v1);
 inline const float vec3_length( const struct vec3_s *v1);
@@ -153,6 +160,5 @@ inline const float mat3_element( const struct mat3_s *v1, uint_fast8_t col, uint
 
 inline const struct vec4_s mat3_create( const struct vec3_s *col0, const struct vec3_s *col1, const struct vec3_s *col2, const struct vec3_s *col3 );
 
-//inline const struct vec3_s vec3_slerp( float t, const struct vec3_s *unitVec0, const struct vec3_s *unitVec1 ) {
-//  v
-//}
+//#include "vector.inl"
+
