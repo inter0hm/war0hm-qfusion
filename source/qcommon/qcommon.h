@@ -803,7 +803,6 @@ void q_free(void* ptr);
  **/
 mempool_t* q_create_pool(mempool_t* parent, const char* name);
 void q_link_to_pool(void* ptr, mempool_t* pool);
-void q_link_to_pool_temporary(void* ptr, mempool_t* pool);
 void q_free_pool(mempool_t* pool);
 void q_empty_pool(mempool_t* pool);
 /**

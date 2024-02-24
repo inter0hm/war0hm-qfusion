@@ -99,7 +99,6 @@ typedef struct memheader_s
 
 	// pool this memheader belongs to
 	struct mempool_s *pool;
-	bool temporary;
 
 	size_t size; // size of the memory 
 	size_t alignment;
@@ -311,7 +310,6 @@ static inline void __unlinkPool(struct memheader_s* mem) {
 		mem->pool = NULL;
 		mem->prev = NULL;
 		mem->next = NULL;
-		mem->temporary = false;
 	}
 }
 /**
@@ -563,21 +561,6 @@ void q_link_to_pool(void* ptr, mempool_t* pool) {
 	}
 	__linkPool(mem, pool);
 	QMutex_Unlock( memMutex );
-}
-
-void q_link_to_pool_temporary(void* ptr, mempool_t* pool) {
-	assert(ptr);
-	assert(pool);
-	QMutex_Lock( memMutex );
-	struct memheader_s *mem = __findLinkMemory( ptr );
-	if( mem == NULL ) {
-		assert( false );
-		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
-	}
-	mem->temporary  = true;
-	__linkPool(mem, pool);
-	QMutex_Unlock( memMutex );
-
 }
 
 static inline void __poolRemoveChild( struct mempool_s *pool, struct mempool_s *child ) {
