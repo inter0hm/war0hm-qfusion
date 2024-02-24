@@ -529,6 +529,12 @@ void *__q_realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 		reportedAddress = (uint8_t *)reportedAddress + ( mem->alignment - offset );
 	}
 	const ptrdiff_t newPtrDiff = ( (uint8_t*)reportedAddress - (uint8_t*)baseAddress ) - CANARY_SIZE;
+	if(mem->pool) {
+		mem->pool->realsize -= mem->realsize;
+		mem->pool->totalsize -= mem->size;
+		mem->pool->realsize += realsize;
+		mem->pool->totalsize += size;
+	}
 
 	mem->realsize = realsize;
 	mem->reportedAddress = reportedAddress;
