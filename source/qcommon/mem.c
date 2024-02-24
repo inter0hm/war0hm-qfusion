@@ -521,7 +521,7 @@ void *__q_realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
 	}
 
-	const ptrdiff_t oldPtrDiff = ( mem->reportedAddress - mem->baseAddress ) - CANARY_SIZE;
+	const ptrdiff_t oldPtrDiff = ( (uint8_t*)mem->reportedAddress - (uint8_t*)mem->baseAddress ) - CANARY_SIZE;
 	const size_t realsize = size + ( CANARY_SIZE * 2 ) + mem->alignment;
 	const size_t oldReportedSize = mem->size;
 	void *baseAddress = realloc( mem->baseAddress, realsize );
@@ -530,7 +530,7 @@ void *__q_realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 	if( offset ) {
 		reportedAddress = (uint8_t *)reportedAddress + ( mem->alignment - offset );
 	}
-	const ptrdiff_t newPtrDiff = ( reportedAddress - baseAddress ) - CANARY_SIZE;
+	const ptrdiff_t newPtrDiff = ( (uint8_t*)reportedAddress - (uint8_t*)baseAddress ) - CANARY_SIZE;
 
 	mem->realsize = realsize;
 	mem->reportedAddress = reportedAddress;
