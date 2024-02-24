@@ -536,15 +536,16 @@ void *__q_realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 	mem->sourceline = sourceLine;
 	mem->sourceFilename = sourceFilename;
 	mem->functionName = functionName;
+	__validateHeader( mem );
+
 	QMutex_Unlock( memMutex );
 
-	// the offset from the base address is different so we need to adjust the memory to be re-aligned
+	// the offset from the base address is different so we need to adjust the memory to be re-aligned when the memory was allocated
 	if( newPtrDiff != oldPtrDiff ) {
 		memmove( (uint8_t*)reportedAddress - CANARY_SIZE, (uint8_t*)reportedAddress - CANARY_SIZE + ( newPtrDiff - oldPtrDiff ), mem->size + ( CANARY_SIZE * 2 ) );
 	}
 
 	// validate the reported address
-	__validateHeader( reportedAddress );
 	__wipeWithPattern( reportedAddress, size, oldReportedSize, unusedPattern );
 
 	return mem->reportedAddress;
