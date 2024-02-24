@@ -790,9 +790,27 @@ void Memory_Shutdown( void );
 void Memory_ShutdownCommands( void );
 
 void *__q_malloc(size_t size, const char* sourceFilename, const char* functionName, int sourceLine);
-void *__q_realloc(void* ptr, size_t size);
-void *__q_all(void* ptr, size_t size);
-void __q_free(void* ptr);
+void *__q_realloc(void* ptr, size_t size, const char* sourceFilename, const char* functionName, int sourceLine);
+void *__q_malloc_aligned( size_t alignment, size_t size, const char* sourceFilename, const char* functionName, int sourceLine);
+void q_free(void* ptr);
+
+#define q_malloc( size ) __q_malloc(size, __FILE__, __FUNCTION__, __LINE__ )
+#define q_realloc( ptr, size) __q_realloc( ptr, size, __FILE__, __FUNCTION__, __LINE__ )
+#define q_malloc_aligned( alignment, size ) __q_malloc_aligned( alignment, size, __FILE__, __FUNCTION__, __LINE__ )
+
+/**
+ * memory can only be linked to one pool so linking an already linked allocation will unlink the memory from the last pool
+ **/
+mempool_t* q_create_pool(mempool_t* parent, const char* name);
+void q_link_to_pool(void* ptr, mempool_t* pool);
+void q_free_pool(mempool_t* pool);
+void q_empty_pool(mempool_t* pool);
+/**;
+ * unlink the memory from the pool
+ **/
+void q_unlink_from_pool(void* ptr);
+
+
 
 void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t aligment, int z, int musthave, int canthave, const char *filename, int fileline );
 void *_Mem_Alloc( mempool_t *pool, size_t size, int musthave, int canthave, const char *filename, int fileline );
