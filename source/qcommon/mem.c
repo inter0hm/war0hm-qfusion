@@ -82,7 +82,7 @@ static bool commands_initialized = false;
 #endif
 
 static const bool RandomWipe = false; 
-static const size_t CanarySize = PaddingSize * sizeof(uint32_t);
+#define CANARY_SIZE (PaddingSize * sizeof(uint32_t))
 
 typedef struct memheader_s
 {
@@ -454,12 +454,12 @@ static void _Mem_Error( const char *format, ... )
 
 void *__q_malloc_aligned(size_t align, size_t size, const char* sourceFilename, const char* functionName, int sourceLine) {
 	const size_t alignment = align < sizeof(void*) ? sizeof(void*) : align;
-	const size_t realsize = size + ( CanarySize * 2 ) + alignment;
+	const size_t realsize = size + ( CANARY_SIZE * 2 ) + alignment;
 	void *baseAddress = malloc( realsize );
 	if( baseAddress == NULL ) 
 		return NULL;
 
-	void *reportedAddress = ( baseAddress + CanarySize );
+	void *reportedAddress = ( (uint8_t*)baseAddress + CANARY_SIZE );
 	size_t offset = ( (size_t)reportedAddress ) % alignment;
 	if( offset ) {
 		reportedAddress = (uint8_t *)reportedAddress + ( alignment - offset );
@@ -521,16 +521,16 @@ void *__q_realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
 	}
 
-	const ptrdiff_t oldPtrDiff = ( mem->reportedAddress - mem->baseAddress ) - CanarySize;
-	const size_t realsize = size + ( CanarySize * 2 ) + mem->alignment;
+	const ptrdiff_t oldPtrDiff = ( mem->reportedAddress - mem->baseAddress ) - CANARY_SIZE;
+	const size_t realsize = size + ( CANARY_SIZE * 2 ) + mem->alignment;
 	const size_t oldReportedSize = mem->size;
-	void *const baseAddress = realloc( mem->baseAddress, realsize );
-	void *reportedAddress = ( baseAddress + CanarySize );
+	void *baseAddress = realloc( mem->baseAddress, realsize );
+	void *reportedAddress = ( (uint8_t*)baseAddress + CANARY_SIZE );
 	const size_t offset = ( (size_t)reportedAddress ) % mem->alignment;
 	if( offset ) {
 		reportedAddress = (uint8_t *)reportedAddress + ( mem->alignment - offset );
 	}
-	const ptrdiff_t newPtrDiff = ( reportedAddress - baseAddress ) - CanarySize;
+	const ptrdiff_t newPtrDiff = ( reportedAddress - baseAddress ) - CANARY_SIZE;
 
 	mem->realsize = realsize;
 	mem->reportedAddress = reportedAddress;
@@ -542,7 +542,7 @@ void *__q_realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 
 	// the offset from the base address is different so we need to adjust the memory to be re-aligned
 	if( newPtrDiff != oldPtrDiff ) {
-		memmove( reportedAddress - CanarySize, reportedAddress - CanarySize + ( newPtrDiff - oldPtrDiff ), mem->size + ( CanarySize * 2 ) );
+		memmove( (uint8_t*)reportedAddress - CANARY_SIZE, (uint8_t*)reportedAddress - CANARY_SIZE + ( newPtrDiff - oldPtrDiff ), mem->size + ( CANARY_SIZE * 2 ) );
 	}
 
 	// validate the reported address
@@ -707,9 +707,9 @@ void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t alignment, int z, int 
 
 	QMutex_Lock( memMutex );
 
-	const size_t realsize = size + ( CanarySize * 2 ) + alignment;
+	const size_t realsize = size + ( CANARY_SIZE * 2 ) + alignment;
 	void *baseAddress = malloc( realsize );
-	void *reportedAddress = ( baseAddress + CanarySize );
+	void *reportedAddress = ( (uint8_t*)baseAddress + CANARY_SIZE );
 	struct memheader_s *mem = __PullMemHeaderFromReserve();
 	
 	if( baseAddress == NULL )
