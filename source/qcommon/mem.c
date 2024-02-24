@@ -87,7 +87,6 @@ static const bool RandomWipe = false;
 typedef struct memheader_s
 {
 	// address returned by malloc (may be significantly before this header to satisfy alignment)
-
 	void *baseAddress;
 	void *reportedAddress;
 	
@@ -100,6 +99,7 @@ typedef struct memheader_s
 
 	// pool this memheader belongs to
 	struct mempool_s *pool;
+	bool temporary;
 
 	size_t size; // size of the memory 
 	size_t alignment;
@@ -109,11 +109,11 @@ typedef struct memheader_s
 	const char *sourceFilename;
 	const char *functionName;
 	int sourceline;
+
 } memheader_t;
 
 struct mempool_s
 {
-
 	// chain of individual memory allocations
 	struct memheader_s *chain;
 
@@ -158,11 +158,11 @@ static struct memheader_s *reservoirHeaders;
 static struct memheader_s **reservoirAllocHeaderBuffer;
 static size_t reservoirIndex = 0;
 
-static inline size_t __resolve_unit_hash_index(const void *reportedAddress ) {
+static inline size_t __resolveUnitHashIndex(const void *reportedAddress ) {
 	return ( ( (size_t)reportedAddress ) >> 4 ) & ( AllocHashSize - 1 );
 }
 
-static inline struct memheader_s *__PullMemHeaderFromReserve()
+static inline struct memheader_s *__pullMemHeaderFromReserve()
 {
 	if(reservoirHeaders == NULL) {
 		reservoirHeaders = malloc( 256 * sizeof( struct memheader_s ) );
@@ -182,13 +182,13 @@ static inline struct memheader_s *__PullMemHeaderFromReserve()
 }
 
 
-static inline void __return_mem_header_to_reserve(struct memheader_s* mem) {
+static inline void __returnMemHeaderToReserve(struct memheader_s* mem) {
 	memset( mem, 0, sizeof( struct memheader_s ) );
 	mem->next = reservoirHeaders;
 	reservoirHeaders = mem;
 }
 
-static void __wipe_with_pattern( void *reportedAddress, size_t reportedSize, size_t originalReportedSize, uint32_t pattern )
+static void __wipeWithPattern( void *reportedAddress, size_t reportedSize, size_t originalReportedSize, uint32_t pattern )
 {
 	// For a serious test run, we use wipes of random a random value. However, if this causes a crash, we don't want it to
 	// crash in a differnt place each time, so we specifically DO NOT call srand. If, by chance your program calls srand(),
@@ -240,7 +240,7 @@ static void __wipe_with_pattern( void *reportedAddress, size_t reportedSize, siz
 	}
 }
 
-static const char* insertCommas(unsigned int value)
+static const char* _insertCommas(unsigned int value)
 {
 	static char str[30];
 	memset(str, 0, sizeof(str));
@@ -270,25 +270,25 @@ static const char* __memorySizeString(uint32_t size)
 {
 	static char str[90];
 	if (size > (1024 * 1024))
-		printf(str, "%10s (%7.2fM)", insertCommas(size), ((float)size) / (1024.0f * 1024.0f));
+		printf(str, "%10s (%7.2fM)", _insertCommas(size), ((float)size) / (1024.0f * 1024.0f));
 	else if (size > 1024)
-		sprintf(str, "%10s (%7.2fK)", insertCommas(size), ((float)size) / 1024.0f);
+		sprintf(str, "%10s (%7.2fK)", _insertCommas(size), ((float)size) / 1024.0f);
 	else
-		sprintf(str, "%10s bytes     ", insertCommas(size));
+		sprintf(str, "%10s bytes     ", _insertCommas(size));
 	return str;
 }
 
 /**
 * Links a memory block to the hash table.
 */
-static inline void __link_memory( struct memheader_s *mem )
+static inline void __linkMemory( struct memheader_s *mem )
 {
 	assert( mem );
 	assert( mem->reportedAddress );
 	assert(mem->hnext == NULL);
 	assert(mem->hprev == NULL);
 	
-	const size_t hashIndex = __resolve_unit_hash_index( mem->reportedAddress );
+	const size_t hashIndex = __resolveUnitHashIndex( mem->reportedAddress );
 	if( hashTable[hashIndex] )
 		hashTable[hashIndex]->hprev = mem;
 	mem->hnext = hashTable[hashIndex];
@@ -296,7 +296,7 @@ static inline void __link_memory( struct memheader_s *mem )
 	hashTable[hashIndex] = mem;
 }
 
-static inline void __unlink_pool(struct memheader_s* mem) {
+static inline void __unlinkPool(struct memheader_s* mem) {
 	assert(mem);
 	if( mem->pool ) {
 		if( mem->prev )
@@ -311,20 +311,21 @@ static inline void __unlink_pool(struct memheader_s* mem) {
 		mem->pool = NULL;
 		mem->prev = NULL;
 		mem->next = NULL;
+		mem->temporary = false;
 	}
 }
 /**
 * Unlinks a memory block from any pool it may be linked to.
 * free from the hash table
 */
-static inline void __unlink_memory( struct memheader_s *mem )
+static inline void __unlinkMemory( struct memheader_s *mem )
 {
 	assert( mem );
 	assert( mem->reportedAddress );
-	const size_t hashIndex = __resolve_unit_hash_index( mem->reportedAddress );
+	const size_t hashIndex = __resolveUnitHashIndex( mem->reportedAddress );
 
 	// we are linked to a pool so unlink
-	__unlink_pool(mem);
+	__unlinkPool(mem);
 
 	mem->realsize = 0;
 	mem->size = 0;
@@ -346,12 +347,12 @@ static inline void __unlink_memory( struct memheader_s *mem )
 /**
 * Links a memory block to a pool and unlinks it from any other pool it may be linked to.
 */
-static inline void __link_pool(struct memheader_s* mem, struct mempool_s* pool) {
+static inline void __linkPool(struct memheader_s* mem, struct mempool_s* pool) {
 	assert(mem);
 	assert(pool);
 
 	// we are linked to a pool so unlink
-	__unlink_pool(mem);
+	__unlinkPool(mem);
 	// these should be unlinked
 	assert(mem->next == NULL); 
 	assert(mem->prev == NULL);
@@ -367,8 +368,7 @@ static inline void __link_pool(struct memheader_s* mem, struct mempool_s* pool) 
 	pool->totalsize += mem->size;
 }
 
-
-static struct memheader_s *__find_link_memory( const void *reportedAddress )
+static struct memheader_s *__findLinkMemory( const void *reportedAddress )
 {
 	// Just in case...
 	assert( reportedAddress != NULL );
@@ -377,7 +377,7 @@ static struct memheader_s *__find_link_memory( const void *reportedAddress )
 	// addresses will be on four-, eight- or even sixteen-byte boundaries. If we didn't do this, the hash index would not have
 	// very good coverage.
 
-	const size_t hashIndex = __resolve_unit_hash_index(reportedAddress);
+	const size_t hashIndex = __resolveUnitHashIndex(reportedAddress);
 	struct memheader_s *ptr = hashTable[hashIndex];
 	while( ptr ) {
 		if( ptr->reportedAddress == reportedAddress )
@@ -398,7 +398,7 @@ static void __dumpMemHeader(const struct memheader_s* allocUnit)
 	Com_Printf("[I] Owner             : %s(%d)", allocUnit->sourceFilename, allocUnit->sourceline);
 }
 
-bool __validate_header(const struct memheader_s* header)
+bool __validateHeader(const struct memheader_s* header)
 {
 	// Make sure the padding is untouched
 
@@ -466,7 +466,7 @@ void *__q_malloc_aligned(size_t align, size_t size, const char* sourceFilename, 
 	}
 
 	QMutex_Lock( memMutex );
-	struct memheader_s *mem = __PullMemHeaderFromReserve();
+	struct memheader_s *mem = __pullMemHeaderFromReserve();
 	mem->alignment = alignment;
 	mem->reportedAddress = reportedAddress; 
 	mem->baseAddress = baseAddress;
@@ -476,10 +476,10 @@ void *__q_malloc_aligned(size_t align, size_t size, const char* sourceFilename, 
 	mem->size = size;
 	mem->realsize = realsize;
 
-	__link_memory(mem);
+	__linkMemory(mem);
 	QMutex_Unlock(memMutex);
 
-	__wipe_with_pattern(reportedAddress, size, 0, unusedPattern);
+	__wipeWithPattern(reportedAddress, size, 0, unusedPattern);
 
 	return reportedAddress;
 }
@@ -515,7 +515,7 @@ void *__q_malloc(size_t size, const char* sourceFilename, const char* functionNa
 void *__q_realloc( void *ptr, size_t size, const char *sourceFilename, const char *functionName, int sourceLine )
 {
 	QMutex_Lock( memMutex );
-	struct memheader_s *mem = __find_link_memory( ptr );
+	struct memheader_s *mem = __findLinkMemory( ptr );
 	if( mem == NULL ) {
 		assert( false );
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
@@ -546,8 +546,8 @@ void *__q_realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 	}
 
 	// validate the reported address
-	__validate_header( reportedAddress );
-	__wipe_with_pattern( reportedAddress, size, oldReportedSize, unusedPattern );
+	__validateHeader( reportedAddress );
+	__wipeWithPattern( reportedAddress, size, oldReportedSize, unusedPattern );
 
 	return mem->reportedAddress;
 }
@@ -556,17 +556,31 @@ void q_link_to_pool(void* ptr, mempool_t* pool) {
 	assert(ptr);
 	assert(pool);
 	QMutex_Lock( memMutex );
-	struct memheader_s *mem = __find_link_memory( ptr );
+	struct memheader_s *mem = __findLinkMemory( ptr );
 	if( mem == NULL ) {
 		assert( false );
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
 	}
-	__link_pool(mem, pool);
+	__linkPool(mem, pool);
+	QMutex_Unlock( memMutex );
+}
+
+void q_link_to_pool_temporary(void* ptr, mempool_t* pool) {
+	assert(ptr);
+	assert(pool);
+	QMutex_Lock( memMutex );
+	struct memheader_s *mem = __findLinkMemory( ptr );
+	if( mem == NULL ) {
+		assert( false );
+		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
+	}
+	mem->temporary  = true;
+	__linkPool(mem, pool);
 	QMutex_Unlock( memMutex );
 
 }
 
-static inline void ___q_pool_remove_child( struct mempool_s *pool, struct mempool_s *child ) {
+static inline void __poolRemoveChild( struct mempool_s *pool, struct mempool_s *child ) {
 	struct mempool_s **current = pool->parent ? &( pool->parent->child ) : &rootChain;
 	while( *current ) {
 		if( ( *current )->next == child) {
@@ -582,12 +596,12 @@ static inline void ___q_pool_remove_child( struct mempool_s *pool, struct mempoo
 void q_unlink_from_pool( void *ptr )
 {
 	QMutex_Lock( memMutex );
-	struct memheader_s *mem = __find_link_memory( ptr );
+	struct memheader_s *mem = __findLinkMemory( ptr );
 	if( mem == NULL ) {
 		assert( false );
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
 	}
-	__unlink_pool( mem );
+	__unlinkPool( mem );
 	QMutex_Unlock( memMutex );
 }
 
@@ -607,12 +621,12 @@ void q_empty_pool( struct mempool_s *pool )
 		struct memheader_s *chain = pool->chain;
 		while( chain ) {
 			struct memheader_s *const current = chain;
-			__validate_header( current );
-			__wipe_with_pattern( current->reportedAddress, current->size, 0, releasedPattern );
+			__validateHeader( current );
+			__wipeWithPattern( current->reportedAddress, current->size, 0, releasedPattern );
 			free( current->baseAddress );
 			chain = current->next;
-			__unlink_memory( current );
-			__return_mem_header_to_reserve( current );
+			__unlinkMemory( current );
+			__returnMemHeaderToReserve( current );
 		}
 
 		struct mempool_s *child = pool->child;
@@ -633,7 +647,7 @@ void q_free_pool( struct mempool_s *pool )
 {
 	assert( pool );
 	QMutex_Lock( memMutex );
-	___q_pool_remove_child( pool->parent, pool );
+	__poolRemoveChild( pool->parent, pool );
 
 	size_t capacity = 16;
 	size_t len = 0;
@@ -644,12 +658,12 @@ void q_free_pool( struct mempool_s *pool )
 		struct memheader_s *chain = pool->chain;
 		while( chain ) {
 			struct memheader_s *current = chain;
-			__validate_header( current );
-			__wipe_with_pattern( current->reportedAddress, current->size, 0, releasedPattern );
+			__validateHeader( current );
+			__wipeWithPattern( current->reportedAddress, current->size, 0, releasedPattern );
 			free( current->baseAddress );
 			chain = current->next;
-			__unlink_memory( current );
-			__return_mem_header_to_reserve( current );
+			__unlinkMemory( current );
+			__returnMemHeaderToReserve( current );
 		}
 		struct mempool_s *child = pool->child;
 		while( child ) {
@@ -669,19 +683,16 @@ void q_free_pool( struct mempool_s *pool )
 void q_free( void *ptr )
 {
 	QMutex_Lock( memMutex );
-	struct memheader_s *mem = __find_link_memory( ptr );
+	struct memheader_s *mem = __findLinkMemory( ptr );
 	if( mem == NULL ) {
 		assert( false );
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
 	}
-	__unlink_memory( mem );
-	__return_mem_header_to_reserve( mem );
-	void *const baseAddress = mem->baseAddress;
-	// free underlying memory
+	__unlinkMemory( mem );
+	__validateHeader( ptr );
+	free( mem->baseAddress );
+	__returnMemHeaderToReserve( mem );
 	QMutex_Unlock( memMutex );
-
-	__validate_header( ptr );
-	free( baseAddress );
 }
 
 void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t alignment, int z, int musthave, int canthave, const char *filename, int fileline )
@@ -710,7 +721,7 @@ void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t alignment, int z, int 
 	const size_t realsize = size + ( CANARY_SIZE * 2 ) + alignment;
 	void *baseAddress = malloc( realsize );
 	void *reportedAddress = ( (uint8_t*)baseAddress + CANARY_SIZE );
-	struct memheader_s *mem = __PullMemHeaderFromReserve();
+	struct memheader_s *mem = __pullMemHeaderFromReserve();
 	
 	if( baseAddress == NULL )
 		_Mem_Error( "Mem_Alloc: out of memory (alloc at %s:%i)", filename, fileline );
@@ -730,12 +741,12 @@ void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t alignment, int z, int 
 	mem->realsize = realsize;
 	
 	// append to head of list
-	__link_memory(mem);
-	__link_pool(mem, pool);
+	__linkMemory(mem);
+	__linkPool(mem, pool);
 
 	QMutex_Unlock( memMutex );
 
-	__wipe_with_pattern(reportedAddress, size, 0, unusedPattern);
+	__wipeWithPattern(reportedAddress, size, 0, unusedPattern);
 
 	if( z )
 		memset(reportedAddress, 0, mem->size );
@@ -760,7 +771,7 @@ void *_Mem_Realloc( void *data, size_t size, const char *filename, int fileline 
 		return NULL;
 	}
 	QMutex_Lock( memMutex );
-	struct memheader_s *mem = __find_link_memory( data );
+	struct memheader_s *mem = __findLinkMemory( data );
 	if( mem == NULL ) {
 		assert( false);
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", filename, fileline );
@@ -799,12 +810,12 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 
 	QMutex_Lock( memMutex );
 
-	struct memheader_s* mem = __find_link_memory(data);
+	struct memheader_s* mem = __findLinkMemory(data);
 	if( mem == NULL ) {
 		assert( false);
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was never allocated (alloc at %s:%i)", filename, fileline );
 	}
-	__validate_header(mem);
+	__validateHeader(mem);
 
 	mempool_t *pool = mem->pool;
 	if( musthave && ( ( pool->flags & musthave ) != musthave ) )
@@ -815,15 +826,15 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 		Com_DPrintf( "Mem_Free: pool %s, alloc %s:%i, free %s:%i, size %i bytes\n", pool->name, mem->sourceFilename, mem->sourceline, filename, fileline, mem->size );
 	
 	// unlink the memory 
-	__unlink_memory(mem);
+	__unlinkMemory(mem);
 
 	// wipe with closing pattern
-	__wipe_with_pattern(mem->reportedAddress, mem->size, 0, releasedPattern);
+	__wipeWithPattern(mem->reportedAddress, mem->size, 0, releasedPattern);
 	
 	free(mem->baseAddress);
 	
 	// return the header to the reservoir
-	__return_mem_header_to_reserve(mem);
+	__returnMemHeaderToReserve(mem);
 	QMutex_Unlock( memMutex );
 }
 
@@ -973,7 +984,7 @@ static void _Mem_CheckSentinelsPool( mempool_t *pool, const char *filename, int 
 	}
 
 	for( memheader_t *mem = pool->chain; mem != NULL; mem = mem->next ) {
-		__validate_header(mem);
+		__validateHeader(mem);
 	}
 }
 

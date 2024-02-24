@@ -803,14 +803,13 @@ void q_free(void* ptr);
  **/
 mempool_t* q_create_pool(mempool_t* parent, const char* name);
 void q_link_to_pool(void* ptr, mempool_t* pool);
+void q_link_to_pool_temporary(void* ptr, mempool_t* pool);
 void q_free_pool(mempool_t* pool);
 void q_empty_pool(mempool_t* pool);
-/**;
+/**
  * unlink the memory from the pool
  **/
 void q_unlink_from_pool(void* ptr);
-
-
 
 void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t aligment, int z, int musthave, int canthave, const char *filename, int fileline );
 void *_Mem_Alloc( mempool_t *pool, size_t size, int musthave, int canthave, const char *filename, int fileline );
