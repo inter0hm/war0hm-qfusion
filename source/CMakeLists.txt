@@ -297,6 +297,7 @@ add_subdirectory(ref_base)
 add_subdirectory(angelwrap)
 add_subdirectory(cgame)
 add_subdirectory(game)
+add_subdirectory(qcommon)
 
 if (NOT GAME_MODULES_ONLY)
     add_subdirectory(cin)

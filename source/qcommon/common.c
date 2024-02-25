@@ -250,6 +250,7 @@ void Com_Printf( const char *format, ... )
 
 	Con_Print( msg );
 
+	printf("%s\n", msg);
 	if( log_file )
 	{
 		if( logconsole_timestamp && logconsole_timestamp->integer )
