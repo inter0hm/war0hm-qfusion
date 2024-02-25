@@ -54,7 +54,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon.h"
 #include "qthreads.h"
-
+#include "mod_mem.h"
+#include "mem.h"
 
 #define POOLNAMESIZE 128
 
@@ -396,7 +397,7 @@ static void __dumpMemHeader(const struct memheader_s* allocUnit)
 	Com_Printf("[I] Owner             : %s(%d)", allocUnit->sourceFilename, allocUnit->sourceline);
 }
 
-bool __validateHeader(const struct memheader_s* header)
+bool __validateAllocationHeader(const struct memheader_s* header)
 {
 	// Make sure the padding is untouched
 
@@ -450,7 +451,7 @@ static void _Mem_Error( const char *format, ... )
 	Sys_Error( msg );
 }
 
-void *__q_malloc_aligned(size_t align, size_t size, const char* sourceFilename, const char* functionName, int sourceLine) {
+void *__Q_MallocAligned(size_t align, size_t size, const char* sourceFilename, const char* functionName, int sourceLine) {
 	const size_t alignment = align < sizeof(void*) ? sizeof(void*) : align;
 	const size_t realsize = size + ( CANARY_SIZE * 2 ) + alignment;
 	void *baseAddress = malloc( realsize );
@@ -481,7 +482,8 @@ void *__q_malloc_aligned(size_t align, size_t size, const char* sourceFilename, 
 
 	return reportedAddress;
 }
-mempool_t *q_create_pool( mempool_t *parent, const char *name )
+
+mempool_t *Q_CreatePool( mempool_t *parent, const char *name )
 {
 	mempool_t *pool = (mempool_t *)malloc( sizeof( mempool_t ) );
 	if( pool == NULL )
@@ -506,11 +508,11 @@ mempool_t *q_create_pool( mempool_t *parent, const char *name )
 	return pool;
 }
 
-void *__q_malloc(size_t size, const char* sourceFilename, const char* functionName, int sourceline) {
-	return __q_malloc_aligned(0,size, sourceFilename, functionName, sourceline);
+void *__Q_Malloc(size_t size, const char* sourceFilename, const char* functionName, int sourceline) {
+	return __Q_MallocAligned(0,size, sourceFilename, functionName, sourceline);
 }
 
-void *__q_realloc( void *ptr, size_t size, const char *sourceFilename, const char *functionName, int sourceLine )
+void *__Q_Realloc( void *ptr, size_t size, const char *sourceFilename, const char *functionName, int sourceLine )
 {
 	QMutex_Lock( memMutex );
 	struct memheader_s *mem = __findLinkMemory( ptr );
@@ -542,7 +544,7 @@ void *__q_realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 	mem->sourceline = sourceLine;
 	mem->sourceFilename = sourceFilename;
 	mem->functionName = functionName;
-	__validateHeader( mem );
+	__validateAllocationHeader( mem );
 
 	QMutex_Unlock( memMutex );
 
@@ -557,45 +559,22 @@ void *__q_realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 	return mem->reportedAddress;
 }
 
-void q_link_to_pool(void* ptr, mempool_t* pool) {
-	assert(ptr);
-	assert(pool);
-	QMutex_Lock( memMutex );
-	struct memheader_s *mem = __findLinkMemory( ptr );
-	if( mem == NULL ) {
-		assert( false );
-		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
-	}
-	__linkPool(mem, pool);
-	QMutex_Unlock( memMutex );
-}
-
-static inline void __poolRemoveChild( struct mempool_s *pool, struct mempool_s *child ) {
-	struct mempool_s **current = pool->parent ? &( pool->parent->child ) : &rootChain;
-	while( *current ) {
-		if( ( *current )->next == child) {
-			( *current )->next = child->next;
-			child->parent = NULL;
-			return;
-		}
-		current = &( *current )->next;
-	}
-	assert(false);
-}
-
-void q_unlink_from_pool( void *ptr )
+void Q_LinkToPool( void *ptr, mempool_t *pool )
 {
+	assert( ptr );
+	assert( pool );
 	QMutex_Lock( memMutex );
 	struct memheader_s *mem = __findLinkMemory( ptr );
 	if( mem == NULL ) {
 		assert( false );
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
 	}
-	__unlinkPool( mem );
+	__linkPool( mem, pool );
 	QMutex_Unlock( memMutex );
 }
 
-void q_empty_pool( struct mempool_s *pool )
+
+void Q_EmptyPool( struct mempool_s *pool )
 {
 	assert( pool );
 	QMutex_Lock( memMutex );
@@ -611,7 +590,7 @@ void q_empty_pool( struct mempool_s *pool )
 		struct memheader_s *chain = pool->chain;
 		while( chain ) {
 			struct memheader_s *const current = chain;
-			__validateHeader( current );
+			__validateAllocationHeader( current );
 			__wipeWithPattern( current->reportedAddress, current->size, 0, releasedPattern );
 			free( current->baseAddress );
 			chain = current->next;
@@ -633,11 +612,22 @@ void q_empty_pool( struct mempool_s *pool )
 	QMutex_Unlock( memMutex );
 }
 
-void q_free_pool( struct mempool_s *pool )
+void Q_FreePool( struct mempool_s *pool )
 {
 	assert( pool );
 	QMutex_Lock( memMutex );
-	__poolRemoveChild( pool->parent, pool );
+	do {
+		struct mempool_s **current = pool->parent ? &( pool->parent->child ) : &rootChain;
+		while( *current ) {
+			if( ( *current )->next == pool) {
+				( *current )->next = pool->next;
+				pool->parent = NULL;
+				break;
+			}
+			current = &( *current )->next;
+		}
+		assert(false);
+	} while(0);
 
 	size_t capacity = 16;
 	size_t len = 0;
@@ -648,7 +638,7 @@ void q_free_pool( struct mempool_s *pool )
 		struct memheader_s *chain = pool->chain;
 		while( chain ) {
 			struct memheader_s *current = chain;
-			__validateHeader( current );
+			__validateAllocationHeader( current );
 			__wipeWithPattern( current->reportedAddress, current->size, 0, releasedPattern );
 			free( current->baseAddress );
 			chain = current->next;
@@ -670,7 +660,7 @@ void q_free_pool( struct mempool_s *pool )
 	QMutex_Unlock( memMutex );
 }
 
-void q_free( void *ptr )
+void Q_Free( void *ptr )
 {
 	QMutex_Lock( memMutex );
 	struct memheader_s *mem = __findLinkMemory( ptr );
@@ -679,7 +669,7 @@ void q_free( void *ptr )
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
 	}
 	__unlinkMemory( mem );
-	__validateHeader( ptr );
+	__validateAllocationHeader( ptr );
 	free( mem->baseAddress );
 	__returnMemHeaderToReserve( mem );
 	QMutex_Unlock( memMutex );
@@ -805,7 +795,7 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 		assert( false);
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was never allocated (alloc at %s:%i)", filename, fileline );
 	}
-	__validateHeader(mem);
+	__validateAllocationHeader(mem);
 
 	mempool_t *pool = mem->pool;
 	if( musthave && ( ( pool->flags & musthave ) != musthave ) )
@@ -924,6 +914,19 @@ void _Mem_FreePool( mempool_t **pool, int musthave, int canthave, const char *fi
 	*pool = NULL;
 }
 
+void Mem_ValidationAllAllocations() {
+	bool errors = false;
+	for( size_t i = 0; i < AllocHashSize; i++ ) {
+		struct memheader_s *ptr = hashTable[i];
+		while( ptr ) {
+			errors += ( __validateAllocationHeader( ptr ) > 0 ? 1 : 0 );
+			ptr = ptr->hnext;
+		}
+	}
+	if (errors)
+		Com_Printf("[!] While validting header, %d allocation headers(s) were found to have problems", errors);
+}
+
 void _Mem_EmptyPool( mempool_t *pool, int musthave, int canthave, const char *filename, int fileline )
 {
 	if( pool == NULL )
@@ -933,28 +936,7 @@ void _Mem_EmptyPool( mempool_t *pool, int musthave, int canthave, const char *fi
 	if( canthave && ( pool->flags & canthave ) )
 		_Mem_Error( "Mem_EmptyPool: bad pool flags (canthave) (alloc at %s:%i)", filename, fileline );
 
-	q_empty_pool(pool);
-
-//	// recurse into children
-//	if( pool->child )
-//	{
-//		for( child = pool->child; child; child = next )
-//		{
-//			next = child->next;
-//			_Mem_EmptyPool( child, 0, 0, filename, fileline );
-//		}
-//	}
-//
-//#ifdef SHOW_NONFREED
-//	if( pool->chain )
-//		Com_Printf( "Warning: Memory pool %s has resources that weren't freed:\n", pool->name );
-//	for( mem = pool->chain; mem; mem = mem->next )
-//	{
-//		Com_Printf( "%10i bytes allocated at %s:%i\n", mem->size, mem->filename, mem->fileline );
-//	}
-//#endif
-//	while( pool->chain )        // free memory owned by the pool
-//		Mem_Free(pool->chain->baseAddress );
+	Q_EmptyPool(pool);
 }
 
 size_t Mem_PoolTotalSize( mempool_t *pool )
@@ -974,7 +956,7 @@ static void _Mem_CheckSentinelsPool( mempool_t *pool, const char *filename, int 
 	}
 
 	for( memheader_t *mem = pool->chain; mem != NULL; mem = mem->next ) {
-		__validateHeader(mem);
+		__validateAllocationHeader(mem);
 	}
 }
 
