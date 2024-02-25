@@ -265,10 +265,9 @@ static const char* _insertCommas(unsigned int value)
 	return str;
 }
 
-
 static const char* __memorySizeString(uint32_t size)
 {
-	static char str[90];
+	static char str[128];
 	if (size > (1024 * 1024))
 		printf(str, "%10s (%7.2fM)", _insertCommas(size), ((float)size) / (1024.0f * 1024.0f));
 	else if (size > 1024)
@@ -388,13 +387,14 @@ static struct memheader_s *__findLinkMemory( const void *reportedAddress )
 
 static void __dumpMemHeader(const struct memheader_s* allocUnit)
 {
+	if( allocUnit->pool ) {
+		Com_Printf( "[I] Pool: %s", allocUnit->pool->name);
+	}
 	Com_Printf("[I] Address (reported): %010p", allocUnit->reportedAddress);
 	Com_Printf("[I] Address (actual)  : %010p", allocUnit->baseAddress);
-	Com_Printf("[I] Size (reported)   : 0x%08X (%s)", (unsigned int)(allocUnit->size),
-		__memorySizeString((unsigned int)(allocUnit->size)));
-	Com_Printf("[I] Size (actual)     : 0x%08X (%s)", (unsigned int)(allocUnit->realsize),
-		__memorySizeString((unsigned int)(allocUnit->size)));
-	Com_Printf("[I] Owner             : %s(%d)", allocUnit->sourceFilename, allocUnit->sourceline);
+	Com_Printf("[I] Size (reported)   : 0x%08X (%s)", (unsigned int)(allocUnit->size), __memorySizeString((unsigned int)(allocUnit->size)));
+	Com_Printf("[I] Size (actual)     : 0x%08X (%s)", (unsigned int)(allocUnit->realsize), __memorySizeString((unsigned int)(allocUnit->size)));
+	Com_Printf("[I] Owner             : %s:%s(%d)", allocUnit->sourceFilename, allocUnit->functionName, allocUnit->sourceline);
 }
 
 bool __validateAllocationHeader(const struct memheader_s* header)
@@ -572,7 +572,6 @@ void Q_LinkToPool( void *ptr, mempool_t *pool )
 	__linkPool( mem, pool );
 	QMutex_Unlock( memMutex );
 }
-
 
 void Q_EmptyPool( struct mempool_s *pool )
 {
@@ -915,16 +914,18 @@ void _Mem_FreePool( mempool_t **pool, int musthave, int canthave, const char *fi
 }
 
 void Mem_ValidationAllAllocations() {
-	bool errors = false;
+	int numberErrors = 0;
 	for( size_t i = 0; i < AllocHashSize; i++ ) {
 		struct memheader_s *ptr = hashTable[i];
 		while( ptr ) {
-			errors += ( __validateAllocationHeader( ptr ) > 0 ? 1 : 0 );
+			if(!__validateAllocationHeader( ptr )) {
+				numberErrors++;		
+			}
 			ptr = ptr->hnext;
 		}
 	}
-	if (errors)
-		Com_Printf("[!] While validting header, %d allocation headers(s) were found to have problems", errors);
+	if (numberErrors > 0)
+		Com_Printf("[!] While validting header, %d allocation headers(s) were found to have problems", numberErrors);
 }
 
 void _Mem_EmptyPool( mempool_t *pool, int musthave, int canthave, const char *filename, int fileline )
@@ -1118,10 +1119,20 @@ static void MemStats_f( void )
 	Mem_PrintStats();
 }
 
+void Mem_DumpMemoryReport() {
+	Mem_ValidationAllAllocations();	
+	
+	Com_Printf("----------------------- Tracked Allocations ----------------------------");
+	for( size_t i = 0; i < AllocHashSize; i++ ) {
+		struct memheader_s *ptr = hashTable[i];
+		while( ptr ) {
+		__dumpMemHeader(ptr);	
+			ptr = ptr->hnext;
+		}
+	}
 
-/*
-* Memory_Init
-*/
+}
+
 void Memory_Init( void )
 {
 	assert( !memory_initialized );
@@ -1160,11 +1171,14 @@ void Memory_Shutdown( void )
 
 	if( !memory_initialized )
 		return;
+	
+	Mem_DumpMemoryReport();
 
 	// set the cvar to NULL so nothing is printed to non-existing console
 	developerMemory = NULL;
 
 	Mem_CheckSentinelsGlobal();
+
 
 	Mem_FreePool( &zoneMemPool );
 	Mem_FreePool( &tempMemPool );
