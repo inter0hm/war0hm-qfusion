@@ -62,7 +62,7 @@ void Q_LinkToPool( void *ptr, mempool_t *pool ) { return mem_import.Q_LinkToPool
 void Q_FreePool( mempool_t *pool ) {mem_import.Q_FreePool(pool);}
 void Q_EmptyPool( mempool_t *pool ) {mem_import.Q_EmptyPool(pool);}
 
-static inline void Q_LoadMemModule(const struct mem_import_s* mem) {
+static inline void Q_ImportMemModule(const struct mem_import_s* mem) {
 	mem_import = *mem;
 }
 #endif
