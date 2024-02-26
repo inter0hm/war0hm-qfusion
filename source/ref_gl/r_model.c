@@ -878,12 +878,14 @@ void Mod_Modellist_f( void )
 */
 void R_InitModels( void )
 {
-	mod_mempool = R_AllocPool( r_mempool, "Models" );
+	mod_mempool = Q_CreatePool(NULL, "Models");
 	memset( mod_novis, 0xff, sizeof( mod_novis ) );
 	mod_isworldmodel = false;
 	mod_worldvis = NULL;
 	r_prevworldmodel = NULL;
-	mod_mapConfigs = R_MallocExt( mod_mempool, sizeof( *mod_mapConfigs ) * MAX_MOD_KNOWN, 0, 1 );
+	mod_mapConfigs = Q_Malloc(sizeof( *mod_mapConfigs ) * MAX_MOD_KNOWN);
+	memset(mod_mapConfigs, 0, sizeof( *mod_mapConfigs ) * MAX_MOD_KNOWN);
+	Q_LinkToPool(mod_mapConfigs, mod_mempool);
 }
 
 /*
@@ -945,7 +947,9 @@ void R_ShutdownModels( void )
 	mod_numknown = 0;
 	memset( mod_known, 0, sizeof( mod_known ) );
 
-	R_FreePool( &mod_mempool );
+	Q_FreePool( mod_mempool );
+	mod_mempool = NULL;
+
 }
 
 /*

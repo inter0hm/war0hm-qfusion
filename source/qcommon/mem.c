@@ -621,18 +621,16 @@ void Q_FreePool( struct mempool_s *pool )
 {
 	assert( pool );
 	QMutex_Lock( memMutex );
-	do {
-		struct mempool_s **current = pool->parent ? &( pool->parent->child ) : &rootChain;
-		while( *current ) {
-			if( ( *current )->next == pool) {
-				( *current )->next = pool->next;
-				pool->parent = NULL;
-				break;
-			}
-			current = &( *current )->next;
+	struct mempool_s **current = pool->parent ? &( pool->parent->child ) : &rootChain;
+	while( *current ) {
+		if( ( *current )->next == pool) {
+			( *current )->next = pool->next;
+			pool->parent = NULL;
+			break;
 		}
-		assert(false);
-	} while(0);
+		current = &( *current )->next;
+	}
+	assert(current != NULL);
 
 	size_t capacity = 16;
 	size_t len = 0;

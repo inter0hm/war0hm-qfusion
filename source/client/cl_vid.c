@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cin.h"
 #include "ftlib.h"
 #include "xpm.h"
+#include "../qcommon/mod_mem.h"
 
 cvar_t *vid_ref;
 cvar_t *vid_width, *vid_height;
@@ -317,6 +318,9 @@ static bool VID_LoadRefresh( const char *name )
 
 	VID_UnloadRefresh();
 
+	struct mem_import_s memImport = DECLARE_MEM_STRUCT(vid_ref_mempool); 
+
+	import.memImport = &memImport;
 	import.fsImport = &default_fs_imports_s;
 	import.Com_Error = &Com_Error;
 	import.Com_Printf = &Com_Printf;
