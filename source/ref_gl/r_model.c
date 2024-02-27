@@ -134,8 +134,9 @@ static void Mod_CreateVisLeafs( model_t *mod )
 	mbrushmodel_t *loadbmodel = (( mbrushmodel_t * )mod->extradata);
 
 	count = loadbmodel->numleafs;
-	loadbmodel->visleafs = Mod_Malloc( mod, ( count+1 )*sizeof( *loadbmodel->visleafs ) );
+	loadbmodel->visleafs = Q_MallocAligned(16, ( count+1 )*sizeof( *loadbmodel->visleafs ) );
 	memset( loadbmodel->visleafs, 0, ( count+1 )*sizeof( *loadbmodel->visleafs ) );
+	Q_LinkToPool(loadbmodel->visleafs, mod->mempool);
 
 	numVisLeafs = 0;
 	for( i = 0; i < count; i++ )
@@ -361,13 +362,19 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, unsigned int modnum, s
 	if( !bm->numfaces )
 		return 0;
 
-	surfmap = ( msurface_t ** )Mod_Malloc( mod, bm->numfaces * sizeof( *surfmap ) );
-	surfaces = ( msurface_t ** )Mod_Malloc( mod, bm->numfaces * sizeof( *surfaces ) );
+	surfmap = ( msurface_t ** )Q_MallocAligned( 16, bm->numfaces * sizeof( *surfmap ) );
+	surfaces = ( msurface_t ** )Q_MallocAligned( 16, bm->numfaces * sizeof( *surfaces ) );
+	memset( surfmap, 0, bm->numfaces * sizeof( *surfmap ) );
+	memset( surfaces, 0, bm->numfaces * sizeof( *surfaces ) );
+	Q_LinkToPool(surfmap, mod->mempool);
+	Q_LinkToPool(surfaces, mod->mempool);
 	numSurfaces = 0;
 
 	numTempVBOs = 0;
 	maxTempVBOs = 1024;
-	tempVBOs = ( mesh_vbo_t * )Mod_Malloc( mod, maxTempVBOs * sizeof( *tempVBOs ) );
+	tempVBOs = ( mesh_vbo_t * )Q_MallocAligned(64, maxTempVBOs * sizeof( *tempVBOs ) );
+	memset(tempVBOs, 0, maxTempVBOs * sizeof( *tempVBOs ));
+	Q_LinkToPool(tempVBOs, mod->mempool);
 	startDrawSurface = loadbmodel->numDrawSurfaces;
 
 	if( !modnum && loadbmodel->pvs )
@@ -383,8 +390,12 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, unsigned int modnum, s
 
 		// build visibility data for each face, based on what leafs
 		// this face belongs to (visible from)
-		visdata = ( uint8_t * )Mod_Malloc( mod, rowlongs * 4 * loadbmodel->numsurfaces );
-		areadata = ( uint8_t * )Mod_Malloc( mod, areabytes * loadbmodel->numsurfaces );
+		visdata = (uint8_t *)Q_MallocAligned( 16, rowlongs * 4 * loadbmodel->numsurfaces );
+		areadata = (uint8_t *)Q_MallocAligned( 16, areabytes * loadbmodel->numsurfaces );
+		memset(visdata, 0, rowlongs * 4 * loadbmodel->numsurfaces);
+		memset(areadata, 0, areabytes * loadbmodel->numsurfaces);
+		Q_LinkToPool(visdata, mod->mempool);
+		Q_LinkToPool(areadata, mod->mempool);
 
 		for( pleaf = loadbmodel->visleafs, leaf = *pleaf; leaf; leaf = *pleaf++ )
 		{
@@ -550,7 +561,7 @@ merge:
 		// create temp VBO to hold pre-batched info
 		if( numTempVBOs == maxTempVBOs ) {
 			maxTempVBOs += 1024;
-			tempVBOs = Mod_Realloc( tempVBOs, maxTempVBOs * sizeof( *tempVBOs ) );
+			tempVBOs = Q_Realloc( tempVBOs, maxTempVBOs * sizeof( *tempVBOs ) );
 		}
 
 		vbo = &tempVBOs[numTempVBOs++];
@@ -716,14 +727,14 @@ merge:
 		R_UploadVBOInstancesData( vbo, 0, surf->numInstances, surf->instances );
 	}
 
-	R_Free( tempVBOs );
-	R_Free( surfmap );
-	R_Free( surfaces );
+	Q_Free( tempVBOs );
+	Q_Free( surfmap );
+	Q_Free( surfaces );
 
 	if( visdata )
-		R_Free( visdata );
+		Q_Free( visdata );
 	if( areadata )
-		R_Free( areadata );
+		Q_Free( areadata );
 
 	return num_vbos;
 }
@@ -1378,8 +1389,8 @@ void R_GetTransformBufferForMesh( mesh_t *mesh, bool positions, bool normals, bo
 	if( bufSize > r_modelTransformBufSize ) {
 		r_modelTransformBufSize = bufSize;
 		if( r_modelTransformBuf )
-			R_Free( r_modelTransformBuf );
-		r_modelTransformBuf = R_Malloc( bufSize );
+			Q_Free( r_modelTransformBuf );
+		r_modelTransformBuf = Q_Malloc( bufSize );
 	}
 
 	bufPtr = r_modelTransformBuf;

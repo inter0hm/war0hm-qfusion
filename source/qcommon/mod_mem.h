@@ -25,8 +25,6 @@ DECLARE_TYPEDEF_METHOD( void, Q_FreePool, mempool_t *pool );
 DECLARE_TYPEDEF_METHOD( void, Q_EmptyPool, mempool_t *pool );
 #undef DECLARE_TYPEDEF_METHOD
 
-
-
 struct mem_import_s {
   mempool_t* parent; // the parent pool to link to by default if NULL is passed into a pool
 	__Q_MallocFn __Q_Malloc;
@@ -61,7 +59,6 @@ mempool_t *Q_CreatePool( mempool_t *parent, const char *name ) { return mem_impo
 void Q_LinkToPool( void *ptr, mempool_t *pool ) { return mem_import.Q_LinkToPool(ptr, pool);}
 void Q_FreePool( mempool_t *pool ) {mem_import.Q_FreePool(pool);}
 void Q_EmptyPool( mempool_t *pool ) {mem_import.Q_EmptyPool(pool);}
-
 static inline void Q_ImportMemModule(const struct mem_import_s* mem) {
 	mem_import = *mem;
 }

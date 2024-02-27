@@ -58,11 +58,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mem.h"
 
 #define POOLNAMESIZE 128
-
-#define MEMHEADER_SENTINEL1			0xDEADF00D
-#define MEMHEADER_SENTINEL2			0xDF
-
 #define MEMALIGNMENT_DEFAULT		16
+#define MIN_MEM_ALIGNMENT 16
 
 #define AllocHashSize ( 1u << 12u )
 
@@ -73,6 +70,7 @@ static const unsigned int releasedPattern = 0xdeadbeef;    // Fill pattern for d
 
 static bool memory_initialized = false;
 static bool commands_initialized = false;
+
 
 #if defined( _DEBUG )
 	static const bool AlwaysWipeAll = true; 
@@ -211,23 +209,23 @@ static void __wipeWithPattern( void *reportedAddress, size_t reportedSize, size_
 	//	pattern = 0;
 
 	// This part of the operation is optional
-	if( AlwaysWipeAll && reportedSize > originalReportedSize ) {
-		// Fill the bulk
+  if( AlwaysWipeAll && reportedSize > originalReportedSize ) {
+  	// Fill the bulk
 
-		uint32_t *lptr = (uint32_t *)( ( (char *)reportedAddress ) + originalReportedSize );
-		size_t length = reportedSize - originalReportedSize;
-		for( size_t i = 0; i < ( length >> 2 ); i++, lptr++ ) {
-			*lptr = pattern;
-		}
+  	uint32_t *lptr = (uint32_t *)( ( (char *)reportedAddress ) + originalReportedSize );
+  	size_t length = reportedSize - originalReportedSize;
+  	for( size_t i = 0; i < ( length >> 2 ); i++, lptr++ ) {
+  		*lptr = pattern;
+  	}
 
-		// Fill the remainder
+  	// Fill the remainder
 
-		unsigned int shiftCount = 0;
-		char *cptr = (char *)( lptr );
-		for( size_t i = 0; i < ( length & 0x3 ); i++, cptr++, shiftCount += 8 ) {
-			*cptr = (char)( ( pattern & ( 0xff << shiftCount ) ) >> shiftCount );
-		}
-	}
+  	unsigned int shiftCount = 0;
+  	char *cptr = (char *)( lptr );
+  	for( size_t i = 0; i < ( length & 0x3 ); i++, cptr++, shiftCount += 8 ) {
+  		*cptr = (char)( ( pattern & ( 0xff << shiftCount ) ) >> shiftCount );
+  	}
+  }
 
 	// Write in the prefix/postfix bytes
 
@@ -326,12 +324,6 @@ static inline void __unlinkMemory( struct memheader_s *mem )
 	assert( mem );
 	assert( mem->reportedAddress );
 	const size_t hashIndex = __resolveUnitHashIndex( mem->reportedAddress );
-
-	// we are linked to a pool so unlink
-	__unlinkPool(mem);
-
-	mem->realsize = 0;
-	mem->size = 0;
 	if( hashTable[hashIndex] == mem ) {
 		hashTable[hashIndex] = mem->hnext;
 	} else {
@@ -458,7 +450,7 @@ static void _Mem_Error( const char *format, ... )
 }
 
 void *__Q_MallocAligned(size_t align, size_t size, const char* sourceFilename, const char* functionName, int sourceLine) {
-	const size_t alignment = align < sizeof(void*) ? sizeof(void*) : align;
+	const size_t alignment = align < MIN_MEM_ALIGNMENT ? MIN_MEM_ALIGNMENT : align;
 	const size_t realsize = size + ( CANARY_SIZE * 2 ) + alignment;
 	void *baseAddress = malloc( realsize );
 	if( baseAddress == NULL ) 
@@ -520,21 +512,27 @@ void *__Q_Malloc(size_t size, const char* sourceFilename, const char* functionNa
 
 void *__Q_Realloc( void *ptr, size_t size, const char *sourceFilename, const char *functionName, int sourceLine )
 {
+	if( ptr == NULL ) 
+		return __Q_Malloc( size, sourceFilename, functionName, sourceLine );
+
 	QMutex_Lock( memMutex );
 	struct memheader_s *mem = __findLinkMemory( ptr );
 	if( mem == NULL ) {
 		assert( false );
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
 	}
+	__unlinkMemory(mem); // unlink the memory because the address may change
 
+	// realloc can't guarantee alignment so will just use min platform alignment 
+	const size_t alignmentReq = MIN_MEM_ALIGNMENT; 
 	const ptrdiff_t oldPtrDiff = ( (uint8_t*)mem->reportedAddress - (uint8_t*)mem->baseAddress ) - CANARY_SIZE;
-	const size_t realsize = size + ( CANARY_SIZE * 2 ) + mem->alignment;
+	const size_t realsize = size + ( CANARY_SIZE * 2 ) + alignmentReq;
 	const size_t oldReportedSize = mem->size;
 	void *baseAddress = realloc( mem->baseAddress, realsize );
 	void *reportedAddress = ( (uint8_t*)baseAddress + CANARY_SIZE );
-	const size_t offset = ( (size_t)reportedAddress ) % mem->alignment;
+	const size_t offset = ( (size_t)reportedAddress ) % alignmentReq;
 	if( offset ) {
-		reportedAddress = (uint8_t *)reportedAddress + ( mem->alignment - offset );
+		reportedAddress = (uint8_t *)reportedAddress + ( alignmentReq - offset );
 	}
 	const ptrdiff_t newPtrDiff = ( (uint8_t*)reportedAddress - (uint8_t*)baseAddress ) - CANARY_SIZE;
 	if(mem->pool) {
@@ -543,24 +541,27 @@ void *__Q_Realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 		mem->pool->realsize += realsize;
 		mem->pool->totalsize += size;
 	}
+	
+	// the offset from the base address is different so we need to adjust the memory to be re-aligned when the memory was allocated
+	if( newPtrDiff != oldPtrDiff ) {
+		memmove( (uint8_t*)reportedAddress - CANARY_SIZE, (uint8_t*)reportedAddress - CANARY_SIZE + ( oldPtrDiff  - newPtrDiff ), mem->size + ( CANARY_SIZE * 2 ) );
+	}
+
+	// wipe the pattern and wipe in unused porition 
+	__wipeWithPattern( reportedAddress, size, oldReportedSize, unusedPattern );
 
 	mem->realsize = realsize;
+	mem->size = size;
+	mem->alignment = alignmentReq;
 	mem->reportedAddress = reportedAddress;
 	mem->baseAddress = baseAddress;
 	mem->sourceline = sourceLine;
 	mem->sourceFilename = sourceFilename;
 	mem->functionName = functionName;
+	__linkMemory(mem);
 	__validateAllocationHeader( mem );
 
 	QMutex_Unlock( memMutex );
-
-	// the offset from the base address is different so we need to adjust the memory to be re-aligned when the memory was allocated
-	if( newPtrDiff != oldPtrDiff ) {
-		memmove( (uint8_t*)reportedAddress - CANARY_SIZE, (uint8_t*)reportedAddress - CANARY_SIZE + ( newPtrDiff - oldPtrDiff ), mem->size + ( CANARY_SIZE * 2 ) );
-	}
-
-	// validate the reported address
-	__wipeWithPattern( reportedAddress, size, oldReportedSize, unusedPattern );
 
 	return mem->reportedAddress;
 }
@@ -600,6 +601,7 @@ void Q_EmptyPool( struct mempool_s *pool )
 			free( current->baseAddress );
 			chain = current->next;
 			__unlinkMemory( current );
+			__unlinkPool(current);
 			__returnMemHeaderToReserve( current );
 		}
 
@@ -646,6 +648,7 @@ void Q_FreePool( struct mempool_s *pool )
 			free( current->baseAddress );
 			chain = current->next;
 			__unlinkMemory( current );
+			__unlinkPool(current);
 			__returnMemHeaderToReserve( current );
 		}
 		struct mempool_s *child = pool->child;
@@ -674,6 +677,7 @@ void Q_Free( void *ptr )
 	__validateAllocationHeader( mem);
 	free( mem->baseAddress );
 	__unlinkMemory( mem );
+	__unlinkPool(mem);
 	__returnMemHeaderToReserve( mem );
 	QMutex_Unlock( memMutex );
 }
@@ -685,7 +689,7 @@ void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t alignment, int z, int 
 		return NULL;
 
 	// default to 16-bytes alignment
-	alignment = alignment < sizeof(void*) ? sizeof(void*) : alignment;
+	alignment = alignment < MIN_MEM_ALIGNMENT ? MIN_MEM_ALIGNMENT : alignment;
 
 	assert( pool != NULL );
 
@@ -810,6 +814,7 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 	
 	// unlink the memory 
 	__unlinkMemory(mem);
+	__unlinkPool(mem);
 
 	// wipe with closing pattern
 	__wipeWithPattern(mem->reportedAddress, mem->size, 0, releasedPattern);

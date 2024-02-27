@@ -82,8 +82,9 @@ skydome_t *R_CreateSkydome( model_t *model )
 		sizeof( elem_t ) * ELEM_LEN * 6 +
 		sizeof( vec4_t ) * POINTS_LEN * 6 + sizeof( vec4_t ) * POINTS_LEN * 6 +
 		sizeof( vec2_t ) * POINTS_LEN * 11;
-	buffer = Mod_Malloc( model, size );
-
+	buffer = Q_MallocAligned(16, size);
+	Q_LinkToPool(buffer, model->mempool);
+	
 	skydome = ( skydome_t * )buffer; buffer += sizeof( skydome_t );
 	skydome->meshes = ( mesh_t * )buffer; buffer += sizeof( mesh_t ) * 6;
 
