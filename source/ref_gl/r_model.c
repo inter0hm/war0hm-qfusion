@@ -372,7 +372,7 @@ static int Mod_CreateSubmodelBufferObjects( model_t *mod, unsigned int modnum, s
 
 	numTempVBOs = 0;
 	maxTempVBOs = 1024;
-	tempVBOs = ( mesh_vbo_t * )Q_MallocAligned(64, maxTempVBOs * sizeof( *tempVBOs ) );
+	tempVBOs = ( mesh_vbo_t * )Q_MallocAligned(16, maxTempVBOs * sizeof( *tempVBOs ) );
 	memset(tempVBOs, 0, maxTempVBOs * sizeof( *tempVBOs ));
 	Q_LinkToPool(tempVBOs, mod->mempool);
 	startDrawSurface = loadbmodel->numDrawSurfaces;

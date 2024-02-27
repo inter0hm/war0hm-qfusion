@@ -59,7 +59,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define POOLNAMESIZE 128
 #define MEMALIGNMENT_DEFAULT		16
-#define MIN_MEM_ALIGNMENT 16
+#define MIN_MEM_ALIGNMENT sizeof(void*) 
 
 #define AllocHashSize ( 1u << 12u )
 
@@ -689,7 +689,7 @@ void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t alignment, int z, int 
 		return NULL;
 
 	// default to 16-bytes alignment
-	alignment = alignment < MIN_MEM_ALIGNMENT ? MIN_MEM_ALIGNMENT : alignment;
+	alignment = alignment < MIN_MEM_ALIGNMENT ? MIN_MEM_ALIGNMENT  : alignment;
 
 	assert( pool != NULL );
 
