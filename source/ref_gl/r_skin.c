@@ -55,11 +55,11 @@ static void SkinFile_FreeSkinFile( skinfile_t *skinfile )
 
 	if( skinfile->numpairs ) {
 		for( i = 0; i < skinfile->numpairs; i++ )
-			R_Free( skinfile->pairs[i].meshname );
-		R_Free( skinfile->pairs );
+			Q_Free( skinfile->pairs[i].meshname );
+		Q_Free( skinfile->pairs );
 	}
 
-	R_Free( skinfile->name );
+	Q_Free( skinfile->name );
 
 	memset( skinfile, 0, sizeof( skinfile_t ) );
 }

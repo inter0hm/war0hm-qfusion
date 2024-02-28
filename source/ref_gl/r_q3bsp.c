@@ -276,7 +276,8 @@ static void Mod_PreloadFaces( const lump_t *l )
 			ri.Com_Error( ERR_DROP, "Mod_LoadFaces: funny lump size in %s", loadmodel->name );
 
 		loadmodel_numsurfaces = l->filelen / sizeof( *din );
-		loadmodel_dsurfaces = in = Mod_Malloc( loadmodel, loadmodel_numsurfaces*sizeof( *in ) );
+		loadmodel_dsurfaces = in = Q_CallocAligned(loadmodel_numsurfaces, 16, sizeof( *in ) );
+		Q_LinkToPool(in, loadmodel->mempool);
 
 		// convert from q3a format to rtcw/qfusion format
 		for( i = 0; i < loadmodel_numsurfaces; i++, din++, in++ ) {
@@ -406,7 +407,8 @@ static void Mod_LoadVertexes( const lump_t *l )
 
 	bufSize = 0;
 	bufSize += count * ( sizeof( vec3_t ) + sizeof( vec3_t ) + sizeof( vec2_t )*2 + sizeof( byte_vec4_t ) );
-	buffer = Mod_Malloc( loadmodel, bufSize );
+	buffer = Q_MallocAligned(16, bufSize );
+	Q_LinkToPool(buffer, loadmodel->mempool);
 
 	loadmodel_numverts = count;
 	loadmodel_xyz_array = ( vec3_t * )buffer; buffer += count*sizeof( vec3_t );
@@ -1468,7 +1470,8 @@ static void Mod_LoadLightgrid( const lump_t *l )
 	if( l->filelen % sizeof( *in ) )
 		ri.Com_Error( ERR_DROP, "Mod_LoadLightgrid: funny lump size in %s", loadmodel->name );
 	count = l->filelen / sizeof( *in );
-	out = Mod_Malloc( loadmodel, count*sizeof( *out ) );
+	out = Q_CallocAligned( count, 16, sizeof( *out ) );
+	Q_LinkToPool(out, loadmodel->mempool);
 
 	loadbmodel->lightgrid = out;
 	loadbmodel->numlightgridelems = count;
@@ -1521,7 +1524,8 @@ static void Mod_LoadLightArray( void )
 	mgridlight_t **out;
 
 	count = loadbmodel->numlightgridelems;
-	out = Mod_Malloc( loadmodel, sizeof( *out )*count );
+	out = Q_CallocAligned( count, 16, sizeof( *out ) );
+	Q_LinkToPool( out, loadmodel->mempool );
 
 	loadbmodel->lightarray = out;
 	loadbmodel->numlightarrayelems = count;
@@ -1776,7 +1780,10 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 		if( testFog->visibleplane )
 			continue;
 
-		testFog->visibleplane = Mod_Malloc( loadmodel, sizeof( cplane_t ) );
+
+		testFog->visibleplane = Q_Malloc(sizeof( cplane_t ));
+		memset(testFog->visibleplane, 0, sizeof( cplane_t ));
+		Q_LinkToPool(testFog->visibleplane, loadmodel->mempool);
 		VectorSet( testFog->visibleplane->normal, 0, 0, 1 );
 		testFog->visibleplane->type = PLANE_Z;
 		testFog->visibleplane->dist = loadbmodel->submodels[0].maxs[0] + 1;
@@ -1822,7 +1829,7 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 	}
 
 	if( !( mod_bspFormat->flags & BSP_RAVEN ) ) {
-		Mod_MemFree( loadmodel_dsurfaces );
+		Q_Free( loadmodel_dsurfaces );
 	}
 	loadmodel_dsurfaces = NULL;
 	loadmodel_numsurfaces = 0;

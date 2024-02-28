@@ -1152,7 +1152,8 @@ model_t *Mod_ForName( const char *name, bool crash )
 		lod->type = mod_bad;
 		lod->lodnum = i+1;
 		lod->mempool = R_AllocPool( mod_mempool, lodname );
-		lod->name = Mod_Malloc( lod, strlen( lodname ) + 1 );
+		lod->name = Q_Malloc( strlen( lodname ) + 1 );
+		Q_LinkToPool(lod->name, lod->mempool);
 		strcpy( lod->name, lodname );
 
 		mod_numknown++;

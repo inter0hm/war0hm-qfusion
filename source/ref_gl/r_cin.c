@@ -445,11 +445,11 @@ void R_FreeCinematic( unsigned int id )
 	handle->lock = NULL;
 
 	assert( handle->name );
-	R_Free( handle->name );
+	Q_Free( handle->name );
 	handle->name = NULL;
 
 	assert( handle->uploadName );
-	R_Free( handle->uploadName );
+	Q_Free( handle->uploadName );
 	handle->uploadName = NULL;
 
 	// remove from linked active list
@@ -502,5 +502,5 @@ void R_ShutdownCinematics( void )
 		R_FreeCinematic( handle->id );
 	}
 
-	R_Free( r_cinematics );
+	Q_Free( r_cinematics );
 }

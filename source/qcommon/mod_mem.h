@@ -28,6 +28,8 @@ DECLARE_TYPEDEF_METHOD( void, Q_EmptyPool, mempool_t *pool );
 DECLARE_TYPEDEF_METHOD( void, Mem_ValidationAllAllocations );
 #undef DECLARE_TYPEDEF_METHOD
 
+mempool_t* Q_ParentPool(); 
+
 struct mem_import_s {
   mempool_t* parent; // the parent pool to link to by default if NULL is passed into a pool
 	__Q_MallocFn __Q_Malloc;
@@ -58,6 +60,7 @@ struct mem_import_s {
 
 #if MEM_DEFINE_INTERFACE_IMPL
 static struct mem_import_s mem_import;
+mempool_t* Q_ParentPool() { return mem_import.parent; }
 void *__Q_Malloc( size_t size, const char *sourceFilename, const char *functionName, int sourceLine ) { return mem_import.__Q_Malloc(size, sourceFilename, functionName, sourceLine); }
 void *__Q_Realloc( void *ptr, size_t size, const char *sourceFilename, const char *functionName, int sourceLine ) { return mem_import.__Q_Realloc(ptr, size, sourceFilename, functionName, sourceLine); }
 void *__Q_MallocAligned( size_t alignment, size_t size, const char *sourceFilename, const char *functionName, int sourceLine ) { return mem_import.__Q_MallocAligned(alignment, size, sourceFilename, functionName, sourceLine); }

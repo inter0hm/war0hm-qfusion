@@ -681,8 +681,8 @@ void RF_DestroyCmdBuf( ref_cmdbuf_t **pcmdbuf )
 	cmdbuf = *pcmdbuf;
 	*pcmdbuf = NULL;
 
-	R_Free( cmdbuf->buf );
-	R_Free( cmdbuf );
+	Q_Free( cmdbuf->buf );
+	Q_Free( cmdbuf );
 }
 
 /*
@@ -1153,5 +1153,5 @@ void RF_DestroyCmdPipe( ref_cmdpipe_t **pcmdpipe )
 	if( cmdpipe->pipe ) {
 		ri.BufPipe_Destroy( &cmdpipe->pipe );
 	}
-	R_Free( cmdpipe );
+	Q_Free( cmdpipe );
 }

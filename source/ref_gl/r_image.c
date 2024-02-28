@@ -47,9 +47,10 @@ static size_t r_sizeof_imagePathBuf, r_sizeof_imagePathBuf2;
 	if( r_sizeof_ ##buf < need ) \
 	{ \
 		if( r_ ##buf ) \
-			R_Free( r_ ##buf ); \
+			Q_Free( r_ ##buf ); \
 		r_sizeof_ ##buf += (((need) & (MAX_QPATH-1))+1) * MAX_QPATH; \
-		r_ ##buf = R_MallocExt( r_imagesPool, r_sizeof_ ##buf, 0, 0 ); \
+		r_ ##buf = Q_Malloc(r_sizeof_ ##buf ); \ 
+		Q_LinkToPool(r_ ##buf, r_imagesPool) \
 	}
 
 static int gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
@@ -342,8 +343,9 @@ static uint8_t *_R_PrepareImageBuffer( int ctx, int buffer, size_t size,
 	{
 		r_imageBufSize[ctx][buffer] = size;
 		if( r_imageBuffers[ctx][buffer] )
-			R_Free( r_imageBuffers[ctx][buffer] );
-		r_imageBuffers[ctx][buffer] = R_MallocExt( r_imagesPool, size, 0, 1 );
+			Q_Free( r_imageBuffers[ctx][buffer] );
+		r_imageBuffers[ctx][buffer] = Q_Malloc(size);
+		Q_LinkToPool(r_imageBuffers[ctx][buffer], r_imagesPool);  
 	}
 
 	memset( r_imageBuffers[ctx][buffer], 255, size );

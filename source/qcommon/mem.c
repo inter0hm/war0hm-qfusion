@@ -72,12 +72,22 @@ static bool memory_initialized = false;
 static bool commands_initialized = false;
 
 
-#if defined( _DEBUG )
+mempool_t* Q_ParentPool() {
+	return NULL; 
+}
+
+#if defined(STRESS_TEST)
+	static const bool AlwaysWipeAll = true; 
+	static const size_t PaddingSize = 16; // 256 bytes of extra allocation
+	static const bool alwaysValidateAll = true;
+#elif defined( _DEBUG )
 	static const bool AlwaysWipeAll = true; 
 	static const size_t PaddingSize = 8;
+	static const bool alwaysValidateAll = false;
 #else
 	static const size_t PaddingSize = 1;
 	static const bool AlwaysWipeAll = false; 
+	static const bool alwaysValidateAll = false;
 #endif
 
 static const bool RandomWipe = false; 
@@ -108,9 +118,10 @@ typedef struct memheader_s
 	size_t realsize; // size of the memory alignment and sentinel2
 
 	// file name and line where Mem_Alloc was called
-	const char *sourceFilename;
-	const char *functionName;
-	int sourceline;
+	char sourceFile[140];
+	char sourceFunc[140];
+	int sourceLine;
+
 
 } memheader_t;
 
@@ -296,24 +307,6 @@ static inline void __linkMemory( struct memheader_s *mem )
 	hashTable[hashIndex] = mem;
 	stats.memTrackCount++;
 }
-
-static inline void __unlinkPool(struct memheader_s* mem) {
-	assert(mem);
-	if( mem->pool ) {
-		if( mem->prev )
-			mem->prev->next = mem->next;
-		else
-			mem->pool->chain = mem->next;
-		if( mem->next )
-			mem->next->prev = mem->prev;
-
-		mem->pool->realsize -= mem->realsize;
-		mem->pool->totalsize -= mem->size;
-		mem->pool = NULL;
-		mem->prev = NULL;
-		mem->next = NULL;
-	}
-}
 /**
 * Unlinks a memory block from any pool it may be linked to.
 * free from the hash table
@@ -336,6 +329,25 @@ static inline void __unlinkMemory( struct memheader_s *mem )
 	mem->hprev = NULL;
 	mem->hnext = NULL;
 	stats.memTrackCount--;
+
+}
+
+static inline void __unlinkPool(struct memheader_s* mem) {
+	assert(mem);
+	if( mem->pool ) {
+		if( mem->prev )
+			mem->prev->next = mem->next;
+		else
+			mem->pool->chain = mem->next;
+		if( mem->next )
+			mem->next->prev = mem->prev;
+
+		mem->pool->realsize -= mem->realsize;
+		mem->pool->totalsize -= mem->size;
+		mem->pool = NULL;
+		mem->prev = NULL;
+		mem->next = NULL;
+	}
 }
 
 
@@ -391,7 +403,7 @@ static void __dumpMemHeader(const struct memheader_s* allocUnit)
 	Com_Printf("[I] Address (actual)  : %010p\n", allocUnit->baseAddress);
 	Com_Printf("[I] Size (reported)   : 0x%08X (%s)\n", (unsigned int)(allocUnit->size), __memorySizeString((unsigned int)(allocUnit->size)));
 	Com_Printf("[I] Size (actual)     : 0x%08X (%s)\n", (unsigned int)(allocUnit->realsize), __memorySizeString((unsigned int)(allocUnit->realsize)));
-	Com_Printf("[I] Owner             : %s:%s(%d)\n", allocUnit->sourceFilename, allocUnit->functionName, allocUnit->sourceline);
+	Com_Printf("[I] Owner             : %s:%s(%d)\n", allocUnit->sourceFile, allocUnit->sourceFunc, allocUnit->sourceLine);
 }
 
 bool __validateAllocationHeader(const struct memheader_s* header)
@@ -407,7 +419,7 @@ bool __validateAllocationHeader(const struct memheader_s* header)
 		const uint8_t expectedPrefixByte = (prefixPattern >> ((i % sizeof(uint32_t)) * 8)) & 0xFF;
 		if (*pre != expectedPrefixByte)
 		{
-			Com_Printf("[!] A memory allocation unit was corrupt because of an underrun:\n");
+			Com_Printf("[!] A memory allocation unit was corrupt because of an underrun: offset: %d \n", i);
 			__dumpMemHeader(header);
 			errorFlag = true;
 		}
@@ -420,7 +432,7 @@ bool __validateAllocationHeader(const struct memheader_s* header)
 		const uint8_t expectedPostfixByte = (postfixPattern >> ((i % sizeof(uint32_t)) * 8)) & 0xFF;
 		if (*post != expectedPostfixByte)
 		{
-			Com_Printf("[!] A memory allocation unit was corrupt because of an overrun:\n");
+			Com_Printf("[!] A memory allocation unit was corrupt because of an overrun: offset: %d \n", i);
 			__dumpMemHeader(header);
 			errorFlag = true;
 		}
@@ -467,18 +479,28 @@ void *__Q_MallocAligned(size_t align, size_t size, const char* sourceFilename, c
 	if( offset ) {
 		reportedAddress = (uint8_t *)reportedAddress + ( alignment - offset );
 	}
+	
+	QMutex_Lock( memMutex );
+	
 	__wipeWithPattern(reportedAddress, size, 0, unusedPattern);
 
-	QMutex_Lock( memMutex );
 	struct memheader_s *mem = __pullMemHeaderFromReserve();
 	mem->alignment = alignment;
 	mem->reportedAddress = reportedAddress; 
 	mem->baseAddress = baseAddress;
-	mem->sourceFilename = sourceFilename;
-	mem->sourceline = sourceLine;
-	mem->functionName = functionName;
+	mem->sourceLine = sourceLine;
 	mem->size = size;
 	mem->realsize = realsize;
+	if(sourceFilename) {
+		strncpy(mem->sourceFile, sourceFilename, sizeof(mem->sourceFile)); 	
+	} else {
+		strcpy(mem->sourceFile, "??");
+	}
+	if(functionName) {
+		strncpy(mem->sourceFunc, sourceFilename, sizeof(mem->sourceFunc)); 	
+	} else {
+		strcpy(mem->sourceFunc, "??");
+	}
 
 	__linkMemory(mem);
 	QMutex_Unlock(memMutex);
@@ -524,7 +546,7 @@ void *__Q_Realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 	struct memheader_s *mem = __findLinkMemory( ptr );
 	if( mem == NULL ) {
 		assert( false );
-		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
+		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFile, mem->sourceLine );
 	}
 	__unlinkMemory(mem); // unlink the memory because the address may change
 
@@ -560,13 +582,24 @@ void *__Q_Realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 	mem->alignment = alignmentReq;
 	mem->reportedAddress = reportedAddress;
 	mem->baseAddress = baseAddress;
-	mem->sourceline = sourceLine;
-	mem->sourceFilename = sourceFilename;
-	mem->functionName = functionName;
+	mem->sourceLine = sourceLine;
+	if(sourceFilename) {
+		strncpy(mem->sourceFile, sourceFilename, sizeof(mem->sourceFile)); 	
+	} else {
+		strcpy(mem->sourceFile, "??");
+	}
+	if(functionName) {
+		strncpy(mem->sourceFunc, sourceFilename, sizeof(mem->sourceFunc)); 	
+	} else {
+		strcpy(mem->sourceFunc, "??");
+	}
 	__linkMemory(mem);
 	__validateAllocationHeader( mem );
 
 	QMutex_Unlock( memMutex );
+	if( alwaysValidateAll ) {
+		Mem_ValidationAllAllocations();
+	}
 
 	return mem->reportedAddress;
 }
@@ -579,7 +612,7 @@ void Q_LinkToPool( void *ptr, mempool_t *pool )
 	struct memheader_s *mem = __findLinkMemory( ptr );
 	if( mem == NULL ) {
 		assert( false );
-		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
+		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFile, mem->sourceLine );
 	}
 	__linkPool( mem, pool );
 	QMutex_Unlock( memMutex );
@@ -670,11 +703,15 @@ void Q_FreePool( struct mempool_s *pool )
 
 void Q_Free( void *ptr )
 {
+	if(!ptr) {
+		return;
+	}
+
 	QMutex_Lock( memMutex );
 	struct memheader_s *mem = __findLinkMemory( ptr );
 	if( mem == NULL ) {
 		assert( false );
-		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
+		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFile, mem->sourceLine );
 	}
 	// unlink the memory 
 	__unlinkMemory( mem );
@@ -687,6 +724,9 @@ void Q_Free( void *ptr )
 	free( mem->baseAddress );
 	__returnMemHeaderToReserve( mem );
 	QMutex_Unlock( memMutex );
+	if( alwaysValidateAll ) {
+		Mem_ValidationAllAllocations();
+	}
 }
 
 void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t alignment, int z, int musthave, int canthave, const char *filename, int fileline )
@@ -729,18 +769,23 @@ void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t alignment, int z, int 
 	// calculate address that aligns the end of the memheader_t to the specified alignment
 	mem->reportedAddress = reportedAddress; 
 	mem->baseAddress = baseAddress;
-	mem->sourceFilename = filename;
-	mem->sourceline = fileline;
 	mem->size = size;
 	mem->realsize = realsize;
+	mem->sourceLine = fileline;
+	if(filename) {
+		strncpy(mem->sourceFile, filename, sizeof(mem->sourceFile)); 	
+	} else {
+		strcpy(mem->sourceFile, "??");
+	}
+	strcpy(mem->sourceFunc, "??");
 	
 	// append to head of list
 	__linkMemory(mem);
 	__linkPool(mem, pool);
 
+	__wipeWithPattern(reportedAddress, size, 0, unusedPattern);
 	QMutex_Unlock( memMutex );
 
-	__wipeWithPattern(reportedAddress, size, 0, unusedPattern);
 
 	if( z )
 		memset(reportedAddress, 0, mem->size );
@@ -780,7 +825,6 @@ void *_Mem_Realloc( void *data, size_t size, const char *filename, int fileline 
 	memset( (uint8_t *)newdata + mem->size, 0, size - mem->size );
 	QMutex_Unlock( memMutex );
 	Mem_Free( data );
-
 	return newdata;
 }
 
@@ -817,7 +861,7 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 	if( canthave && ( pool->flags & canthave ) )
 		_Mem_Error( "Mem_Free: bad pool flags (canthave) (alloc at %s:%i)", filename, fileline );
 	if( developerMemory && developerMemory->integer )
-		Com_DPrintf( "Mem_Free: pool %s, alloc %s:%i, free %s:%i, size %i bytes\n", pool->name, mem->sourceFilename, mem->sourceline, filename, fileline, mem->size );
+		Com_DPrintf( "Mem_Free: pool %s, alloc %s:%i, free %s:%i, size %i bytes\n", pool->name, mem->sourceFile, mem->sourceLine, filename, fileline, mem->size );
 	
 	// unlink the memory 
 	__unlinkMemory(mem);
@@ -905,8 +949,9 @@ void Mem_ValidationAllAllocations() {
 	for( size_t i = 0; i < AllocHashSize; i++ ) {
 		struct memheader_s *ptr = hashTable[i];
 		while( ptr ) {
-			if(!__validateAllocationHeader( ptr )) {
+			if(__validateAllocationHeader( ptr ) == false) {
 				numberErrors++;		
+				assert(false); // this is bad means means something has gone wrong 
 			}
 			memTrackCount++; 
 			ptr = ptr->hnext;
@@ -918,6 +963,7 @@ void Mem_ValidationAllAllocations() {
 	assert(memTrackCount == stats.memTrackCount);
 	if (numberErrors > 0)
 		Com_Printf("[!] While validting header, %d allocation headers(s) were found to have problems", numberErrors);
+	QMutex_Unlock( memMutex );
 }
 
 void _Mem_EmptyPool( mempool_t *pool, int musthave, int canthave, const char *filename, int fileline )
@@ -1010,7 +1056,7 @@ static void Mem_PrintStats( void )
 			Com_Printf( "listing temporary memory allocations for %s:\n", pool->name );
 
 			for( mem = tempMemPool->chain; mem; mem = mem->next )
-				Com_Printf( "%10i bytes allocated at %s:%i\n", mem->size, mem->sourceFilename, mem->sourceline );
+				Com_Printf( "%10i bytes allocated at %s:%i\n", mem->size, mem->sourceFile, mem->sourceLine );
 		}
 	}
 }
@@ -1043,7 +1089,7 @@ static void Mem_PrintPoolStats( mempool_t *pool, int listchildren, int listalloc
 	if( listallocations )
 	{
 		for( mem = pool->chain; mem; mem = mem->next )
-			Com_Printf( "%10i bytes allocated at %s:%i\n", mem->size, mem->sourceFilename, mem->sourceline );
+			Com_Printf( "%10i bytes allocated at %s:%i\n", mem->size, mem->sourceFile, mem->sourceLine );
 	}
 
 	if( listchildren )
@@ -1113,15 +1159,29 @@ static void MemStats_f( void )
 }
 
 void Mem_DumpMemoryReport() {
-	Mem_ValidationAllAllocations();	
+	QMutex_Lock( memMutex );
 	Com_Printf("----------------------- Tracked Allocations ----------------------------\n");
+	uint_fast32_t memTrackCount = 0; 
+	int numberErrors = 0;
 	for( size_t i = 0; i < AllocHashSize; i++ ) {
 		struct memheader_s *ptr = hashTable[i];
 		while( ptr ) {
-		__dumpMemHeader(ptr);	
+			if(!__validateAllocationHeader( ptr )) {
+				numberErrors++;		
+			}
+			memTrackCount++; 
+			__dumpMemHeader(ptr);	
 			ptr = ptr->hnext;
 		}
 	}
+	if(memTrackCount != stats.memTrackCount) 
+		Com_Printf("[!] number of tracked units is mismatched table is corrupted (found: %d expected: %d)", memTrackCount, stats.memTrackCount);
+
+	assert(memTrackCount == stats.memTrackCount);
+	if (numberErrors > 0)
+		Com_Printf("[!] While validting header, %d allocation headers(s) were found to have problems", numberErrors);
+	
+	QMutex_Unlock( memMutex );
 
 }
 
@@ -1146,6 +1206,7 @@ void Memory_InitCommands( void )
 
 	developerMemory = Cvar_Get( "developerMemory", "0", 0 );
 
+	Cmd_AddCommand( "memdump", Mem_DumpMemoryReport );
 	Cmd_AddCommand( "memlist", MemList_f );
 	Cmd_AddCommand( "memstats", MemStats_f );
 
@@ -1197,7 +1258,8 @@ void Memory_ShutdownCommands( void )
 {
 	if( !commands_initialized )
 		return;
-
+	
+	Cmd_RemoveCommand( "memdump");
 	Cmd_RemoveCommand( "memlist" );
 	Cmd_RemoveCommand( "memstats" );
 }

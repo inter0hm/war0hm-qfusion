@@ -1225,7 +1225,7 @@ static unsigned R_GLVersionHash( const char *vendorString,
 
 	hash = COM_SuperFastHash( tmp, tmp_size, tmp_size );
 
-	R_Free( tmp );
+	Q_Free( tmp );
 
 	return hash;
 }

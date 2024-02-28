@@ -537,7 +537,7 @@ static int R_PackLightmaps( int num, int w, int h, int dataSize, int stride, int
 	if( rectSize > r_lightmapBufferSize )
 	{
 		if( r_lightmapBuffer )
-			R_Free( r_lightmapBuffer );
+			Q_Free( r_lightmapBuffer );
 		r_lightmapBuffer = R_MallocExt( r_mempool, rectSize, 0, 0 );
 		memset( r_lightmapBuffer, 255, rectSize );
 		r_lightmapBufferSize = rectSize;
@@ -717,7 +717,7 @@ void R_BuildLightmaps( model_t *mod, int numLightmaps, int w, int h, const uint8
 	}
 
 	if( r_lightmapBuffer )
-		R_Free( r_lightmapBuffer );
+		Q_Free( r_lightmapBuffer );
 
 	loadbmodel->lightmapImages = Q_MallocAligned( 16, sizeof( *loadbmodel->lightmapImages ) * r_numUploadedLightmaps );
 	Q_LinkToPool(loadbmodel->lightmapImages, mod->mempool);
