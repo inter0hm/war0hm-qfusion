@@ -756,12 +756,12 @@ void Mod_LoadSkeletalModel( model_t *mod, const model_t *parent, void *buffer, b
 	mod->registrationSequence = rsh.registrationSequence;
 	mod->touch = &Mod_TouchSkeletalModel;
 
-	R_Free( baseposes );
+	Q_Free( baseposes );
 	return;
 
 error:
 	if( baseposes ) {
-		R_Free( baseposes );
+		Q_Free( baseposes );
 	}
 	mod->type = mod_bad;
 }

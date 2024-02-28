@@ -758,7 +758,8 @@ void Mod_CreateVertexBufferObjects( model_t *mod )
 
 	// allocate memory for drawsurfs
 	loadbmodel->numDrawSurfaces = 0;
-	loadbmodel->drawSurfaces = Mod_Malloc( mod, sizeof( *loadbmodel->drawSurfaces ) * loadbmodel->numsurfaces );
+	loadbmodel->drawSurfaces = Q_CallocAligned(loadbmodel->numsurfaces , 16, sizeof( *loadbmodel->drawSurfaces ));
+	Q_LinkToPool(loadbmodel->drawSurfaces, mod->mempool);
 
 	for( i = 0; i < loadbmodel->numsubmodels; i++ ) {
 		vbos = Mod_CreateSubmodelBufferObjects( mod, i, &size );
@@ -904,7 +905,7 @@ void R_InitModels( void )
 */
 static void Mod_Free( model_t *model )
 {
-	R_FreePool( &model->mempool );
+	Q_FreePool(model->mempool);
 	memset( model, 0, sizeof( *model ) );
 	model->type = mod_free;
 }
@@ -1085,13 +1086,14 @@ model_t *Mod_ForName( const char *name, bool crash )
 
 	// free data we may still have from the previous load attempt for this model slot
 	if( mod->mempool ) {
-		R_FreePool( &mod->mempool );
+		Q_FreePool( mod->mempool );
 	}
 
 	mod->type = mod_bad;
-	mod->mempool = R_AllocPool( mod_mempool, name );
-	mod->name = Mod_Malloc( mod, strlen( name ) + 1 );
+	mod->mempool = Q_CreatePool(mod_mempool, name);
+	mod->name = Q_Malloc( strlen( name ) + 1 );
 	strcpy( mod->name, name );
+	Q_LinkToPool(mod->name, mod->mempool);
 
 	// return the NULL model
 	if( !buf )

@@ -167,8 +167,7 @@ static inline size_t __resolveUnitHashIndex(const void *reportedAddress ) {
 static inline struct memheader_s *__pullMemHeaderFromReserve()
 {
 	if(reservoirHeaders == NULL) {
-		reservoirHeaders = malloc( 256 * sizeof( struct memheader_s ) );
-		memset( reservoirHeaders, 0, sizeof( struct memheader_s ) * 256 );
+		reservoirHeaders = calloc( 256, sizeof( struct memheader_s ) );
 		for( unsigned int i = 0; i < 256 - 1; i++ ) {
 			reservoirHeaders[i].next = &reservoirHeaders[i + 1];
 		}
@@ -449,6 +448,13 @@ static void _Mem_Error( const char *format, ... )
 	Sys_Error( msg );
 }
 
+void *__Q_CallocAligned( size_t count, size_t alignment, size_t size, const char *sourceFilename, const char *functionName, int sourceLine ) {
+	const size_t allocSize = count * size;
+	void* result = __Q_MallocAligned(alignment, allocSize, sourceFilename, functionName, sourceLine);
+	memset(result, 0, allocSize);
+	return result;
+}
+
 void *__Q_MallocAligned(size_t align, size_t size, const char* sourceFilename, const char* functionName, int sourceLine) {
 	const size_t alignment = align < MIN_MEM_ALIGNMENT ? MIN_MEM_ALIGNMENT : align;
 	const size_t realsize = size + ( CANARY_SIZE * 2 ) + alignment;
@@ -461,6 +467,7 @@ void *__Q_MallocAligned(size_t align, size_t size, const char* sourceFilename, c
 	if( offset ) {
 		reportedAddress = (uint8_t *)reportedAddress + ( alignment - offset );
 	}
+	__wipeWithPattern(reportedAddress, size, 0, unusedPattern);
 
 	QMutex_Lock( memMutex );
 	struct memheader_s *mem = __pullMemHeaderFromReserve();
@@ -475,8 +482,6 @@ void *__Q_MallocAligned(size_t align, size_t size, const char* sourceFilename, c
 
 	__linkMemory(mem);
 	QMutex_Unlock(memMutex);
-
-	__wipeWithPattern(reportedAddress, size, 0, unusedPattern);
 
 	return reportedAddress;
 }
@@ -595,14 +600,14 @@ void Q_EmptyPool( struct mempool_s *pool )
 
 		struct memheader_s *chain = pool->chain;
 		while( chain ) {
-			struct memheader_s *const current = chain;
+			struct memheader_s *current = chain;
+			chain = current->next;
 			__validateAllocationHeader( current );
 			__wipeWithPattern( current->reportedAddress, current->size, 0, releasedPattern );
-			free( current->baseAddress );
-			chain = current->next;
 			__unlinkMemory( current );
-			__unlinkPool(current);
+			__unlinkPool( current );
 			__returnMemHeaderToReserve( current );
+			free( current->baseAddress );
 		}
 
 		struct mempool_s *child = pool->child;
@@ -624,15 +629,12 @@ void Q_FreePool( struct mempool_s *pool )
 	assert( pool );
 	QMutex_Lock( memMutex );
 	struct mempool_s **current = pool->parent ? &( pool->parent->child ) : &rootChain;
-	while( *current ) {
-		if( ( *current )->next == pool) {
-			( *current )->next = pool->next;
-			pool->parent = NULL;
-			break;
-		}
+	while( *current && *current != pool ) {
 		current = &( *current )->next;
 	}
+	assert(*current == pool); // pool was already freed 
 	assert(current != NULL);
+	*current = pool->next;
 
 	size_t capacity = 16;
 	size_t len = 0;
@@ -643,12 +645,12 @@ void Q_FreePool( struct mempool_s *pool )
 		struct memheader_s *chain = pool->chain;
 		while( chain ) {
 			struct memheader_s *current = chain;
+			chain = current->next;
 			__validateAllocationHeader( current );
 			__wipeWithPattern( current->reportedAddress, current->size, 0, releasedPattern );
-			free( current->baseAddress );
-			chain = current->next;
 			__unlinkMemory( current );
 			__unlinkPool(current);
+			free( current->baseAddress );
 			__returnMemHeaderToReserve( current );
 		}
 		struct mempool_s *child = pool->child;
@@ -674,10 +676,15 @@ void Q_Free( void *ptr )
 		assert( false );
 		_Mem_Error( "Mem_Free: Request to deallocate RAM that was naver allocated (alloc at %s:%i)", mem->sourceFilename, mem->sourceline );
 	}
-	__validateAllocationHeader( mem);
-	free( mem->baseAddress );
+	// unlink the memory 
 	__unlinkMemory( mem );
 	__unlinkPool(mem);
+
+	// wipe with closing pattern
+	__validateAllocationHeader( mem);
+	__wipeWithPattern( mem->reportedAddress, mem->size, 0, releasedPattern );
+	
+	free( mem->baseAddress );
 	__returnMemHeaderToReserve( mem );
 	QMutex_Unlock( memMutex );
 }
@@ -817,6 +824,7 @@ void _Mem_Free( void *data, int musthave, int canthave, const char *filename, in
 	__unlinkPool(mem);
 
 	// wipe with closing pattern
+	__validateAllocationHeader( mem);
 	__wipeWithPattern(mem->reportedAddress, mem->size, 0, releasedPattern);
 	
 	free(mem->baseAddress);
@@ -886,43 +894,12 @@ void _Mem_FreePool( mempool_t **pool, int musthave, int canthave, const char *fi
 	if( canthave && ( ( *pool )->flags & canthave ) )
 		_Mem_Error( "Mem_FreePool: bad pool flags (canthave) (alloc at %s:%i)", filename, fileline );
 
-	// recurse into children
-	// note that children will be freed no matter if their flags
-	// do not match musthave\canthave pair
-	while( ( *pool )->child ) {
-		mempool_t *tmp = ( *pool )->child;
-		_Mem_FreePool( &tmp, 0, 0, filename, fileline );
-	}
-
-#ifdef SHOW_NONFREED
-	if( ( *pool )->chain )
-		Com_Printf( "Warning: Memory pool %s has resources that weren't freed:\n", ( *pool )->name );
-	for( mem = ( *pool )->chain; mem; mem = mem->next )
-	{
-		Com_Printf( "%10i bytes allocated at %s:%i\n", mem->size, mem->filename, mem->fileline );
-	}
-#endif
-
-	// unlink pool from chain
-	if( ( *pool )->parent )
-		for( chainAddress = &( *pool )->parent->child; *chainAddress && *chainAddress != *pool; chainAddress = &( ( *chainAddress )->next ) ) ;
-	else
-		for( chainAddress = &rootChain; *chainAddress && *chainAddress != *pool; chainAddress = &( ( *chainAddress )->next ) ) ;
-
-	if( *chainAddress != *pool )
-		_Mem_Error( "Mem_FreePool: pool already free (freepool at %s:%i)", filename, fileline );
-
-	while( ( *pool )->chain ) // free memory owned by the pool
-		Mem_Free( ( *pool )->chain->reportedAddress );
-
-	*chainAddress = ( *pool )->next;
-
-	// free the pool itself
-	free( *pool );
+	Q_FreePool(*pool);
 	*pool = NULL;
 }
 
 void Mem_ValidationAllAllocations() {
+	QMutex_Lock( memMutex );
 	uint_fast32_t memTrackCount = 0; 
 	int numberErrors = 0;
 	for( size_t i = 0; i < AllocHashSize; i++ ) {
@@ -935,10 +912,10 @@ void Mem_ValidationAllAllocations() {
 			ptr = ptr->hnext;
 		}
 	}
-	assert(memTrackCount == stats.memTrackCount);
 	if(memTrackCount != stats.memTrackCount) 
 		Com_Printf("[!] number of tracked units is mismatched table is corrupted (found: %d expected: %d)", memTrackCount, stats.memTrackCount);
 
+	assert(memTrackCount == stats.memTrackCount);
 	if (numberErrors > 0)
 		Com_Printf("[!] While validting header, %d allocation headers(s) were found to have problems", numberErrors);
 }
@@ -967,8 +944,9 @@ static void _Mem_CheckSentinelsPool( mempool_t *pool, const char *filename, int 
 	// recurse into children
 	if( pool->child )
 	{
-		for( mempool_t *child = pool->child; child; child = child->next ) 
+		for( mempool_t *child = pool->child; child != NULL; child = child->next ) { 
 			_Mem_CheckSentinelsPool( child, filename, fileline );
+		}
 	}
 
 	for( memheader_t *mem = pool->chain; mem != NULL; mem = mem->next ) {
