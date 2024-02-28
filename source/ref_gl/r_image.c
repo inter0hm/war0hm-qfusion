@@ -49,8 +49,8 @@ static size_t r_sizeof_imagePathBuf, r_sizeof_imagePathBuf2;
 		if( r_ ##buf ) \
 			Q_Free( r_ ##buf ); \
 		r_sizeof_ ##buf += (((need) & (MAX_QPATH-1))+1) * MAX_QPATH; \
-		r_ ##buf = Q_Malloc(r_sizeof_ ##buf ); \ 
-		Q_LinkToPool(r_ ##buf, r_imagesPool) \
+		r_ ##buf = Q_Malloc(r_sizeof_ ##buf ); \
+		Q_LinkToPool(r_ ##buf, r_imagesPool); \
 	}
 
 static int gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
