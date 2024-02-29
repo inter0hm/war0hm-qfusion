@@ -76,6 +76,7 @@ mempool_t* Q_ParentPool() {
 	return NULL; 
 }
 
+#define STRESS_TEST 1
 #if defined(STRESS_TEST)
 	static const bool AlwaysWipeAll = true; 
 	static const size_t PaddingSize = 16; // 256 bytes of extra allocation
@@ -459,6 +460,19 @@ static void _Mem_Error( const char *format, ... )
 
 	Sys_Error( msg );
 }
+struct mempool_stats_s Q_PoolStats(mempool_t *pool ) {
+	struct mempool_stats_s stats = {
+		.size = pool->totalsize,
+		.realSize = pool->realsize
+	};
+	return stats;
+}
+void *__Q_Calloc( size_t count, size_t size, const char *sourceFilename, const char *functionName, int sourceLine ) {
+	const size_t allocSize = count * size;
+	void* result = __Q_MallocAligned(0, allocSize, sourceFilename, functionName, sourceLine);
+	memset(result, 0, allocSize);
+	return result;
+}
 
 void *__Q_CallocAligned( size_t count, size_t alignment, size_t size, const char *sourceFilename, const char *functionName, int sourceLine ) {
 	const size_t allocSize = count * size;
@@ -497,7 +511,7 @@ void *__Q_MallocAligned(size_t align, size_t size, const char* sourceFilename, c
 		strcpy(mem->sourceFile, "??");
 	}
 	if(functionName) {
-		strncpy(mem->sourceFunc, sourceFilename, sizeof(mem->sourceFunc)); 	
+		strncpy(mem->sourceFunc, functionName, sizeof(mem->sourceFunc)); 	
 	} else {
 		strcpy(mem->sourceFunc, "??");
 	}
@@ -589,7 +603,7 @@ void *__Q_Realloc( void *ptr, size_t size, const char *sourceFilename, const cha
 		strcpy(mem->sourceFile, "??");
 	}
 	if(functionName) {
-		strncpy(mem->sourceFunc, sourceFilename, sizeof(mem->sourceFunc)); 	
+		strncpy(mem->sourceFunc, functionName, sizeof(mem->sourceFunc)); 	
 	} else {
 		strcpy(mem->sourceFunc, "??");
 	}

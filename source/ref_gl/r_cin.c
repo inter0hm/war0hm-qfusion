@@ -219,8 +219,7 @@ void R_InitCinematics( void )
 {
 	int i;
 
-	r_cinematics = R_Malloc( sizeof( r_cinhandle_t ) * MAX_CINEMATICS );
-	memset( r_cinematics, 0, sizeof( r_cinhandle_t ) * MAX_CINEMATICS );
+	r_cinematics = Q_Calloc(MAX_CINEMATICS, sizeof( r_cinhandle_t ));
 
 	// link cinemtics
 	r_free_cinematics = r_cinematics;
@@ -352,7 +351,7 @@ unsigned int R_StartCinematic( const char *arg )
 	// copy upload name
 	Q_snprintfz( uploadName, sizeof( uploadName ), "***r_cinematic%i***", handle->id-1 );
 	name_size = strlen( uploadName ) + 1;
-	handle->uploadName = R_Malloc( name_size );
+	handle->uploadName = Q_Malloc( name_size );
 	memcpy( handle->uploadName, uploadName, name_size );
 
 	handle->cin = cin;

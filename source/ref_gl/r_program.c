@@ -344,7 +344,7 @@ void RP_PrecachePrograms( void )
 					}
 
 					if( binaryLength ) {
-						binary = R_Malloc( binaryLength );
+						binary = Q_Malloc( binaryLength );
 						if( binary != NULL && FS_Read( binary, binaryLength, handleBin ) != (int)binaryLength ) {
 							Q_Free( binary );
 							binary = NULL;
@@ -1538,7 +1538,7 @@ static bool RF_LoadShaderFromFile_r( glslParser_t *parser, const char *fileName,
 			COM_SanitizeFilePath( token );
 
 			tempFilenameSize = strlen( fileName ) + 1 + strlen( token ) + 1;
-			tempFilename = R_Malloc( tempFilenameSize );
+			tempFilename = Q_Malloc( tempFilenameSize );
 
 			if( *token != '/' ) {
 				Q_strncpyz( tempFilename, fileName, tempFilenameSize );
@@ -1553,7 +1553,7 @@ static bool RF_LoadShaderFromFile_r( glslParser_t *parser, const char *fileName,
 
 			parser->error = RF_LoadShaderFromFile_r( parser, tempFilename, stackDepth+1, programType, features );
 
-			R_Free( tempFilename );
+			Q_Free( tempFilename );
 
 			if( parser->error ) {
 				return true;
@@ -2008,7 +2008,7 @@ static void *RP_GetProgramBinary( int elem, int *format, unsigned *length )
 		return NULL;
 	}
 
-	binary = R_Malloc( GLlength );
+	binary = Q_Malloc( GLlength );
 	qglGetProgramBinary( program->object, GLlength, NULL, &GLFormat, binary );
 
 	*format = GLFormat;

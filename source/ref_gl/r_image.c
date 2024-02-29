@@ -365,7 +365,7 @@ void R_FreeImageBuffers( void )
 		{
 			if( r_imageBuffers[i][j] )
 			{
-				R_Free( r_imageBuffers[i][j] );
+				Q_Free( r_imageBuffers[i][j] );
 				r_imageBuffers[i][j] = NULL;
 			}
 			r_imageBufSize[i][j] = 0;
@@ -1692,7 +1692,9 @@ static image_t *R_CreateImage( const char *name, int width, int height, int laye
 		ri.Com_Error( ERR_DROP, "R_LoadImage: r_numImages == MAX_GLIMAGES" );
 	}
 
-	image->name = R_MallocExt( r_imagesPool, name_len + 1, 0, 1 );
+	image->name = Q_Malloc(name_len + 1);
+	Q_LinkToPool(image->name, r_imagesPool);
+
 	strcpy( image->name, name );
 	image->width = width;
 	image->height = height;
@@ -1784,7 +1786,7 @@ static void R_FreeImage( image_t *image )
 
 	R_FreeTextureNum( image );
 
-	R_Free( image->name );
+	Q_Free( image->name );
 
 	image->name = NULL;
 	image->texnum = 0;
@@ -1970,9 +1972,10 @@ void R_ScreenShot( const char *filename, int x, int y, int width, int height,
 	buf_size = width * height * 4 + size;
 	if( buf_size > r_screenShotBufferSize ) {
 		if( r_screenShotBuffer ) {
-			R_Free( r_screenShotBuffer );
+			Q_Free( r_screenShotBuffer );
 		}
-		r_screenShotBuffer = R_MallocExt( r_imagesPool, buf_size, 0, 1 );
+		r_screenShotBuffer = Q_Malloc(buf_size); 
+		Q_LinkToPool(r_screenShotBuffer, r_imagesPool);
 		r_screenShotBufferSize = buf_size;
 	}
 
@@ -2553,7 +2556,7 @@ void R_InitImages( void )
 	if( r_imagesPool )
 		return;
 
-	r_imagesPool = R_AllocPool( r_mempool, "Images" );
+	r_imagesPool = Q_CreatePool( NULL, "Images" );
 	r_imagesLock = ri.Mutex_Create();
 
 	unpackAlignment[QGL_CONTEXT_MAIN] = 4;
@@ -2674,13 +2677,14 @@ void R_ShutdownImages( void )
 	R_FreeImageBuffers();
 
 	if( r_imagePathBuf )
-		R_Free( r_imagePathBuf );
+		Q_Free( r_imagePathBuf );
 	if( r_imagePathBuf2 )
-		R_Free( r_imagePathBuf2 );
+		Q_Free( r_imagePathBuf2 );
 
 	ri.Mutex_Destroy( &r_imagesLock );
 
-	R_FreePool( &r_imagesPool );
+	Q_FreePool( r_imagesPool );
+	r_imagesPool = NULL;
 
 	r_screenShotBuffer = NULL;
 	r_screenShotBufferSize = 0;

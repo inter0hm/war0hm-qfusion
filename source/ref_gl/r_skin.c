@@ -160,7 +160,7 @@ static skinfile_t *R_SkinFileForName( const char *name )
 	skinfile->numpairs = SkinFile_ParseBuffer( buffer, NULL );
 	if( skinfile->numpairs )
 	{
-		skinfile->pairs = R_Malloc( skinfile->numpairs * sizeof( mesh_shader_pair_t ) );
+		skinfile->pairs = Q_Calloc( skinfile->numpairs, sizeof( mesh_shader_pair_t ) );
 		SkinFile_ParseBuffer( buffer, skinfile->pairs );
 	}
 	else

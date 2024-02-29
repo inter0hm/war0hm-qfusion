@@ -877,7 +877,7 @@ void Mod_Modellist_f( void )
 		if( !mod->name ) {
 			continue;
 		}
-		size = ri.Mem_PoolTotalSize( mod->mempool );
+		size = Q_PoolStats( mod->mempool ).size;
 		Com_Printf( "%8i : %s\n", size, mod->name );
 		total += size;
 	}
@@ -1151,7 +1151,7 @@ model_t *Mod_ForName( const char *name, bool crash )
 
 		lod->type = mod_bad;
 		lod->lodnum = i+1;
-		lod->mempool = R_AllocPool( mod_mempool, lodname );
+		lod->mempool = Q_CreatePool( mod_mempool, lodname );
 		lod->name = Q_Malloc( strlen( lodname ) + 1 );
 		Q_LinkToPool(lod->name, lod->mempool);
 		strcpy( lod->name, lodname );

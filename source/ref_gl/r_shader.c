@@ -945,9 +945,9 @@ static void Shader_Template( shader_t *shader, shaderpass_t *pass, const char **
 
 	// (re)allocate string buffer, if needed
 	if( !r_shaderTemplateBuf )
-		r_shaderTemplateBuf = R_Malloc( length + 1 );
+		r_shaderTemplateBuf = Q_Malloc( length + 1 );
 	else
-		r_shaderTemplateBuf = R_Realloc( r_shaderTemplateBuf, length + 1 );
+		r_shaderTemplateBuf = Q_Realloc( r_shaderTemplateBuf, length + 1 );
 
 	// start with an empty string
 	out = r_shaderTemplateBuf;
@@ -1822,7 +1822,7 @@ static void Shader_MakeCache( const char *filename )
 	size_t cacheMemSize;
 
 	pathNameSize = strlen( "scripts/" ) + strlen( filename ) + 1;
-	pathName = R_Malloc( pathNameSize );
+	pathName = Q_Malloc( pathNameSize );
 	assert( pathName );
 	Q_snprintfz( pathName, pathNameSize, "scripts/%s", filename );
 
@@ -1836,7 +1836,7 @@ static void Shader_MakeCache( const char *filename )
 	if( !size )
 		goto done;
 
-	buf = R_Malloc( size+1 );
+	buf = Q_Malloc( size+1 );
 	strcpy( buf, temp );
 	R_FreeFile( temp );
 	temp = NULL;
@@ -1859,7 +1859,7 @@ static void Shader_MakeCache( const char *filename )
 		goto done;
 	}
 
-	cacheMemBuf = R_Malloc( cacheMemSize );
+	cacheMemBuf = Q_Malloc( cacheMemSize );
 	memset( cacheMemBuf, 0, cacheMemSize );
 	for( ptr = buf; ptr; )
 	{
@@ -2420,7 +2420,7 @@ static void Shader_Finish( shader_t *s )
 	
 	size += strlen( oldname ) + 1;
 
-	buffer = R_Malloc( size );
+	buffer = Q_Malloc( size );
 	bufferOffset = 0;
 
 	s->passes = ( shaderpass_t * )(buffer + bufferOffset); bufferOffset += s->numpasses * sizeof( shaderpass_t );
@@ -2468,7 +2468,7 @@ static void Shader_Finish( shader_t *s )
 	size = s->numdeforms * sizeof( deformv_t );
 	size += deformvKeyLen + 1;
 
-	buffer = R_Malloc( size );
+	buffer = Q_Malloc( size );
 	bufferOffset = 0;
 
 	if( s->numdeforms )
@@ -2956,7 +2956,7 @@ shader_t *R_LoadShader( const char *name, shaderType_e type, bool forceDefault )
 			r_shortShaderName = NULL;
 		}
 		r_shortShaderNameSize = max( nameLength + 1, MAX_QPATH );
-		r_shortShaderName = R_Malloc( r_shortShaderNameSize );
+		r_shortShaderName = Q_Malloc( r_shortShaderNameSize );
 	}
 
 	shortname = r_shortShaderName;

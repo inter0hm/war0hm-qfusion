@@ -923,14 +923,12 @@ static skmcacheentry_t *r_skmcache_head;	// actual entries are linked to this
 static skmcacheentry_t *r_skmcache_free;	// actual entries are linked to this
 static skmcacheentry_t *r_skmcachekeys[MAX_REF_ENTITIES*(MOD_MAX_LODS+1)];		// entities linked to cache entries
 
-#define R_SKMCacheAlloc(size) R_MallocExt(r_skmcachepool, (size), 16, 1)
-
 /*
 * R_InitSkeletalCache
 */
 void R_InitSkeletalCache( void )
 {
-	r_skmcachepool = R_AllocPool( r_mempool, "SKM Cache" );
+	r_skmcachepool = Q_CreatePool( NULL, "SKM Cache" );
 
 	r_skmcache_head = NULL;
 	r_skmcache_free = NULL;
@@ -994,8 +992,11 @@ static uint8_t *R_AllocSkeletalDataCache( int entNum, int lodNum, size_t size )
 
 	// no suitable entries found, allocate
 	if( !best ) {
-		best = R_SKMCacheAlloc( sizeof( *best ) );
-		best->data = R_SKMCacheAlloc( size );
+		best = Q_Calloc(1, sizeof( *best ) );
+		Q_LinkToPool(best, r_skmcachepool);
+		best->data = Q_Malloc( size );
+		memset( best->data, 0, size );
+		Q_LinkToPool(best->data, r_skmcachepool);
 		best->size = size;
 		best_prev = NULL;
 	}
@@ -1050,8 +1051,9 @@ void R_ShutdownSkeletalCache( void )
 	if( !r_skmcachepool )
 		return;
 
-	R_FreePool( &r_skmcachepool );
+	Q_FreePool( r_skmcachepool );
 
+	r_skmcachepool = NULL;
 	r_skmcache_head = NULL;
 	r_skmcache_free = NULL;
 }

@@ -638,13 +638,11 @@ static unsigned RF_GetCmdBufFrameId( ref_cmdbuf_t *cmdbuf )
 
 ref_cmdbuf_t *RF_CreateCmdBuf( bool sync )
 {
-	ref_cmdbuf_t *cmdbuf;
-
-	cmdbuf = R_Malloc( sizeof( *cmdbuf ) );
+	ref_cmdbuf_t *cmdbuf = Q_Malloc( sizeof( *cmdbuf ) );
 	if( sync ) {
 		cmdbuf->sync = true;
 	} else {
-		cmdbuf->buf = R_Malloc( REF_CMD_BUF_SIZE );
+		cmdbuf->buf = Q_Malloc( REF_CMD_BUF_SIZE );
 		cmdbuf->buf_size = REF_CMD_BUF_SIZE;
 	}
 
@@ -1112,7 +1110,7 @@ ref_cmdpipe_t *RF_CreateCmdPipe( bool sync )
 {
 	ref_cmdpipe_t *cmdpipe;
 
-	cmdpipe = R_Malloc( sizeof( *cmdpipe ) );
+	cmdpipe = Q_Calloc(1, sizeof( *cmdpipe ) );
 	if( sync ) {
 		cmdpipe->sync = sync;
 	} else {

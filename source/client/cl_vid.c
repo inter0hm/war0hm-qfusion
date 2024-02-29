@@ -358,14 +358,6 @@ static bool VID_LoadRefresh( const char *name )
 	import.CIN_Reset = &CIN_Reset;
 	import.CIN_Close = &CIN_Close;
 
-	import.Mem_AllocPool = &VID_RefModule_MemAllocPool;
-	import.Mem_FreePool = &VID_RefModule_MemFreePool;
-	import.Mem_EmptyPool = &VID_RefModule_MemEmptyPool;
-	import.Mem_AllocExt = &VID_RefModule_MemAllocExt;
-	import.Mem_Free = &VID_RefModule_MemFree;
-	import.Mem_Realloc = &_Mem_Realloc;
-	import.Mem_PoolTotalSize = &Mem_PoolTotalSize;
-
 	import.Thread_Create = QThread_Create;
 	import.Thread_Join = QThread_Join;
 	import.Thread_Yield = QThread_Yield;

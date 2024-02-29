@@ -538,7 +538,7 @@ static int R_PackLightmaps( int num, int w, int h, int dataSize, int stride, int
 	{
 		if( r_lightmapBuffer )
 			Q_Free( r_lightmapBuffer );
-		r_lightmapBuffer = R_MallocExt( r_mempool, rectSize, 0, 0 );
+		r_lightmapBuffer = Q_Malloc(rectSize);
 		memset( r_lightmapBuffer, 255, rectSize );
 		r_lightmapBufferSize = rectSize;
 	}
@@ -635,7 +635,7 @@ void R_BuildLightmaps( model_t *mod, int numLightmaps, int w, int h, const uint8
 	}
 
 	r_lightmapBufferSize = size * samples;
-	r_lightmapBuffer = R_MallocExt( r_mempool, r_lightmapBufferSize, 0, 0 );
+	r_lightmapBuffer = Q_Malloc(r_lightmapBufferSize);
 	r_numUploadedLightmaps = 0;
 
 	if( mapConfig.lightmapArrays )
