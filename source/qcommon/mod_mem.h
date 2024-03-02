@@ -5,6 +5,15 @@
 
 struct mempool_s;
 typedef struct mempool_s mempool_t;
+struct memscope_s;
+typedef struct memscope_s memscope_t;
+
+typedef void (*free_hander_t)(void* p);
+
+struct memscope_alloc_s {
+  void* ptr;
+  void (*freeHandle)(void* ptr);
+};
 
 struct mempool_stats_s {
 	size_t size;
@@ -34,6 +43,19 @@ DECLARE_TYPEDEF_METHOD( void, Q_FreePool, mempool_t *pool );
 DECLARE_TYPEDEF_METHOD( void, Q_EmptyPool, mempool_t *pool );
 DECLARE_TYPEDEF_METHOD( struct mempool_stats_s, Q_PoolStats, mempool_t *pool );
 DECLARE_TYPEDEF_METHOD( void, Mem_ValidationAllAllocations );
+
+
+// similar to a pool but lighter weight constrction 
+// user is required to free memory from the scope or trigger a double free error from the memory tracker
+DECLARE_TYPEDEF_METHOD( memscope_t*, Q_CreateScope, memscope_t *parent, const char* name);
+DECLARE_TYPEDEF_METHOD( bool, Q_ScopeHas, memscope_t* scope, void* ptr); // take ownership of allocation
+DECLARE_TYPEDEF_METHOD( void, Q_ScopeTake, memscope_t* scope, void* ptr); // take ownership of allocation
+DECLARE_TYPEDEF_METHOD( void, Q_ScopeTakeWithFreeHandle, memscope_t *scope, free_hander_t handle, void *ptr );
+DECLARE_TYPEDEF_METHOD( void, Q_ScopeRelease, memscope_t* scope, void* ptr);
+DECLARE_TYPEDEF_METHOD( void, Q_ScopeFree, memscope_t* scope, void* ptr); // free the memory attached to a scope
+DECLARE_TYPEDEF_METHOD( void, Q_FreeScope, memscope_t* scope);
+
+
 #undef DECLARE_TYPEDEF_METHOD
 
 mempool_t* Q_ParentPool(); 
