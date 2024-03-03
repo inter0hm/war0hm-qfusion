@@ -55,7 +55,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon.h"
 #include "qthreads.h"
 #include "mod_mem.h"
-#include <strings.h>
 #include "mem.h"
 
 #define MAX_SCOPE_NAME 32
@@ -75,7 +74,10 @@ static bool commands_initialized = false;
 struct memscope_s {
   char name[MAX_SCOPE_NAME];
 	struct memscope_s *parent;
+	struct memscope_s *child;
+	
 	struct memscope_s *next;
+	
 	size_t size;
 	size_t reserved;
 	struct memscope_alloc_s *alloc;
@@ -953,7 +955,6 @@ mempool_t *_Mem_AllocTempPool( const char *name, const char *filename, int filel
 
 void _Mem_FreePool( mempool_t **pool, int musthave, int canthave, const char *filename, int fileline )
 {
-	mempool_t **chainAddress;
 #ifdef SHOW_NONFREED
 	memheader_t *mem;
 #endif
@@ -998,29 +999,29 @@ memscope_t *Q_CreateScope( memscope_t *parent, const char *name )
 	memscope_t *scope = Q_Malloc( sizeof(struct memscope_s) );
 	if(!scope) 
 	  return NULL;
-	if(name) {
-		strncpy(parent->name, name, sizeof(parent->name) - 1); 	
-	} else {
-		strncpy(parent->name, "??", sizeof(parent->name) - 1); 	
-	}
 	memset(scope, 0, sizeof(struct memscope_s));
+	if(name) {
+		strncpy(scope->name, name, sizeof(parent->name) - 1); 	
+	} else {
+		strncpy(scope->name, "??", sizeof(parent->name) - 1); 	
+	}
 	scope->lock = QMutex_Create(); 
 	if(parent) {
+		scope->parent = parent;
 		QMutex_Lock( scopeMutex );
-			scope->parent = parent;
-			scope->next = scope->parent->next;
-			scope->parent->next = scope;
+			scope->next = parent->child;
+			parent->child = scope;
 		QMutex_Unlock( scopeMutex );
-	}
+	} 	
 	return scope;
 }
 
-void Q_ScopeTake( memscope_t *scope, void *ptr )
+void Q_ScopeAttach( memscope_t *scope, void *ptr )
 {
-	Q_ScopeTakeWithFreeHandle( scope, Q_Free, ptr );
+	Q_ScopeAttachWithFreeHandle( scope, Q_Free, ptr );
 }
 
-void Q_ScopeTakeWithFreeHandle( memscope_t *scope, free_hander_t handle, void *ptr )
+void Q_ScopeAttachWithFreeHandle( memscope_t *scope, free_hander_t handle, void *ptr )
 {
 	assert( scope );
 	if( !ptr ) {
@@ -1105,14 +1106,14 @@ void Q_ScopeFree( memscope_t *scope, void *ptr )
 	QMutex_Unlock(scope->lock);	
 }
 
-static void __Q_FreeScopeRecruse(memscope_t *scope) {
+static void __Q_FreeScopeRecuse(memscope_t *scope) {
 	for( size_t i = 0; i < scope->size; i++ ) {
 		struct memscope_alloc_s *alloc = &scope->alloc[i];
 		alloc->freeHandle( alloc->ptr );
 	}
 
-	for( memscope_t *current = scope->next; current != NULL; current = scope->next ) {
-		Q_FreeScope( current );
+	for( memscope_t *current = scope->child; current != NULL; current = scope->next) {
+		__Q_FreeScopeRecuse( current );
 	}
 	QMutex_Destroy(&scope->lock);
 	Q_Free( scope->alloc );
@@ -1126,7 +1127,7 @@ void Q_FreeScope( memscope_t *scope )
 
 	if( scope->parent ) {
 		QMutex_Lock( scopeMutex );
-		struct memscope_s **current = &scope->parent->next;
+		struct memscope_s **current = &scope->parent->child;
 		while( *current && *current != scope ) {
 			current = &( *current )->next;
 		}
@@ -1135,7 +1136,7 @@ void Q_FreeScope( memscope_t *scope )
 		*current = scope->next;
 		QMutex_Unlock( scopeMutex );
 	}
-	__Q_FreeScopeRecruse( scope );
+	__Q_FreeScopeRecuse( scope );
 }
 
 void _Mem_EmptyPool( mempool_t *pool, int musthave, int canthave, const char *filename, int fileline )
