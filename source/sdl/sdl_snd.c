@@ -1,289 +1,265 @@
 /*
- * SDL implementation for Warsow from io.q3
- *
- * Adapted by Andreas Schneider <mail@cynapses.org>
- *
- * For config have a look there
- * http://icculus.org/lgfaq/#setthatdriver
- */
+Copyright (C) 1997-2001 Id Software, Inc.
 
-/*
- * SDL implementation for Quake 3: Arena's GPL source release.
- *
- * This is a replacement of the Linux/OpenSoundSystem code with
- *  an SDL backend, since it allows us to trivially point just about any
- *  existing 2D audio backend known to man on any platform at the code,
- *  plus it benefits from all of SDL's tapdancing to support buggy drivers,
- *  etc, and gets us free ALSA support, too.
- *
- * This is the best idea for a direct modernization of the Linux sound code
- *  in Quake 3. However, it would be nice to replace this with true 3D
- *  positional audio, compliments of OpenAL...
- *
- * Written by Ryan C. Gordon (icculus@icculus.org). Please refer to
- *    http://icculus.org/quake3/ for the latest version of this code.
- *
- *  Patches and comments are welcome at the above address.
- *
- * I cut-and-pasted this from linux_snd.c, and moved it to SDL line-by-line.
- *  There is probably some cruft that could be removed here.
- *
- * You should define USE_SDL=1 and then add this to the makefile.
- *  USE_SDL will disable the Open Sound System target.
- */
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
 
-/*
-   Original copyright on Q3A sources:
-   ===========================================================================
-   Copyright (C) 1999-2005 Id Software, Inc.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-   This file is part of Quake III Arena source code.
+See the GNU General Public License for more details.
 
-   Quake III Arena source code is free software; you can redistribute it
-   and/or modify it under the terms of the GNU General Public License as
-   published by the Free Software Foundation; either version 2 of the License,
-   or (at your option) any later version.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
-   Quake III Arena source code is distributed in the hope that it will be
-   useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with Foobar; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-   ===========================================================================
- */
-
-#include <stdlib.h>
-#include <stdio.h>
-
+*/
+#include "../snd_qf/snd_local.h"
 #include <SDL.h>
 
-#include "../snd_qf/snd_local.h"
+SDL_AudioDeviceID audioid;
 
-static int snd_inited = 0;
-
-static cvar_t *s_bits = NULL;
-static cvar_t *s_channels = NULL;
-
-void S_Activate( bool active )
+void SND_AudioCallback( void *userdata, Uint8 *stream, int len )
 {
+	float *o = (float *)stream;
+	for( int i = 0; i < len/sizeof(float); i++ )
+		o[i] = 0.0f;
+	// FIXME: call paint buffer
 }
 
-/* The audio callback. All the magic happens here. */
-static unsigned dmapos = 0;
-static unsigned dmasize = 0;
-static void sdl_audio_callback( void *userdata, Uint8 *stream, int len )
-{
-	int pos = dmapos % dmasize;
-
-	if( !snd_inited ) /* shouldn't happen, but just in case... */
-	{
-		memset( stream, '\0', len );
-		return;
-	} else if( len > 0 ) {
-		unsigned tobufend = dmasize - pos; /* bytes to buffer's end. */
-		unsigned len1 = len;
-		int len2 = 0;
-
-		if( len1 > tobufend ) {
-			len1 = tobufend;
-			len2 = len - len1;
-		}
-		memcpy( stream, dma.buffer + pos, len1 );
-		if( len2 <= 0 )
-			dmapos += len1;
-		else /* wraparound? */
-		{
-			memcpy( stream + len1, dma.buffer, len2 );
-			dmapos = len2;
-		}
-	}
-}
-
-static void print_audiospec( const char *str, const SDL_AudioSpec *spec )
-{
-	Com_Printf( "%s:\n", str );
-
-// I'm sorry this is nasty.
-#define PRINT_AUDIO_FMT( x )              \
-	if( spec->format == x )               \
-		Com_Printf( "Format: %s\n", #x ); \
-	else
-	PRINT_AUDIO_FMT( AUDIO_U8 )
-	PRINT_AUDIO_FMT( AUDIO_S8 )
-	PRINT_AUDIO_FMT( AUDIO_U16LSB )
-	PRINT_AUDIO_FMT( AUDIO_S16LSB )
-	PRINT_AUDIO_FMT( AUDIO_U16MSB )
-	PRINT_AUDIO_FMT( AUDIO_S16MSB )
-	Com_Printf( "Format: UNKNOWN\n" );
-#undef PRINT_AUDIO_FMT
-
-	Com_Printf( "Freq: %d\n", (int)spec->freq );
-	Com_Printf( "Samples: %d\n", (int)spec->samples );
-	Com_Printf( "Channels: %d\n", (int)spec->channels );
-	Com_Printf( "\n" );
-}
-
+/*
+ * SNDDMA_Init
+ *
+ * Try to find a sound device to mix for.
+ * Returns false if nothing is found.
+ */
 bool SNDDMA_Init( void *hwnd, bool verbose )
 {
-	char drivername[128];
-	SDL_AudioSpec desired;
-	SDL_AudioSpec obtained;
-	int tmp;
+	memset( (void *)&dma, 0, sizeof( dma ) );
 
-	if( snd_inited )
-		return 1;
-
-	if( verbose )
-		Com_Printf( "SDL Audio driver initializing...\n" );
-
-	if( !s_bits ) {
-		s_bits = trap_Cvar_Get( "s_bits", "16", CVAR_ARCHIVE | CVAR_LATCH_SOUND );
-		s_channels = trap_Cvar_Get( "s_channels", "2", CVAR_ARCHIVE | CVAR_LATCH_SOUND );
-	}
-
-	if( !SDL_WasInit( SDL_INIT_AUDIO ) ) {
-		if( verbose )
-			Com_Printf( "Calling SDL_Init(SDL_INIT_AUDIO)...\n" );
-		if( SDL_Init( SDL_INIT_AUDIO ) == -1 ) {
-			Com_Printf( "SDL_Init(SDL_INIT_AUDIO) failed: %s\n", SDL_GetError() );
-			return false;
-		}
-		if( verbose )
-			Com_Printf( "SDL_Init(SDL_INIT_AUDIO) passed.\n" );
-	}
-
-#if SDL_VERSION_ATLEAST( 2, 0, 0 )
-	if( SDL_GetCurrentAudioDriver() ) {
-		Q_strncpyz( drivername, SDL_GetCurrentAudioDriver(), sizeof( drivername ) );
-	} else {
-		Q_strncpyz( drivername, "(UNKNOWN)", sizeof( drivername ) );
-	}
-#else
-	if( SDL_AudioDriverName( drivername, sizeof( drivername ) ) == NULL )
-		Q_strncpyz( drivername, "(UNKNOWN)", sizeof( drivername ) );
-#endif
-
-	if( verbose )
-		Com_Printf( "SDL audio driver is \"%s\"\n", drivername );
-
-	memset( &desired, '\0', sizeof( desired ) );
-	memset( &obtained, '\0', sizeof( obtained ) );
-
-	if( s_khz->integer == 44 )
-		desired.freq = 44100;
+	if( s_khz->integer == 48 )
+		dma.speed = 48000;
+	else if( s_khz->integer == 44 )
+		dma.speed = 44100;
 	else if( s_khz->integer == 22 )
-		desired.freq = 22050;
+		dma.speed = 22050;
 	else
-		desired.freq = 11025;
+		dma.speed = 11025;
+	dma.msec_per_sample = 1000.0 / dma.speed;
 
-	desired.format = ( ( s_bits->integer != 16 ) ? AUDIO_U8 : AUDIO_S16SYS );
+	SDL_AudioSpec desired;
+	memset( &desired, 0, sizeof( desired ) );
+	desired.callback = SND_AudioCallback;
+	desired.channels = 2;
+	desired.format = AUDIO_F32;
+	desired.freq = dma.speed;
+	desired.samples = 0x100;
+	desired.size = desired.samples * desired.channels * sizeof( float );
+	// We can deal with a frequency change, but let's not try to deal with format change or channels change.
+	int allowed_changes = SDL_AUDIO_ALLOW_FREQUENCY_CHANGE;
+	SDL_AudioSpec obtained;
+	memset( &obtained, 0, sizeof( obtained ) );
+	audioid = SDL_OpenAudioDevice( NULL, SDL_FALSE, &desired, &obtained, allowed_changes );**
+	dma.speed = obtained.freq;
 
-	// I dunno if this is the best idea, but I'll give it a try...
-	//  should probably check a cvar for this...
-	// just pick a sane default.
-	if( desired.freq <= 11025 )
-		desired.samples = 256;
-	else if( desired.freq <= 22050 )
-		desired.samples = 512;
-	else if( desired.freq <= 44100 )
-		desired.samples = 1024;
-	else
-		desired.samples = 2048; // (*shrug*)
+	s_globalfocus->modified = false;
 
-	desired.channels = s_channels->integer;
-	desired.callback = sdl_audio_callback;
+	dma.channels = 2;
+	dma.samplebits = 16;
 
-	if( SDL_OpenAudio( &desired, &obtained ) == -1 ) {
-		Com_Printf( "SDL_OpenAudio() failed: %s\n", SDL_GetError() );
-		SDL_QuitSubSystem( SDL_INIT_AUDIO );
+
+	if( verbose )
+		Com_Printf( "Initializing SDL2 sound subsystem\n" );
+
+	if( verbose )
+		Com_Printf( "ok\n" );
+
+	if( verbose )
+		Com_Printf( "...completed successfully\n" );
+
+	if( !dsound_init && !wav_init ) {
+		Com_Printf( "*** No sound device initialized ***\n" );
 		return false;
 	}
 
-	if( verbose ) {
-		print_audiospec( "Format we requested from SDL audio device", &desired );
-		print_audiospec( "Format we actually got", &obtained );
-	}
-
-	// dma.samples needs to be big, or id's mixer will just refuse to
-	//  work at all; we need to keep it significantly bigger than the
-	//  amount of SDL callback samples, and just copy a little each time
-	//  the callback runs.
-	// 32768 is what the OSS driver filled in here on my system. I don't
-	//  know if it's a good value overall, but at least we know it's
-	//  reasonable...this is why I let the user override.
-	tmp = ( obtained.samples * obtained.channels ) * 4;
-
-	if( tmp & ( tmp - 1 ) ) // not a power of two? Seems to confuse something.
-	{
-		int val = 1;
-		while( val < tmp )
-			val <<= 1;
-
-		val >>= 1;
-		if( verbose )
-			Com_Printf( "WARNING: sdlmixsamps wasn't a power of two (%d), so we made it one (%d).\n", tmp, val );
-		tmp = val;
-	}
-
-	dmapos = 0;
-	dma.samplebits = obtained.format & 0xFF; // first byte of format is bits.
-	dma.channels = obtained.channels;
-	dma.samples = tmp;
-	dma.submission_chunk = 1;
-	dma.speed = obtained.freq;
-	dma.msec_per_sample = 1000.0 / dma.speed;
-	dmasize = ( dma.samples * ( dma.samplebits / 8 ) );
-	dma.buffer = calloc( 1, dmasize );
-
-	if( verbose )
-		Com_Printf( "Starting SDL audio callback...\n" );
-	SDL_PauseAudio( 0 ); // start callback.
-
-	if( verbose )
-		Com_Printf( "SDL audio initialized.\n" );
-	snd_inited = 1;
 	return true;
 }
 
+/*
+ * SNDDMA_GetDMAPos
+ *
+ * return the current sample position (in mono samples read)
+ * inside the recirculating dma buffer, so the mixing code will know
+ * how many sample are required to fill it up.
+ */
 int SNDDMA_GetDMAPos( void )
 {
-	return dmapos / ( dma.samplebits / 8 );
-}
+	MMTIME mmtime;
+	int s = 0;
+	DWORD dwWrite;
 
-void SNDDMA_Shutdown( bool verbose )
-{
-	if( verbose )
-		Com_Printf( "Closing SDL audio device...\n" );
+	if( dsound_init ) {
+		mmtime.wType = TIME_SAMPLES;
+		pDSBuf->lpVtbl->GetCurrentPosition( pDSBuf, &mmtime.u.sample, &dwWrite );
+		s = mmtime.u.sample - mmstarttime.u.sample;
+	} else if( wav_init ) {
+		s = snd_sent * WAV_BUFFER_SIZE;
+	}
 
-	SDL_PauseAudio( 1 );
-	SDL_CloseAudio();
-	SDL_QuitSubSystem( SDL_INIT_AUDIO );
+	s >>= sample16;
+	s &= ( dma.samples - 1 );
 
-	free( dma.buffer );
-	dma.buffer = NULL;
-	dmapos = dmasize = 0;
-	snd_inited = 0;
-
-	if( verbose )
-		Com_Printf( "SDL audio device shut down.\n" );
+	return s;
 }
 
 /*
-   ==============
-   SNDDMA_Submit
+ * SNDDMA_BeginPainting
+ *
+ * Makes sure dma.buffer is valid
+ */
+DWORD locksize;
+void SNDDMA_BeginPainting( void )
+{
+	int reps;
+	DWORD dwSize2;
+	DWORD *pbuf, *pbuf2;
+	HRESULT hresult;
+	DWORD dwStatus;
 
-   Send sound to device if buffer isn't really the dma buffer
-   ===============
+	if( !pDSBuf )
+		return;
+
+	// if the buffer was lost or stopped, restore it and/or restart it
+	if( pDSBuf->lpVtbl->GetStatus( pDSBuf, &dwStatus ) != DS_OK )
+		Com_Printf( "Couldn't get sound buffer status\n" );
+
+	if( dwStatus & DSBSTATUS_BUFFERLOST )
+		pDSBuf->lpVtbl->Restore( pDSBuf );
+
+	if( !( dwStatus & DSBSTATUS_PLAYING ) )
+		pDSBuf->lpVtbl->Play( pDSBuf, 0, 0, DSBPLAY_LOOPING );
+
+	// lock the dsound buffer
+
+	reps = 0;
+	dma.buffer = NULL;
+
+	while( ( hresult = pDSBuf->lpVtbl->Lock( pDSBuf, 0, gSndBufSize, (LPVOID *)&pbuf, &locksize, (LPVOID *)&pbuf2, &dwSize2, 0 ) ) != DS_OK ) {
+		if( hresult != DSERR_BUFFERLOST ) {
+			Com_Printf( "S_TransferStereo16: Lock failed with error '%s'\n", DSoundError( hresult ) );
+			SF_Shutdown( true );
+			return;
+		} else {
+			pDSBuf->lpVtbl->Restore( pDSBuf );
+		}
+
+		if( ++reps > 2 )
+			return;
+	}
+	dma.buffer = (unsigned char *)pbuf;
+}
+
+/*
+ * SNDDMA_Submit
+ *
+ * Send sound to device if buffer isn't really the dma buffer
+ * Also unlocks the dsound buffer
  */
 void SNDDMA_Submit( void )
 {
-	SDL_UnlockAudio();
+	LPWAVEHDR h;
+	int wResult;
+
+	if( !dma.buffer )
+		return;
+
+	// unlock the dsound buffer
+	if( pDSBuf )
+		pDSBuf->lpVtbl->Unlock( pDSBuf, dma.buffer, locksize, NULL, 0 );
+
+	if( !wav_init )
+		return;
+
+	//
+	// find which sound blocks have completed
+	//
+	while( 1 ) {
+		if( snd_completed == snd_sent ) {
+			// Com_Printf( "Sound overrun\n" );
+			break;
+		}
+
+		if( !( lpWaveHdr[snd_completed & WAV_MASK].dwFlags & WHDR_DONE ) ) {
+			break;
+		}
+
+		snd_completed++; // this buffer has been played
+	}
+
+	//
+	// submit a few new sound blocks
+	//
+	while( ( ( snd_sent - snd_completed ) >> sample16 ) < 8 ) {
+		h = lpWaveHdr + ( snd_sent & WAV_MASK );
+		if( paintedtime / 256 <= snd_sent )
+			break;
+		snd_sent++;
+		/*
+		 * Now the data block can be sent to the output device. The
+		 * waveOutWrite function returns immediately and waveform
+		 * data is sent to the output device in the background.
+		 */
+		if( s_active ) {
+			wResult = waveOutWrite( hWaveOut, h, sizeof( WAVEHDR ) );
+
+			if( wResult != MMSYSERR_NOERROR ) {
+				Com_Printf( "Failed to write block to device\n" );
+				FreeSound( true );
+				return;
+			}
+		}
+	}
 }
 
-void SNDDMA_BeginPainting( void )
+/*
+ * SNDDMA_Shutdown
+ *
+ * Reset the sound device for exiting
+ */
+void SNDDMA_Shutdown( bool verbose )
 {
-	SDL_LockAudio();
+	FreeSound( verbose );
+}
+
+/*
+ * S_Activate
+ *
+ * Called when the main window gains or loses focus.
+ * The window have been destroyed and recreated
+ * between a deactivate and an activate.
+ */
+void S_Activate( bool active )
+{
+	if( !pDS )
+		return;
+
+	if( s_globalfocus->modified ) {
+		SNDDMA_Shutdown( false );
+
+		SNDDMA_InitDirect( false );
+
+		s_globalfocus->modified = false;
+
+		if( !pDS )
+			return;
+	}
+
+	// just set the priority for directsound
+	if( pDS->lpVtbl->SetCooperativeLevel( pDS, cl_hwnd, DSSCL_PRIORITY ) != DS_OK ) {
+		Com_Printf( "DirectSound SetCooperativeLevel failed\n" );
+		SNDDMA_Shutdown( false );
+	}
 }
