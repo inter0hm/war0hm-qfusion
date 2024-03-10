@@ -52,9 +52,6 @@ set(STB_INCLUDE_DIR ${STB_DIR})
 set(DISCORD_DIR ${CMAKE_HOME_DIRECTORY}/../third-party/discord)
 set(DISCORD_INCLUDE_DIR ${DISCORD_DIR})
 
-set(OPENAL_DIR ${CMAKE_HOME_DIRECTORY}/../libsrcs/src/openal-soft)
-set(OPENAL_INCLUDE_DIR ${OPENAL_DIR}/include/AL)
-
 # Windows specific settings
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(QFUSION_WINDOWS_ARCH "x86")
@@ -70,7 +67,6 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 		"../libsrcs/src/libcurl/include"
 		"../libsrcs/src/libfreetype"
 		"../libsrcs/src/SDL2/include"
-		"../libsrcs/src/openal-soft/include/AL"
     )
 
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DCURL_STATICLIB -DWIN32 -D_WINDOWS)
@@ -218,7 +214,6 @@ if (NOT GAME_MODULES_ONLY)
     find_package(Theora REQUIRED)
     find_package(CURL REQUIRED)
     find_package(Freetype REQUIRED)
-    find_package(OpenAL REQUIRED)
 
     if (USE_SDL2)
         set(USE_SDL2 1)
@@ -254,7 +249,6 @@ if (NOT GAME_MODULES_ONLY)
         find_windows_release_libs(OGG_LIBRARY)
         find_windows_release_libs(VORBIS_LIBRARIES)
         find_windows_release_libs(THEORA_LIBRARY)
-        find_windows_release_libs(OPENAL_LIBRARIES)
         find_windows_release_libs(CURL_LIBRARY)
         find_windows_release_libs(ANGELSCRIPT_LIBRARY)
         find_windows_release_libs(SDL2_LIBRARIES)
@@ -295,7 +289,6 @@ if (NOT GAME_MODULES_ONLY)
     add_subdirectory(cin)
     add_subdirectory(ftlib)
     add_subdirectory(ref_gl)
-    add_subdirectory(snd_openal)
     add_subdirectory(snd_qf)
     add_subdirectory(ui)
     if (BUILD_STEAMLIB)

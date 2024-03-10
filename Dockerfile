@@ -5,7 +5,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG DEBCONF_NONINTERACTIVE_SEEN=true
 RUN apt update
 RUN apt install -y curl clang cmake build-essential \
-    libsdl2-dev libopenal-dev libvorbis-dev libtheora-dev \
+    libsdl2-dev libvorbis-dev libtheora-dev \
     libfreetype6-dev libcurl4-gnutls-dev git zip unzip \
     && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /root/warfork

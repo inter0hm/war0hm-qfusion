@@ -124,8 +124,6 @@ extern "C" {
 
 #define VID_INITFIRST
 
-#define OPENAL_RUNTIME
-
 // FIXME: move these to CMakeLists.txt
 #define LIBZ_LIBNAME "zlib1.dll"
 #define LIBCURL_LIBNAME "libcurl-4.dll|libcurl-3.dll"
@@ -198,8 +196,6 @@ typedef UINT_PTR socket_handle_t;
 #define LIB_DIRECTORY "libs"
 #define LIB_PREFIX "lib"
 #define LIB_SUFFIX ".so"
-
-#define OPENAL_RUNTIME
 
 // FIXME: move these to CMakeLists.txt
 #define LIBZ_LIBNAME "libz.so.1|libz.so"
@@ -296,8 +292,6 @@ typedef int socket_handle_t;
 #define LIB_DIRECTORY "libs"
 #define LIB_PREFIX "lib"
 #define LIB_SUFFIX ".dylib"
-
-#define OPENAL_RUNTIME
 
 // FIXME: move these to CMakeLists.txt
 #define LIBZ_LIBNAME "libz.dylib"

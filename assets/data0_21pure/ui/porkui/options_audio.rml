@@ -202,18 +202,6 @@
 		<!-- audio setup -->
 		<div id="audio-options">
 			<optionsform id="options-form">
-				<div class="title">Sound module</div>
-				<select cvar="s_module" id="sound-module" name="sound-module" onchange="sModuleRestart();">
-					<option value="0" selected>no sound</option>
-					<option value="1" selected>Qfusion</option>
-					<option value="2" selected>OpenAL</option>
-				</select>
-				<br/>
-				
-				<br/>			
-				<hr class="nicehr" />
-				<br/>					
-				
 				<div class="title">Sound volume</div>
 				<input id="sound-volume" cvar="s_volume" class="slider" type="range" min="0" max="1.0" step="0.05" value="0.7" realtime="1" onchange="$onVolumeChange"/>
 				<div id="sound-volume-txt" class="slider-value"></div>
