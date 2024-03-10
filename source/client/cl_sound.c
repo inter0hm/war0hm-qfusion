@@ -189,7 +189,7 @@ void CL_SoundModule_Init( bool verbose )
 	if( !s_module )
 		s_module = Cvar_Get( "s_module", "1", CVAR_ARCHIVE|CVAR_LATCH_SOUND );
 	if( !s_module_fallback )
-		s_module_fallback = Cvar_Get( "s_module_fallback", "2", CVAR_LATCH_SOUND );
+		s_module_fallback = Cvar_Get( "s_module_fallback", "0", CVAR_LATCH_SOUND );
 
 	// unload anything we have now
 	CL_SoundModule_Shutdown( verbose );
