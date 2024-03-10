@@ -35,10 +35,6 @@ build_script:
     
     cd source\build\Release
     
-    XCOPY ..\..\..\libsrcs\src\openal-soft\bin\Win32\soft_oal.dll soft_oal32.dll*
-
-    XCOPY ..\..\..\libsrcs\src\openal-soft\bin\Win64\soft_oal.dll soft_oal64.dll*
-    
     >>commit.txt echo %APPVEYOR_REPO_COMMIT%
 
     IF "%BUILD_STEAMLIB%"=="1" >>steam_appid.txt echo 671610
