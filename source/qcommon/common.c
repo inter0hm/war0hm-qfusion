@@ -1046,7 +1046,7 @@ void Qcommon_Shutdown( void )
 	Qcommon_ShutdownCommands();
 	Memory_ShutdownCommands();
 
-	Mem_DumpMemoryReport();
+	//Mem_DumpMemoryReport();
 	Com_CloseConsoleLog( true, true );
 
    Qcommon_ShutdownCvarDescriptions();
