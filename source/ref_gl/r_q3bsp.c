@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_q3bsp.c -- Q3 BSP model loading
 
 #include "r_local.h"
+#include "r_model.h"
 
 typedef struct
 {
@@ -558,50 +559,6 @@ static void Mod_LoadVertexes_RBSP( const lump_t *l )
 	}
 }
 
-/*
-* Mod_LoadSubmodels
-*/
-static void Mod_LoadSubmodels( const lump_t *l )
-{
-	int i, j, count;
-	dmodel_t *in;
-	mmodel_t *out;
-	mbrushmodel_t *bmodel;
-	model_t *mod_inline;
-
-	in = ( void * )( mod_base + l->fileofs );
-	if( l->filelen % sizeof( *in ) )
-		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
-	count = l->filelen / sizeof( *in );
-	out = Q_CallocAligned(count, 16, sizeof( *out ));
-	Q_LinkToPool(out, loadmodel->mempool);
-
-	mod_inline = Q_CallocAligned(count, 16, sizeof( *mod_inline )+sizeof( *bmodel ));
-	Q_LinkToPool(mod_inline, loadmodel->mempool);
-
-	loadmodel->extradata = bmodel = ( mbrushmodel_t * )( ( uint8_t * )mod_inline + count*sizeof( *mod_inline ) );
-
-	loadbmodel = bmodel;
-	loadbmodel->submodels = out;
-	loadbmodel->numsubmodels = count;
-	loadbmodel->inlines = mod_inline;
-
-	for( i = 0; i < count; i++, in++, out++ )
-	{
-		mod_inline[i].extradata = bmodel + i;
-
-		for( j = 0; j < 3; j++ )
-		{
-			// spread the mins / maxs by a pixel
-			out->mins[j] = LittleFloat( in->mins[j] ) - 1;
-			out->maxs[j] = LittleFloat( in->maxs[j] ) + 1;
-		}
-
-		out->radius = RadiusFromBounds( out->mins, out->maxs );
-		out->firstface = LittleLong( in->firstface );
-		out->numfaces = LittleLong( in->numfaces );
-	}
-}
 
 /*
 * Mod_LoadShaderrefs
@@ -1864,7 +1821,6 @@ static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSiz
 void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspFormatDesc_t *format )
 {
 	int i;
-	dheader_t *header;
 	vec3_t gridSize, ambient, outline;
 
 	mod->type = mod_brush;
@@ -1876,15 +1832,56 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 
 	mod_bspFormat = format;
 
-	header = (dheader_t *)buffer;
-	mod_base = (uint8_t *)header;
+	dheader_t* const header = (dheader_t *)buffer;
+	mod_base = (uint8_t *)buffer;
 
 	// swap all the lumps
 	for( i = 0; i < sizeof( dheader_t )/4; i++ )
 		( (int *)header )[i] = LittleLong( ( (int *)header )[i] );
 
+	lump_t* const model_lumps = &header->lumps[LUMP_MODELS];
+	
+	if( model_lumps->filelen % sizeof(dmodel_t) ) {
+		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
+	}
+
+
+	{
+		const size_t count = model_lumps->filelen / sizeof( dmodel_t );
+		dmodel_t *const q3_model = (void *)( (uint8_t *)buffer + model_lumps->fileofs );
+
+		uint8_t *const sub_model_mem = Q_CallocAligned( count, 16, sizeof( mbrushmodel_t ) + sizeof( model_t ) );
+		mmodel_t *const models = Q_CallocAligned( count, 16, sizeof( mmodel_t ) );
+
+		Q_LinkToPool( models, loadmodel->mempool );
+		Q_LinkToPool( sub_model_mem, loadmodel->mempool );
+
+		model_t *const inline_models = (model_t *)sub_model_mem;
+		mbrushmodel_t *const brush_models = (mbrushmodel_t *)( sub_model_mem + ( sizeof( model_t ) * count ) );
+
+		loadmodel->extradata = brush_models;
+
+		loadbmodel = brush_models;
+		loadbmodel->submodels = models;
+		loadbmodel->numsubmodels = count;
+		loadbmodel->inlines = inline_models;
+
+		for( size_t i = 0; i < count; i++ ) {
+			inline_models[i].extradata = &brush_models[i];
+
+			for( size_t j = 0; j < 3; j++ ) {
+				// spread the mins / maxs by a pixel
+				models[i].mins[j] = LittleFloat( q3_model[i].mins[j] ) - 1;
+				models[i].maxs[j] = LittleFloat( q3_model[i].maxs[j] ) + 1;
+			}
+
+			models[i].radius = RadiusFromBounds( models[i].mins, models[i].maxs );
+			models[i].firstface = LittleLong( q3_model[i].firstface );
+			models[i].numfaces = LittleLong( q3_model[i].numfaces );
+		}
+	}
+
 	// load into heap
-	Mod_LoadSubmodels( &header->lumps[LUMP_MODELS] );
 	Mod_LoadEntities( &header->lumps[LUMP_ENTITIES], gridSize, ambient, outline );
 	Mod_LoadLighting( &header->lumps[LUMP_LIGHTING], &header->lumps[LUMP_FACES] );
 	Mod_LoadShaderrefs( &header->lumps[LUMP_SHADERREFS] );
