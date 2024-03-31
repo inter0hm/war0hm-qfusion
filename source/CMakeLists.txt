@@ -298,7 +298,6 @@ add_subdirectory(angelwrap)
 add_subdirectory(cgame)
 add_subdirectory(game)
 add_subdirectory(steamshim)
-add_subdirectory(gameshared/vecmath)
 add_subdirectory(gameshared/q_math)
 
 
