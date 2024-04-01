@@ -48,10 +48,10 @@ Q_MATH_ALIGNED_TYPE_PRE struct quat_s {
 inline struct quat_s q_quat_create( float x, float y, float z, float w);
 
 inline float q_quat_ele(uint_fast8_t index, const struct quat_s v1 );
-inline float q_quat_x(const struct vec4_s v1 );
-inline float q_quat_y(const struct vec4_s v1 );
-inline float q_quat_z(const struct vec4_s v1 );
-inline float q_quat_w(const struct vec4_s v1 );
+inline float q_quat_x(const struct quat_s v1 );
+inline float q_quat_y(const struct quat_s v1 );
+inline float q_quat_z(const struct quat_s v1 );
+inline float q_quat_w(const struct quat_s v1 );
 
 // vec2
 inline struct vec2_s q_vec2_create( float x, float y );
@@ -112,12 +112,12 @@ inline struct vec4_s q_vec4_add_scalar( const struct vec4_s v1, float value);
 inline struct vec4_s q_vec4_sub_scalar( const struct vec4_s v1, float value );
 inline struct vec4_s q_vec4_mul_scalar( const struct vec4_s v1, float value );
 
-inline struct vec4_s q_vec4_max_per_element( const struct vec4_s v1, const struct vec4_s v2);
-inline struct vec4_s q_vec4_min_per_element( const struct vec4_s v1, const struct vec4_s v2);
-inline struct vec4_s q_vec4_copy_sign_element( const struct vec4_s v1, const struct vec4_s v2);
+inline struct vec4_s q_vec4_max_per_ele( const struct vec4_s v1, const struct vec4_s v2);
+inline struct vec4_s q_vec4_min_per_ele( const struct vec4_s v1, const struct vec4_s v2);
+inline struct vec4_s q_vec4_copy_sign_ele( const struct vec4_s v1, const struct vec4_s v2);
 
-inline float q_vec4_max_element( const struct vec4_s v1);
-inline float q_vec4_min_element( const struct vec4_s v1);
+inline float q_vec4_max_ele( const struct vec4_s v1);
+inline float q_vec4_min_ele( const struct vec4_s v1);
 
 inline struct vec4_s q_vec4_normalize( const struct vec4_s v1);
 inline float q_vec4_length( const struct vec4_s v1);
@@ -130,10 +130,11 @@ inline struct vec4_s q_vec4_sub( const struct vec4_s v1, const struct vec4_s v2 
 inline struct vec4_s q_vec4_mul( const struct vec4_s v1, const struct vec4_s v2 );
 
 // mat3
-inline struct mat3_s mat3_create( 
+inline struct mat3_s q_mat3_create( 
 	const struct vec3_s col0, 
 	const struct vec3_s col1, 
 	const struct vec3_s col2 );
+inline struct mat3_s q_mat3_create_quat(const struct quat_s q);
 inline float q_mat3_ele( const struct mat3_s v1, uint_fast8_t col, uint_fast8_t row );
 
 // mat4
@@ -142,10 +143,8 @@ inline struct mat4_s q_mat4_create( const struct vec4_s col0,
 																		const struct vec4_s col1, 
 																		const struct vec4_s col2, 
 																		const struct vec4_s col3 );
-inline const float q_mat4_ele( const struct mat4_s v1, uint_fast8_t col, uint_fast8_t row );
-
-
-
+inline float q_mat4_ele( const struct mat4_s v1, uint_fast8_t col, uint_fast8_t row );
+inline struct mat4_s q_mat4_create_quat(const struct quat_s q);
 
 // ---------------------------
 
@@ -184,8 +183,71 @@ struct mat4_s q_mat4_create( const struct vec4_s col0,
 	res.col3 = col3; 
 	return res;
 }
+struct mat4_s q_mat4_create_quat(const struct quat_s q) {
+
+}
+
+struct mat3_s q_mat3_create_quat(const struct quat_s q) {
+    float qx, qy, qz, qw, qx2, qy2, qz2, qxqx2, qyqy2, qzqz2, qxqy2, qyqz2, qzqw2, qxqz2, qyqw2, qxqw2;
+    qx = q_quat_x(q);
+    qy = q_quat_y(q);
+    qz = q_quat_z(q);
+    qw = q_quat_w(q);
+    qx2 = (qx + qx);
+    qy2 = (qy + qy);
+    qz2 = (qz + qz);
+    qxqx2 = (qx * qx2);
+    qxqy2 = (qx * qy2);
+    qxqz2 = (qx * qz2);
+    qxqw2 = (qw * qx2);
+    qyqy2 = (qy * qy2);
+    qyqz2 = (qy * qz2);
+    qyqw2 = (qw * qy2);
+    qzqz2 = (qz * qz2);
+    qzqw2 = (qw * qz2);
+    struct mat3_s res;
+  	res.col0 = q_vec3_create(((1.0f - qyqy2) - qzqz2), (qxqy2 + qzqw2), (qxqz2 - qyqw2));
+    res.col1 = q_vec3_create((qxqy2 - qzqw2), ((1.0f - qxqx2) - qzqz2), (qyqz2 + qxqw2));
+    res.col1 = q_vec3_create((qxqz2 + qyqw2), (qyqz2 - qxqw2), ((1.0f - qxqx2) - qyqy2));
+		return res;
+}
 
 
+float q_mat4_ele( const struct mat4_s v1, uint_fast8_t col, uint_fast8_t row ) {
+	switch(col) {
+		case 0:
+			return q_vec4_ele(row, v1.col0);
+		case 1:
+			return q_vec4_ele(row, v1.col1);
+		case 2:
+			return q_vec4_ele(row, v1.col2);
+		case 3:
+			return q_vec4_ele(row, v1.col3);
+	}
+	return 0.0f;
+}
+
+struct mat3_s q_mat3_create( const struct vec3_s col0, 
+																			 	const struct vec3_s col1, 
+																			  const struct vec3_s col2 ) {
+	struct mat3_s res;
+	res.col0 = col0; 
+	res.col1 = col1; 
+	res.col2 = col2; 
+	return res;
+}
+
+float q_mat3_ele( const struct mat3_s v1, uint_fast8_t col, uint_fast8_t row ) {
+	switch(col) {
+		case 0:
+			return q_vec3_ele(row, v1.col0);
+		case 1:
+			return q_vec3_ele(row, v1.col1);
+		case 2:
+			return q_vec3_ele(row, v1.col2);
+	}
+	return 0.0f;
+}
 
 struct vec2_s q_vec2_create( float x, float y ) {
 	struct vec2_s res;
@@ -419,7 +481,7 @@ struct vec3_s q_vec3_mul_scalar( const struct vec3_s v1, float value )
 	return res;
 }
 
-struct vec4_s q_vec4_max_per_element( const struct vec4_s v1, const struct vec4_s v2) {
+struct vec4_s q_vec4_max_per_ele( const struct vec4_s v1, const struct vec4_s v2) {
 	struct vec4_s res;
 	res.x = q_max(v1.x, v2.x);
 	res.y = q_max(v1.y, v2.y);
@@ -428,7 +490,7 @@ struct vec4_s q_vec4_max_per_element( const struct vec4_s v1, const struct vec4_
 	return res;
 } 
 
-struct vec4_s q_vec4_min_per_element( const struct vec4_s v1, const struct vec4_s v2) {
+struct vec4_s q_vec4_min_per_ele( const struct vec4_s v1, const struct vec4_s v2) {
 	struct vec4_s res;
 	res.x = q_min(v1.x, v2.x);
 	res.y = q_min(v1.y, v2.y);
@@ -437,7 +499,7 @@ struct vec4_s q_vec4_min_per_element( const struct vec4_s v1, const struct vec4_
 	return res;
 }
 
-struct vec4_s q_vec4_copy_sign_element( const struct vec4_s v1, const struct vec4_s v2) {
+struct vec4_s q_vec4_copy_sign_ele( const struct vec4_s v1, const struct vec4_s v2) {
 	struct vec4_s res;
 	res.x = ( v1.x < 0 ) ? -fabsf( v2.x ) : fabsf( v2.x );
 	res.y = ( v1.y < 0 ) ? -fabsf( v2.y ) : fabsf( v2.y );
@@ -552,16 +614,16 @@ float q_quat_ele(uint_fast8_t index, const struct quat_s v1 ) {
 	assert(0);
 	return 0;
 }
-float q_quat_x(const struct vec4_s v1 ) {
+float q_quat_x(const struct quat_s v1 ) {
 	return v1.x;
 }
-float q_quat_y(const struct vec4_s v1 ) {
+float q_quat_y(const struct quat_s v1 ) {
 	return v1.y;
 }
-float q_quat_z(const struct vec4_s v1 ) {
+float q_quat_z(const struct quat_s v1 ) {
 	return v1.z;
 }
-float q_quat_w(const struct vec4_s v1 ) {
+float q_quat_w(const struct quat_s v1 ) {
 	return v1.w;
 }
 
@@ -573,7 +635,7 @@ struct vec2_s q_vec4_as_vec2( const struct vec4_s v ) {
 	return q_vec2_create(v.x, v.y);
 }
 
-float q_vec4_max_element( const struct vec4_s v1) {
+float q_vec4_max_ele( const struct vec4_s v1) {
 	const float x = q_vec4_x(v1);
 	const float y = q_vec4_y(v1);
 	const float z = q_vec4_z(v1);
@@ -581,7 +643,7 @@ float q_vec4_max_element( const struct vec4_s v1) {
 	return q_max(q_max(x, y), q_max(z,w));
 }
 
-float q_vec4_min_element( const struct vec4_s v1) {
+float q_vec4_min_ele( const struct vec4_s v1) {
 	const float x = q_vec4_x(v1);
 	const float y = q_vec4_y(v1);
 	const float z = q_vec4_z(v1);
@@ -658,17 +720,6 @@ inline const struct vec3_s q_vec3_cross( const struct vec3_s v1, const struct ve
 											 ((q_vec3_z(v1) * q_vec3_x(v2)) - (q_vec3_x(v1) * q_vec3_z(v2))),
 				               ((q_vec3_x(v1) * q_vec3_y(v2)) - (q_vec3_y(v1) * q_vec3_x(v2))));
 
-}
-
-struct mat3_s mat3_create( 
-	const struct vec3_s col0, 
-	const struct vec3_s col1, 
-	const struct vec3_s col2 ) {
-	struct mat3_s res;
-	res.col0 = col0; 
-	res.col1 = col1; 
-	res.col2 = col2; 
-	return res;
 }
 
 struct quat_s q_quat_create( float x, float y, float z, float w )
