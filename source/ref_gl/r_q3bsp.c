@@ -1521,123 +1521,6 @@ static void Mod_LoadLightArray_RBSP( const lump_t *l )
 	}
 }
 
-/*
-* Mod_LoadEntities
-*/
-static void Mod_LoadEntities( const lump_t *l, vec3_t gridSize, vec3_t ambient, vec3_t outline )
-{
-	int n;
-	char *data;
-	bool isworld;
-	float gridsizef[3] = { 0, 0, 0 }, colorf[3] = { 0, 0, 0 }, ambientf = 0;
-	char key[MAX_KEY], value[MAX_VALUE], *token;
-	float celcolorf[3] = { 0, 0, 0 };
-
-	assert( gridSize );
-	assert( ambient );
-	assert( outline );
-
-	VectorClear( gridSize );
-	VectorClear( ambient );
-	VectorClear( outline );
-
-	data = (char *)mod_base + l->fileofs;
-	if( !data || !data[0] )
-		return;
-
-	for(; ( token = COM_Parse( &data ) ) && token[0] == '{'; )
-	{
-		isworld = false;
-
-		while( 1 )
-		{
-			token = COM_Parse( &data );
-			if( !token[0] )
-				break; // error
-			if( token[0] == '}' )
-				break; // end of entity
-
-			Q_strncpyz( key, token, sizeof( key ) );
-			Q_trim( key );
-
-			token = COM_Parse( &data );
-			if( !token[0] )
-				break; // error
-
-			Q_strncpyz( value, token, sizeof( value ) );
-
-			// now that we have the key pair worked out...
-			if( !strcmp( key, "classname" ) )
-			{
-				if( !strcmp( value, "worldspawn" ) )
-					isworld = true;
-			}
-			else if( !strcmp( key, "gridsize" ) )
-			{
-				int gridsizei[3] = { 0, 0, 0 };
-				sscanf( value, "%4i %4i %4i", &gridsizei[0], &gridsizei[1], &gridsizei[2] );
-				VectorCopy( gridsizei, gridsizef );
-			}
-			else if( !strcmp( key, "_ambient" ) || ( !strcmp( key, "ambient" ) && ambientf == 0.0f ) )
-			{
-				n = sscanf( value, "%8f", &ambientf );
-				if( n != 1 )
-				{
-					int ia = 0;
-					n = sscanf( value, "%3i", &ia );
-					ambientf = ia;
-				}
-			}
-			else if( !strcmp( key, "_color" ) )
-			{
-				n = sscanf( value, "%8f %8f %8f", &colorf[0], &colorf[1], &colorf[2] );
-				if( n != 3 )
-				{
-					int colori[3] = { 0, 0, 0 };
-					sscanf( value, "%3i %3i %3i", &colori[0], &colori[1], &colori[2] );
-					VectorCopy( colori, colorf );
-				}
-			}
-			else if( !strcmp( key, "_forceclear" ) )
-			{
-				if( atof( value ) != 0 )
-					mapConfig.forceClear = true;
-			}
-			else if( !strcmp( key, "_lightingIntensity" ) )
-			{
-				if( !r_fullbright->integer )
-				{
-					// non power of two intensity scale for lighting
-					sscanf( value, "%8f", &mapConfig.lightingIntensity );
-				}
-			}
-			else if( !strcmp( key, "_outlinecolor" ) )
-			{
-				n = sscanf( value, "%8f %8f %8f", &celcolorf[0], &celcolorf[1], &celcolorf[2] );
-				if( n != 3 )
-				{
-					int celcolori[3] = { 0, 0, 0 };
-					sscanf( value, "%3i %3i %3i", &celcolori[0], &celcolori[1], &celcolori[2] );
-					VectorCopy( celcolori, celcolorf );
-				}
-			}
-		}
-
-		if( isworld )
-		{
-			VectorCopy( gridsizef, gridSize );
-
-			if( VectorCompare( colorf, vec3_origin ) )
-				VectorSet( colorf, 1.0, 1.0, 1.0 );
-			VectorScale( colorf, ambientf, ambient );
-
-			if( max( celcolorf[0], max( celcolorf[1], celcolorf[2] ) ) > 1.0f )
-				VectorScale( celcolorf, 1.0f/255.0f, celcolorf );	// [0..1] RGB -> [0..255] RGB
-			VectorCopy( celcolorf, outline );
-			break;
-		}
-	}
-}
 
 /*
 * Mod_ApplySuperStylesToFace
@@ -1840,11 +1723,11 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 		( (int *)header )[i] = LittleLong( ( (int *)header )[i] );
 
 	lump_t* const model_lumps = &header->lumps[LUMP_MODELS];
-	
+	lump_t* const entity_lumps = &header->lumps[LUMP_ENTITIES];
+
 	if( model_lumps->filelen % sizeof(dmodel_t) ) {
 		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
 	}
-
 
 	{
 		const size_t count = model_lumps->filelen / sizeof( dmodel_t );
@@ -1881,8 +1764,99 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 		}
 	}
 
+	{
+		int n;
+		bool isworld;
+		float gridsizef[3] = { 0, 0, 0 }, colorf[3] = { 0, 0, 0 }, ambientf = 0;
+		char key[MAX_KEY], value[MAX_VALUE], *token;
+		float celcolorf[3] = { 0, 0, 0 };
+
+		assert( gridSize );
+		assert( ambient );
+		assert( outline );
+
+		VectorClear( gridSize );
+		VectorClear( ambient );
+		VectorClear( outline );
+
+		char *data = (char *)mod_base + entity_lumps->fileofs;
+		if( data[0] ) {
+			for( ; ( token = COM_Parse( &data ) ) && token[0] == '{'; ) {
+				isworld = false;
+
+				while( 1 ) {
+					token = COM_Parse( &data );
+					if( !token[0] )
+						break; // error
+					if( token[0] == '}' )
+						break; // end of entity
+
+					Q_strncpyz( key, token, sizeof( key ) );
+					Q_trim( key );
+
+					token = COM_Parse( &data );
+					if( !token[0] )
+						break; // error
+
+					Q_strncpyz( value, token, sizeof( value ) );
+
+					// now that we have the key pair worked out...
+					if( !strcmp( key, "classname" ) ) {
+						if( !strcmp( value, "worldspawn" ) )
+							isworld = true;
+					} else if( !strcmp( key, "gridsize" ) ) {
+						int gridsizei[3] = { 0, 0, 0 };
+						sscanf( value, "%4i %4i %4i", &gridsizei[0], &gridsizei[1], &gridsizei[2] );
+						VectorCopy( gridsizei, gridsizef );
+					} else if( !strcmp( key, "_ambient" ) || ( !strcmp( key, "ambient" ) && ambientf == 0.0f ) ) {
+						n = sscanf( value, "%8f", &ambientf );
+						if( n != 1 ) {
+							int ia = 0;
+							n = sscanf( value, "%3i", &ia );
+							ambientf = ia;
+						}
+					} else if( !strcmp( key, "_color" ) ) {
+						n = sscanf( value, "%8f %8f %8f", &colorf[0], &colorf[1], &colorf[2] );
+						if( n != 3 ) {
+							int colori[3] = { 0, 0, 0 };
+							sscanf( value, "%3i %3i %3i", &colori[0], &colori[1], &colori[2] );
+							VectorCopy( colori, colorf );
+						}
+					} else if( !strcmp( key, "_forceclear" ) ) {
+						if( atof( value ) != 0 )
+							mapConfig.forceClear = true;
+					} else if( !strcmp( key, "_lightingIntensity" ) ) {
+						if( !r_fullbright->integer ) {
+							// non power of two intensity scale for lighting
+							sscanf( value, "%8f", &mapConfig.lightingIntensity );
+						}
+					} else if( !strcmp( key, "_outlinecolor" ) ) {
+						n = sscanf( value, "%8f %8f %8f", &celcolorf[0], &celcolorf[1], &celcolorf[2] );
+						if( n != 3 ) {
+							int celcolori[3] = { 0, 0, 0 };
+							sscanf( value, "%3i %3i %3i", &celcolori[0], &celcolori[1], &celcolori[2] );
+							VectorCopy( celcolori, celcolorf );
+						}
+					}
+				}
+
+				if( isworld ) {
+					VectorCopy( gridsizef, gridSize );
+
+					if( VectorCompare( colorf, vec3_origin ) )
+						VectorSet( colorf, 1.0, 1.0, 1.0 );
+					VectorScale( colorf, ambientf, ambient );
+
+					if( max( celcolorf[0], max( celcolorf[1], celcolorf[2] ) ) > 1.0f )
+						VectorScale( celcolorf, 1.0f / 255.0f, celcolorf ); // [0..1] RGB -> [0..255] RGB
+					VectorCopy( celcolorf, outline );
+					break;
+				}
+			}
+		}
+	}
+
 	// load into heap
-	Mod_LoadEntities( &header->lumps[LUMP_ENTITIES], gridSize, ambient, outline );
 	Mod_LoadLighting( &header->lumps[LUMP_LIGHTING], &header->lumps[LUMP_FACES] );
 	Mod_LoadShaderrefs( &header->lumps[LUMP_SHADERREFS] );
 	Mod_PreloadFaces( &header->lumps[LUMP_FACES] );
