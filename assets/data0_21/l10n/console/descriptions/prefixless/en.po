@@ -1044,13 +1044,6 @@ msgstr "Displays the server status in console.\n"
 "^6Note: This command is restricted to rcon. Displays the Map, Player ID, Steam ID, Score, Ping, Player Names, Last Message, Address, Port, Rate, etc."
 
 #. Console/prefixless
-msgid "steam_debug"
-msgstr "<0/1> Launches a debug window when starting Warfork to troubleshoot Steam-related issues.\n"
-"^6Disable: steam_debug \"0\"\n"
-"^6Enable: steam_debug \"1\"\n"
-"^6Note: Windows users only. The debug window is a separate application accessible by alt-tabbing out of Warfork."
-
-#. Console/prefixless
 msgid "stop"
 msgstr "Stops your demo if it's currently recording."
 

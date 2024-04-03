@@ -233,16 +233,18 @@ bool SV_FilterPacket( char *from )
 	return false;
 }
 
-bool SV_FilterSteamID( uint64_t id, bool ismute, bool isshadowmute ) {
-	if( !filterban->integer )
-		return false;
-
+bool SV_FilterSteamID( uint64_t id, int filtertype ) {
 	int i;
 
 	for( i = 0; i < numipfilters; i++ )
 		if( ipfilters[i].steamban && ipfilters[i].steamid == id
-			&& (!ipfilters[i].timeout || ipfilters[i].timeout > game.serverTime) )
-			return (ipfilters[i].ismute == ismute && ipfilters[i].shadowmute == isshadowmute);
+			&& (!ipfilters[i].timeout || ipfilters[i].timeout > game.serverTime) ) {
+			if ((filtertype & FILTER_BAN) && !ipfilters[i].ismute)
+				return true;
+
+			if ((filtertype & FILTER_MUTE) && ipfilters[i].ismute)
+				return ((filtertype & FILTER_SHADOWMUTE) > 0) == ipfilters[i].shadowmute;
+		}
 
 
 	return false;

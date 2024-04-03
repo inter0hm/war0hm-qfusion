@@ -804,7 +804,7 @@ void ClientAuth ( edict_t *ent, uint64_t steamid )
 {
 	gclient_t *client = ent->r.client;
 
-	if (SV_FilterSteamID(steamid, false, false)) {
+	if (SV_FilterSteamID(steamid, FILTER_BAN)) {
 
 		trap_DropClient(ent, DROP_TYPE_GENERAL, "You are banned from this server.");
 		return;
@@ -815,11 +815,13 @@ void ClientAuth ( edict_t *ent, uint64_t steamid )
 
 
 	if ( g_permanent_operators->string[0] ){
-		char *pch = strtok(g_permanent_operators->string, ":");
+		char *operators = strdup(g_permanent_operators->string);
+		char *pch = strtok(operators, ":");
 		while (pch != NULL){
 			uint64_t testid = atoll(pch);
 
 			if (testid == steamid){
+
 				if( !ent->r.client->isoperator )
 					G_PrintMsg( NULL, "%s" S_COLOR_WHITE " is now a game operator\n", ent->r.client->netname );
 
@@ -829,6 +831,7 @@ void ClientAuth ( edict_t *ent, uint64_t steamid )
 
 			pch = strtok(NULL, ":");
 		}
+		free(operators);
 	}
 }
 
