@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "cin.h"
 #include "../qcommon/asyncstream.h"
+#include <stdint.h>
 
 static cgame_export_t *cge;
 
@@ -758,7 +759,7 @@ bool CL_GameModule_IsTouchDown( int id )
 /*
 * CL_GameModule_CallbackRequestAvatar
 */
-void CL_GameModule_CallbackRequestAvatar( uint64_t steamid, char* avatar )
+void CL_GameModule_CallbackRequestAvatar( uint64_t steamid, uint8_t* avatar )
 {
 	if( cge )
 		cge->CallbackRequestAvatar( steamid, avatar );

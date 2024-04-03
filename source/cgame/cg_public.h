@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef __CG_PUBLIC_H__
 #define __CG_PUBLIC_H__
 
+#include <stdint.h>
 struct orientation_s;
 struct bonepose_s;
 struct shader_s;
@@ -366,7 +367,7 @@ typedef struct
 	bool ( *IsTouchDown )( int id );
 
 
-	void ( *CallbackRequestAvatar )( uint64_t steamid, char *avatar );
+	void ( *CallbackRequestAvatar )( uint64_t steamid, uint8_t *avatar );
 
 
 	/**

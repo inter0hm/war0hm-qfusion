@@ -31,8 +31,8 @@ freely, subject to the following restrictions:
 int GArgc = 0;
 char **GArgv = NULL;
 
-static STEAMSHIM_Event* ProcessEvent(){
-    static STEAMSHIM_Event event;
+static SteamshimEvent* ProcessEvent(){
+    static SteamshimEvent event;
     // make sure this is static, since it needs to persist between pumps
     static PipeBuffer buf;
 
@@ -46,73 +46,51 @@ static STEAMSHIM_Event* ProcessEvent(){
 
 
     char type = buf.ReadByte();
-    event.type = (STEAMSHIM_EventType)type;
-
-    #if DEBUGPIPE
-    if (0) {}
-    #define PRINTGOTEVENT(x) else if (type == x) dbgprintf("Parent got " #x ".\n")
-    PRINTGOTEVENT(SHIMEVENT_BYE);
-    PRINTGOTEVENT(SHIMEVENT_STATSRECEIVED);
-    PRINTGOTEVENT(SHIMEVENT_STATSSTORED);
-    PRINTGOTEVENT(SHIMEVENT_SETACHIEVEMENT);
-    PRINTGOTEVENT(SHIMEVENT_GETACHIEVEMENT);
-    PRINTGOTEVENT(SHIMEVENT_RESETSTATS);
-    PRINTGOTEVENT(SHIMEVENT_SETSTATI);
-    PRINTGOTEVENT(SHIMEVENT_GETSTATI);
-    PRINTGOTEVENT(SHIMEVENT_SETSTATF);
-    PRINTGOTEVENT(SHIMEVENT_GETSTATF);
-    PRINTGOTEVENT(SHIMEVENT_STEAMIDRECIEVED);
-    PRINTGOTEVENT(SHIMEVENT_PERSONANAMERECIEVED);
-    PRINTGOTEVENT(SHIMEVENT_AUTHSESSIONTICKETRECIEVED);
-    PRINTGOTEVENT(SHIMEVENT_AUTHSESSIONVALIDATED);
-    PRINTGOTEVENT(SHIMEVENT_AVATARRECIEVED);
-    PRINTGOTEVENT(SHIMEVENT_COMMANDLINERECIEVED);
-    PRINTGOTEVENT(SHIMEVENT_GAMEJOINREQUESTED);
-    #undef PRINTGOTEVENT
-    else printf("Parent got unknown shimevent %d.\n", (int) type);
-    #endif
+    event.type = (SteamshimEventType)type;
 
     switch (type){
-        case SHIMEVENT_STEAMIDRECIEVED:
+        case EVT_CL_STEAMIDRECIEVED:
             {
-                event.lvalue = buf.ReadLong();
+                event.cl_steamidrecieved = buf.ReadLong();
             }
             break;
-        case SHIMEVENT_PERSONANAMERECIEVED:
+        case EVT_CL_PERSONANAMERECIEVED:
             {
                 char *string = buf.ReadString();
-                strcpy(event.name, string);
+                event.cl_personanamerecieved = string;
             }
             break;
-        case SHIMEVENT_AUTHSESSIONTICKETRECIEVED:
+        case EVT_CL_AUTHSESSIONTICKETRECIEVED:
             {
                 long long pcbTicket = buf.ReadLong();
+                event.cl_authsessionticketrecieved.pcbTicket = pcbTicket;
                 void *ticket = buf.ReadData(AUTH_TICKET_MAXSIZE);
-                event.lvalue = pcbTicket;
-                memcpy(event.name, ticket, AUTH_TICKET_MAXSIZE);
+                memcpy(event.cl_authsessionticketrecieved.pTicket, ticket, AUTH_TICKET_MAXSIZE);
             }
             break;
-        case SHIMEVENT_AUTHSESSIONVALIDATED:
+        case EVT_SV_AUTHSESSIONVALIDATED:
             {
                 int result = buf.ReadInt();
-                event.ivalue = result;
+                event.sv_authsessionvalidated = result;
             }
             break;
-        case SHIMEVENT_AVATARRECIEVED:
+        case EVT_CL_AVATARRECIEVED:
             {
-                uint64_t id = buf.ReadLong();
-                void *image = buf.ReadData(STEAM_AVATAR_SIZE);
-                event.lvalue = id;
-                memcpy(event.name, image, STEAM_AVATAR_SIZE);
+                event.cl_avatarrecieved.steamid = buf.ReadLong();
+                event.cl_avatarrecieved.avatar = (uint8_t*) buf.ReadData(STEAM_AVATAR_SIZE);
             }
             break;
-        case SHIMEVENT_GAMEJOINREQUESTED:
-            event.lvalue = buf.ReadLong();
-            [[fallthrough]];
-        case SHIMEVENT_COMMANDLINERECIEVED:
+        case EVT_CL_GAMEJOINREQUESTED:
+            {
+                event.cl_gamejoinrequested.steamIDFriend = buf.ReadLong();
+                char *string = (char*)buf.ReadString();
+                event.cl_gamejoinrequested.connectString = string;
+            }
+            break;
+        case EVT_CL_COMMANDLINERECIEVED:
             {
                 char *string = (char*)buf.ReadString();
-                strncpy(event.name, string, sizeof(event.name));
+                event.cl_commandlinerecieved = string;
             }
             break;
     }
@@ -204,7 +182,6 @@ extern "C" {
       dbgprintf("Child deinit.\n");
       if (GPipeWrite != NULLPIPE)
       {
-          Write1ByteMessage(SHIMCMD_BYE);
           closePipe(GPipeWrite);
       } 
 
@@ -233,28 +210,28 @@ extern "C" {
       return isAlive();
   } 
 
-  const STEAMSHIM_Event *STEAMSHIM_pump(void)
+  const SteamshimEvent *STEAMSHIM_pump(void)
   {
-    Write1ByteMessage(SHIMCMD_PUMP);
+    Write1ByteMessage(CMD_PUMP);
     return ProcessEvent();
   } 
 
   void STEAMSHIM_getSteamID()
   {
-	  Write1ByteMessage(SHIMCMD_REQUESTSTEAMID);
+	  Write1ByteMessage(CMD_CL_REQUESTSTEAMID);
   }
 
   void STEAMSHIM_getPersonaName(){
-      Write1ByteMessage(SHIMCMD_REQUESTPERSONANAME);
+      Write1ByteMessage(CMD_CL_REQUESTPERSONANAME);
   }
 
   void STEAMSHIM_getAuthSessionTicket(){
-      Write1ByteMessage(SHIMCMD_REQUESTAUTHSESSIONTICKET);
+      Write1ByteMessage(CMD_CL_REQUESTAUTHSESSIONTICKET);
   }
 
   void STEAMSHIM_beginAuthSession(uint64_t steamid, SteamAuthTicket_t* ticket){
       PipeBuffer buf;
-      buf.WriteByte(SHIMCMD_BEGINAUTHSESSION);
+      buf.WriteByte(CMD_SV_BEGINAUTHSESSION);
       buf.WriteLong(steamid);
       buf.WriteLong(ticket->pcbTicket);
       buf.WriteData(ticket->pTicket, AUTH_TICKET_MAXSIZE);
@@ -263,14 +240,14 @@ extern "C" {
 
   void STEAMSHIM_endAuthSession(uint64_t steamid){
     PipeBuffer buf;
-    buf.WriteByte(SHIMCMD_ENDAUTHSESSION);
+    buf.WriteByte(CMD_SV_ENDAUTHSESSION);
     buf.WriteLong(steamid);
     buf.Transmit();
   }
 
   void STEAMSHIM_setRichPresence(int num, const char** key, const char** val){
       PipeBuffer buf;
-      buf.WriteByte(SHIMCMD_SETRICHPRESENCE);
+      buf.WriteByte(CMD_CL_SETRICHPRESENCE);
       buf.WriteInt(num);
       for (int i=0; i < num;i++){
           buf.WriteString(key[i]);
@@ -279,19 +256,9 @@ extern "C" {
       buf.Transmit();
   }
 
-  void STEAMSHIM_createBeacon(uint32_t openSlots, char* connectString, char* metadata)
-  {
-      PipeBuffer buf;
-      buf.WriteByte(SHIMCMD_CREATEBEACON);
-      buf.WriteInt(openSlots);
-      buf.WriteString(connectString);
-      buf.WriteString(metadata);
-      buf.Transmit();
-  }
-
   void STEAMSHIM_requestAvatar(uint64_t steamid, int size){
     PipeBuffer buf;
-    buf.WriteByte(SHIMCMD_REQUESTAVATAR);
+    buf.WriteByte(CMD_CL_REQUESTAVATAR);
     buf.WriteLong(steamid);
     buf.WriteInt(size);
     buf.Transmit();
@@ -299,18 +266,18 @@ extern "C" {
 
   void STEAMSHIM_openProfile(uint64_t steamid) {
       PipeBuffer buf;
-      buf.WriteByte(SHIMCMD_OPENPROFILE);
+      buf.WriteByte(CMD_CL_OPENPROFILE);
       buf.WriteLong(steamid);
       buf.Transmit();
   }
 
   void STEAMSHIM_requestCommandLine(){
-    Write1ByteMessage(SHIMCMD_REQUESTCOMMANDLINE);
+    Write1ByteMessage(CMD_CL_REQUESTCOMMANDLINE);
   }
 
   void STEAMSHIM_updateServerInfo(ServerInfo *info){
     PipeBuffer buf;
-    buf.WriteByte(SHIMCMD_UPDATESERVERINFO);
+    buf.WriteByte(CMD_SV_UPDATESERVERINFO);
     buf.WriteByte(info->advertise);
     buf.WriteInt(info->botplayercount);
     buf.WriteByte(info->dedicatedserver);

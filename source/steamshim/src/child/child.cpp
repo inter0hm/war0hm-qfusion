@@ -53,26 +53,14 @@ static SteamCallbacks *GSteamCallbacks;
 
 static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
 {
-  #if 1
-    if (false) {}
-#define PRINTGOTCMD(x) else if (cmdtype && cmdtype == x) dbgprintf("Child got " #x ".\n")
-    PRINTGOTCMD(SHIMCMD_BYE);
-    // PRINTGOTCMD(SHIMCMD_PUMP);
-    PRINTGOTCMD(SHIMCMD_REQUESTSTEAMID);
-    PRINTGOTCMD(SHIMCMD_REQUESTPERSONANAME);
-    PRINTGOTCMD(SHIMCMD_SETRICHPRESENCE);
-    PRINTGOTCMD(SHIMCMD_REQUESTAUTHSESSIONTICKET);
-    PRINTGOTCMD(SHIMCMD_BEGINAUTHSESSION);
-    PRINTGOTCMD(SHIMCMD_ENDAUTHSESSION);
-    PRINTGOTCMD(SHIMCMD_REQUESTAVATAR);
-#undef PRINTGOTCMD
-    else if (cmdtype != SHIMCMD_PUMP) printf("Child got unknown shimcmd %d.\n", (int) cmdtype);
-#endif
 
+    if (debug){
+        // dbgprintf("Processing command %d\n", cmdtype);
+    }
     PipeBuffer msg;
     switch (cmdtype)
     {
-        case SHIMCMD_PUMP:
+        case CMD_PUMP:
             time(&time_since_last_pump);
             if (GRunServer)
                 SteamGameServer_RunCallbacks();
@@ -80,30 +68,27 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
                 SteamAPI_RunCallbacks();
             break;
 
-        case SHIMCMD_BYE:
-            return false;
-
-        case SHIMCMD_REQUESTSTEAMID:
+        case CMD_CL_REQUESTSTEAMID:
             {
                 unsigned long long id = SteamUser()->GetSteamID().ConvertToUint64();
 
-                msg.WriteByte(SHIMEVENT_STEAMIDRECIEVED);
+                msg.WriteByte(EVT_CL_STEAMIDRECIEVED);
                 msg.WriteLong(id);
                 msg.Transmit();
             }
             break;
 
-        case SHIMCMD_REQUESTPERSONANAME:
+        case CMD_CL_REQUESTPERSONANAME:
             {
                 const char* name = SteamFriends()->GetPersonaName();
 
-                msg.WriteByte(SHIMEVENT_PERSONANAMERECIEVED);
+                msg.WriteByte(EVT_CL_PERSONANAMERECIEVED);
                 msg.WriteData((void*)name, strlen(name));
                 msg.Transmit();
             }
             break;
 
-        case SHIMCMD_SETRICHPRESENCE:
+        case CMD_CL_SETRICHPRESENCE:
             {
                 int num = cmd.ReadInt();
 
@@ -114,19 +99,19 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
                 }
             }
             break;
-        case SHIMCMD_REQUESTAUTHSESSIONTICKET:
+        case CMD_CL_REQUESTAUTHSESSIONTICKET:
             {
                 char pTicket[AUTH_TICKET_MAXSIZE];
                 uint32 pcbTicket;
                 GSteamUser->GetAuthSessionTicket(pTicket,AUTH_TICKET_MAXSIZE, &pcbTicket);
 
-                msg.WriteByte(SHIMEVENT_AUTHSESSIONTICKETRECIEVED);
+                msg.WriteByte(EVT_CL_AUTHSESSIONTICKETRECIEVED);
                 msg.WriteLong(pcbTicket);
                 msg.WriteData(pTicket, AUTH_TICKET_MAXSIZE);
                 msg.Transmit();
             }
             break;
-        case SHIMCMD_BEGINAUTHSESSION:
+        case CMD_SV_BEGINAUTHSESSION:
             {
                 uint64 steamID = cmd.ReadLong();
                 long long cbAuthTicket = cmd.ReadLong();
@@ -135,30 +120,12 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
 
                 int result = GSteamGameServer->BeginAuthSession(pAuthTicket, cbAuthTicket, steamID);
 
-                msg.WriteByte(SHIMEVENT_AUTHSESSIONVALIDATED);
+                msg.WriteByte(EVT_SV_AUTHSESSIONVALIDATED);
                 msg.WriteInt(result);
                 msg.Transmit();
             }
             break;
-        case SHIMCMD_CREATEBEACON:
-            {
-
-                int openSlots = cmd.ReadInt();
-                char *connectString = cmd.ReadString();
-                char *metadata = cmd.ReadString();
-
-                uint32 puNumLocations = 0;
-                SteamParties()->GetNumAvailableBeaconLocations(&puNumLocations);
-                if (puNumLocations <= 0) return 0;
-
-                SteamPartyBeaconLocation_t *pLocationList = (SteamPartyBeaconLocation_t *)malloc(puNumLocations* sizeof(SteamPartyBeaconLocation_t) );
-                SteamParties()->GetAvailableBeaconLocations(pLocationList, puNumLocations);
-
-                SteamParties()->CreateBeacon(openSlots, pLocationList, connectString,metadata);
-                free(pLocationList);
-            }
-            break;
-        case SHIMCMD_REQUESTAVATAR:
+        case CMD_CL_REQUESTAVATAR:
             {
                 uint64 id = cmd.ReadLong();
 
@@ -167,28 +134,28 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
                 }
             }
             break;
-        case SHIMCMD_ENDAUTHSESSION:
+        case CMD_SV_ENDAUTHSESSION:
             {
                 uint64 steamID = cmd.ReadLong();
                 GSteamGameServer->EndAuthSession(steamID);
             }
             break;
-        case SHIMCMD_OPENPROFILE:
+        case CMD_CL_OPENPROFILE:
             {
                 uint64 steamID = cmd.ReadLong();
                 SteamFriends()->ActivateGameOverlayToUser("steamid", steamID);
             }
             break;
-        case SHIMCMD_REQUESTCOMMANDLINE:
+        case CMD_CL_REQUESTCOMMANDLINE:
             {
                 char cmdline[1024] = {0};
                 SteamApps()->GetLaunchCommandLine(cmdline, 1024);
-                msg.WriteByte(SHIMEVENT_COMMANDLINERECIEVED);
+                msg.WriteByte(EVT_CL_COMMANDLINERECIEVED);
                 msg.WriteString(cmdline);
                 msg.Transmit();
             }
             break;
-        case SHIMCMD_UPDATESERVERINFO:
+        case CMD_SV_UPDATESERVERINFO:
             {
                 bool advertise = cmd.ReadByte();
                 GSteamGameServer->SetAdvertiseServerActive(advertise);
@@ -228,7 +195,7 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
                     GSteamGameServer->SetServerName(servername);
             }
             break;
-        case SHIMCMD_REQUESTSERVERS:
+        case CMD_CL_REQUESTSERVERS:
             {
                 GServerBrowser->RefreshInternetServers();
             }
@@ -287,15 +254,12 @@ static bool initSteamworks(PipeType fd)
 
         GServerBrowser = new ServerBrowser();
 
-        printf("Initiating refresh of internet servers\n");
         GServerBrowser->RefreshInternetServers();
-
-
     }
 
     if (GRunServer) {
         // this will fail if port is in use
-        if (!SteamGameServer_Init(0, 27015, 27019, eServerModeAuthenticationAndSecure,"0.0.0.0"))
+        if (!SteamGameServer_Init(0, 27015, 27016, eServerModeAuthenticationAndSecure,"0.0.0.0"))
             return 0;
         GSteamGameServer = SteamGameServer();
         if (!GSteamGameServer)

@@ -43,7 +43,7 @@ void SteamCallbacks::OnCreateBeacon(UserStatsReceived_t *pCallback)
 void SteamCallbacks::OnGameJoinRequested(GameRichPresenceJoinRequested_t *pCallback)
 {
     PipeBuffer msg;
-    msg.WriteByte(SHIMEVENT_GAMEJOINREQUESTED);
+    msg.WriteByte(EVT_CL_GAMEJOINREQUESTED);
     msg.WriteLong(pCallback->m_steamIDFriend.ConvertToUint64());
     msg.WriteString(pCallback->m_rgchConnect);
     msg.Transmit();
@@ -62,7 +62,7 @@ void TransmitAvatar(uint64 id){
     SteamUtils()->GetImageRGBA(handle, image, sizeof image);
 
     PipeBuffer msg;
-    msg.WriteByte(SHIMEVENT_AVATARRECIEVED);
+    msg.WriteByte(EVT_CL_AVATARRECIEVED);
     msg.WriteLong(id);
     msg.WriteData(image, sizeof image);
     msg.Transmit();

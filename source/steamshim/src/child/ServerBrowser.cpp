@@ -59,7 +59,7 @@ void ServerBrowser::ServerResponded( HServerListRequest hReq, int iServer )
 		if ( server->m_nAppID == SteamUtils()->GetAppID() )
 		{
 			PipeBuffer msg;
-			msg.WriteByte(SHIMEVENT_SERVERRECIEVED);
+			msg.WriteByte(EVT_CL_SERVERRECIEVED);
 
 			msg.Transmit();
 		}

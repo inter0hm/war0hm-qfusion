@@ -6,27 +6,17 @@
 #include <string.h>
 #include <stdio.h>
 
-static void printEvent( const STEAMSHIM_Event *e )
-{
-	if( !steam_debug->integer || !e )
-		return;
 
-	Com_Printf( "%sokay, ival=%d, fval=%f, lval=%llu, name='%s').\n", e->okay ? "" : "!", e->ivalue, e->fvalue, e->lvalue, e->name );
-} 
-
-static const STEAMSHIM_Event* blockOnEvent(STEAMSHIM_EventType type){
+static const SteamshimEvent* blockOnEvent(SteamshimEventType type){
 
 	while( 1 ) {
-		const STEAMSHIM_Event *evt = STEAMSHIM_pump();
+		const SteamshimEvent*evt = STEAMSHIM_pump();
 		if (!evt) continue;
 
 		if (evt->type == type){
-			printEvent( evt );
 			return evt;
 		} else {
 			printf("warning: ignoring event %i\n",evt->type);
-			// event gets ignored!
-			printEvent( evt );
 		}
 	}
 }
@@ -36,19 +26,18 @@ static const STEAMSHIM_Event* blockOnEvent(STEAMSHIM_EventType type){
 */
 void CL_Steam_RunFrame( void )
 {
-	const STEAMSHIM_Event *evt = STEAMSHIM_pump();
+	const SteamshimEvent *evt = STEAMSHIM_pump();
 	if( evt ) {
-		printEvent( evt );
 		switch (evt->type){
-			case SHIMEVENT_AVATARRECIEVED: 
+			case EVT_CL_AVATARRECIEVED: 
 				{
-          CL_GameModule_CallbackRequestAvatar(evt->lvalue, evt->name);
+          CL_GameModule_CallbackRequestAvatar(evt->cl_avatarrecieved.steamid, evt->cl_avatarrecieved.avatar);
 				}
 				break;
-			case SHIMEVENT_GAMEJOINREQUESTED:
+			case EVT_CL_GAMEJOINREQUESTED:
 				{
-					uint64_t inviter = evt->lvalue;
-					CL_ParseSteamConnectString(evt->name);
+					uint64_t inviter = evt->cl_gamejoinrequested.steamIDFriend;
+					CL_ParseSteamConnectString(evt->cl_gamejoinrequested.connectString);
 				}
 				break;
 			default: break;
@@ -63,10 +52,10 @@ const SteamAuthTicket_t* Steam_GetAuthSessionTicketBlocking(){
 	static SteamAuthTicket_t ticket;
 
 	STEAMSHIM_getAuthSessionTicket();
-	const STEAMSHIM_Event *evt = blockOnEvent(SHIMEVENT_AUTHSESSIONTICKETRECIEVED);
+	const SteamshimEvent *evt = blockOnEvent(EVT_CL_AUTHSESSIONTICKETRECIEVED);
 
-	ticket.pcbTicket = evt->lvalue;
-	memcpy(ticket.pTicket, evt->name, AUTH_TICKET_MAXSIZE);
+	ticket.pcbTicket = evt->cl_authsessionticketrecieved.pcbTicket;
+	memcpy(ticket.pTicket, evt->cl_authsessionticketrecieved.pTicket, AUTH_TICKET_MAXSIZE);
 
 	return &ticket;
 }
@@ -78,8 +67,8 @@ void Steam_GetPersonaName( char *name, size_t namesize )
 		return;
 	}
 	STEAMSHIM_getPersonaName();
-	const STEAMSHIM_Event *evt = blockOnEvent(SHIMEVENT_PERSONANAMERECIEVED);
-	strncpy(name, evt->name, namesize);
+	const SteamshimEvent *evt = blockOnEvent(EVT_CL_PERSONANAMERECIEVED);
+	strncpy(name, evt->cl_personanamerecieved, namesize);
 }
 
 void Steam_OpenProfile(uint64_t steamid) { 
@@ -94,8 +83,8 @@ void Steam_SetRichPresence( int num, const char **key, const char **val )
 uint64_t Steam_GetSteamID( void )
 {
 	STEAMSHIM_getSteamID();
-	const STEAMSHIM_Event *evt = blockOnEvent(SHIMEVENT_STEAMIDRECIEVED);
-	return evt->lvalue;
+	const SteamshimEvent *evt = blockOnEvent(EVT_CL_STEAMIDRECIEVED);
+	return evt->cl_steamidrecieved;
 }
 
 /*
