@@ -143,56 +143,6 @@ static void Mod_CheckDeluxemaps( const lump_t *l, uint8_t *lmData )
 	mapConfig.deluxeMappingEnabled = r_lighting_deluxemapping->integer ? true : false;
 }
 
-/*
-* Mod_LoadLighting
-*/
-static void Mod_LoadLighting( const lump_t *l, const lump_t *faces )
-{
-	int size;
-
-	R_InitLightStyles( loadmodel );
-
-	// set overbright bits for lightmaps and lightgrid
-	// deluxemapped maps have zero scale because most surfaces
-	// have a gloss stage that makes them look brighter anyway
-	if( mapConfig.lightingIntensity )
-	{
-		mapConfig.overbrightBits -= atoi( r_mapoverbrightbits->dvalue );
-		if( mapConfig.overbrightBits < 0 )
-			mapConfig.overbrightBits = 0;
-		mapConfig.pow2MapOvrbr = max( mapConfig.overbrightBits, 0 );
-		mapConfig.mapLightColorScale = ( 1 << mapConfig.pow2MapOvrbr ) * mapConfig.lightingIntensity;
-	}
-	else
-	{
-		// for maps that do not specify lighting intensity, default intensity to 2
-		// and reduce overbright bits according
-		// this allows for more dramatic shadows while staying faithful to author's original intention
-		mapConfig.pow2MapOvrbr = mapConfig.overbrightBits - 1;
-		if( mapConfig.pow2MapOvrbr < 0 )
-			mapConfig.pow2MapOvrbr = 0;
-		mapConfig.lightingIntensity = (float)(1 << max( mapConfig.overbrightBits - mapConfig.pow2MapOvrbr, 0 ));
-		mapConfig.overbrightBits = 0;
-		mapConfig.mapLightColorScale = mapConfig.lightingIntensity;
-	}
-
-	// we don't need lightmaps for vertex lighting
-	if( r_lighting_vertexlight->integer )
-		return;
-
-	if( !l->filelen )
-		return;
-	size = mod_bspFormat->lightmapWidth * mod_bspFormat->lightmapHeight * LIGHTMAP_BYTES;
-	if( l->filelen % size )
-		ri.Com_Error( ERR_DROP, "Mod_LoadLighting: funny lump size in %s", loadmodel->name );
-
-	loadmodel_numlightmaps = l->filelen / size;
-	loadmodel_lightmapRects = Q_CallocAligned(  loadmodel_numlightmaps, 16, sizeof( *loadmodel_lightmapRects ) );
-	Q_LinkToPool(loadmodel_lightmapRects, loadmodel->mempool);
-
-	Mod_CheckDeluxemaps( faces, mod_base + l->fileofs );
-	R_BuildLightmaps( loadmodel, loadmodel_numlightmaps, mod_bspFormat->lightmapWidth, mod_bspFormat->lightmapHeight, mod_base + l->fileofs, loadmodel_lightmapRects );
-}
 
 /*
 * Mod_FaceToRavenFace
@@ -556,48 +506,6 @@ static void Mod_LoadVertexes_RBSP( const lump_t *l )
 				out_colors[j][3] = in->color[j][3];
 			}
 		}
-	}
-}
-
-
-/*
-* Mod_LoadShaderrefs
-*/
-static void Mod_LoadShaderrefs( const lump_t *l )
-{
-	int i, count;
-	dshaderref_t *in;
-	mshaderref_t *out;
-	bool newMap;
-
-	in = ( void * )( mod_base + l->fileofs );
-	if( l->filelen % sizeof( *in ) )
-		ri.Com_Error( ERR_DROP, "Mod_LoadShaderrefs: funny lump size in %s", loadmodel->name );
-	count = l->filelen / sizeof( *in );
-	out = Q_CallocAligned( count, 16, sizeof( *out ) );
-	Q_LinkToPool(out, loadmodel->mempool);
-	
-	loadmodel_shaderrefs = out;
-	loadmodel_numshaderrefs = count;
-
-	// see if the map is new and we need to free shaders from the previous one
-	newMap = r_prevworldmodel && ( r_prevworldmodel->registrationSequence != rsh.registrationSequence );
-
-	for( i = 0; i < count; i++, in++ )
-	{
-		Q_strncpyz( out[i].name, in->name, sizeof( out[i].name ) );
-		out[i].flags = LittleLong( in->flags );
-		
-		if( newMap ) {
-			R_TouchShadersByName( out[i].name );
-		}
-	}
-
-	// free world textures from the previous map that are not used on the new map
-	if( newMap ) {
-		const shaderType_e shaderTypes[] = { SHADER_TYPE_DELUXEMAP, SHADER_TYPE_VERTEX };
-		R_FreeUnusedShadersByType( shaderTypes, sizeof( shaderTypes ) / sizeof( shaderTypes[0] ) );
-		R_FreeUnusedImagesByTags( IMAGE_TAG_WORLD );
 	}
 }
 
@@ -1724,10 +1632,37 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 
 	lump_t* const model_lumps = &header->lumps[LUMP_MODELS];
 	lump_t* const entity_lumps = &header->lumps[LUMP_ENTITIES];
+	lump_t* const light_lumps = &header->lumps[LUMP_LIGHTING];
+	lump_t* const face_lumps = &header->lumps[LUMP_FACES];
+	lump_t* const shaderrefs_lumps = &header->lumps[LUMP_SHADERREFS];
+	
+	const size_t lightMapWidth = mod_bspFormat->lightmapWidth;
+	const size_t lightMapHeight = mod_bspFormat->lightmapHeight;
+	const size_t lightMapSize = lightMapWidth * lightMapHeight * LIGHTMAP_BYTES;
+	// we don't need lightmaps for vertex lighting
+	const bool hasLightmaps = (!r_lighting_vertexlight->integer) && light_lumps->filelen > 0;
+	const bool isBspRavenFormat = mod_bspFormat->flags & BSP_RAVEN; 
+
+	if(hasLightmaps && light_lumps->filelen % lightMapSize) {
+		ri.Com_Error( ERR_DROP, "Mod_LoadLighting: funny lump size in %s", loadmodel->name );
+	}
+
+	if( shaderrefs_lumps->filelen % sizeof(dshaderref_t) ) {
+		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
+	}
 
 	if( model_lumps->filelen % sizeof(dmodel_t) ) {
 		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
 	}
+
+	if( face_lumps->filelen % ( isBspRavenFormat ? sizeof( rdface_t ) : sizeof( dface_t ) ) ) {
+		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
+	}
+
+	// faces
+	const size_t numFaces = face_lumps->filelen / ( isBspRavenFormat ? sizeof( rdface_t ) : sizeof( dface_t ));
+	rdface_t* const q3_ravenFaces = (void *)( mod_base + face_lumps->fileofs );
+	dface_t* const q3_faces = (void *)( mod_base + face_lumps->fileofs );
 
 	{
 		const size_t count = model_lumps->filelen / sizeof( dmodel_t );
@@ -1855,10 +1790,124 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 			}
 		}
 	}
+	{
+		R_InitLightStyles( loadmodel );
+		// set overbright bits for lightmaps and lightgrid
+		// deluxemapped maps have zero scale because most surfaces
+		// have a gloss stage that makes them look brighter anyway
+		if( mapConfig.lightingIntensity )
+		{
+			mapConfig.overbrightBits -= atoi( r_mapoverbrightbits->dvalue );
+			if( mapConfig.overbrightBits < 0 )
+				mapConfig.overbrightBits = 0;
+			mapConfig.pow2MapOvrbr = max( mapConfig.overbrightBits, 0 );
+			mapConfig.mapLightColorScale = ( 1 << mapConfig.pow2MapOvrbr ) * mapConfig.lightingIntensity;
+		}
+		else
+		{
+			// for maps that do not specify lighting intensity, default intensity to 2
+			// and reduce overbright bits according
+			// this allows for more dramatic shadows while staying faithful to author's original intention
+			mapConfig.pow2MapOvrbr = mapConfig.overbrightBits - 1;
+			if( mapConfig.pow2MapOvrbr < 0 )
+				mapConfig.pow2MapOvrbr = 0;
+			mapConfig.lightingIntensity = (float)(1 << max( mapConfig.overbrightBits - mapConfig.pow2MapOvrbr, 0 ));
+			mapConfig.overbrightBits = 0;
+			mapConfig.mapLightColorScale = mapConfig.lightingIntensity;
+		}
+
+		if(hasLightmaps) {
+			loadmodel_numlightmaps = light_lumps->filelen / lightMapSize;
+			loadmodel_lightmapRects = Q_CallocAligned(  loadmodel_numlightmaps, 16, sizeof( *loadmodel_lightmapRects ) );
+			Q_LinkToPool(loadmodel_lightmapRects, loadmodel->mempool);
+
+			uint8_t *const lights = mod_base + light_lumps->fileofs;
+
+			// there are no deluxemaps in the map if the number of lightmaps is
+			// less than 2 or odd
+			if( loadmodel_numlightmaps < 2 || loadmodel_numlightmaps & 1 )
+				goto skip_delux_lightmaps;
+
+			if( format->flags & BSP_RAVEN ) {
+				for( size_t i = 0; i < numFaces; i++ ) {
+					for( size_t j = 0; j < MAX_LIGHTMAPS; j++ ) {
+						const int lightmap = LittleLong( q3_ravenFaces[i].lm_texnum[j] );
+						if( lightmap <= 0 )
+							continue;
+						if( lightmap & 1 )
+							goto skip_delux_lightmaps;
+					}
+				}
+			} else {
+				for( i = 0; i < numFaces; i++ ) {
+					int lightmap = LittleLong( q3_faces[i].lm_texnum );
+					if( lightmap <= 0 )
+						continue;
+					if( lightmap & 1 )
+						goto skip_delux_lightmaps;
+				}
+			}
+			// check if the deluxemap is actually empty (q3map2, yay!)
+			if( loadmodel_numlightmaps == 2 ) {
+				int lW = mod_bspFormat->lightmapWidth, lH = mod_bspFormat->lightmapHeight;
+				size_t i,j;
+				uint8_t* lc = lights;
+				lc += lW * lH * LIGHTMAP_BYTES;
+				for( i = lW * lH; i > 0; i--, lc+= LIGHTMAP_BYTES ) {
+					for( j = 0; j < LIGHTMAP_BYTES; j++ ) {
+						if( lc[j] )
+							break;
+					}
+					if( j != LIGHTMAP_BYTES )
+						break;
+				}
+
+				// empty deluxemap
+				if( !i ) {
+					loadmodel_numlightmaps = 1;
+					goto skip_delux_lightmaps;
+				}
+			}
+
+			mapConfig.deluxeMaps = true;
+			mapConfig.deluxeMappingEnabled = r_lighting_deluxemapping->integer ? true : false;
+
+		skip_delux_lightmaps:
+			R_BuildLightmaps( loadmodel, loadmodel_numlightmaps, mod_bspFormat->lightmapWidth, mod_bspFormat->lightmapHeight, mod_base + light_lumps->fileofs, loadmodel_lightmapRects );
+		}
+	}
+
+	{
+		dshaderref_t *const in = (void *)( mod_base + shaderrefs_lumps->fileofs );
+		const size_t count = shaderrefs_lumps->filelen / sizeof( dshaderref_t );
+
+		mshaderref_t *out = Q_CallocAligned( count, 16, sizeof( mshaderref_t ) );
+		Q_LinkToPool( out, loadmodel->mempool );
+
+		loadmodel_shaderrefs = out;
+		loadmodel_numshaderrefs = count;
+
+		// see if the map is new and we need to free shaders from the previous one
+		const bool isNewMap = r_prevworldmodel && ( r_prevworldmodel->registrationSequence != rsh.registrationSequence );
+
+		for( i = 0; i < count; i++ ) {
+			Q_strncpyz( out[i].name, in[i].name, sizeof( out[i].name ) );
+			out[i].flags = LittleLong( in[i].flags );
+
+			if( isNewMap ) {
+				R_TouchShadersByName( out[i].name );
+			}
+		}
+
+		// free world textures from the previous map that are not used on the new map
+		if( isNewMap ) {
+			const shaderType_e shaderTypes[] = { SHADER_TYPE_DELUXEMAP, SHADER_TYPE_VERTEX };
+			R_FreeUnusedShadersByType( shaderTypes, sizeof( shaderTypes ) / sizeof( shaderTypes[0] ) );
+			R_FreeUnusedImagesByTags( IMAGE_TAG_WORLD );
+		}
+	}
 
 	// load into heap
-	Mod_LoadLighting( &header->lumps[LUMP_LIGHTING], &header->lumps[LUMP_FACES] );
-	Mod_LoadShaderrefs( &header->lumps[LUMP_SHADERREFS] );
 	Mod_PreloadFaces( &header->lumps[LUMP_FACES] );
 	Mod_LoadPlanes( &header->lumps[LUMP_PLANES] );
 	Mod_LoadFogs( &header->lumps[LUMP_FOGS], &header->lumps[LUMP_BRUSHES], &header->lumps[LUMP_BRUSHSIDES] );
