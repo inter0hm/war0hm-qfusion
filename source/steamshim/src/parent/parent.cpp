@@ -307,4 +307,24 @@ extern "C" {
   void STEAMSHIM_requestCommandLine(){
     Write1ByteMessage(SHIMCMD_REQUESTCOMMANDLINE);
   }
+
+  void STEAMSHIM_updateServerInfo(ServerInfo *info){
+    PipeBuffer buf;
+    buf.WriteByte(SHIMCMD_UPDATESERVERINFO);
+    buf.WriteByte(info->advertise);
+    buf.WriteInt(info->botplayercount);
+    buf.WriteByte(info->dedicatedserver);
+    buf.WriteString(info->gamedata);
+    buf.WriteString(info->gamedescription);
+    buf.WriteString(info->gametags);
+    buf.WriteInt(info->heartbeatinterval);
+    buf.WriteString(info->mapname);
+    buf.WriteInt(info->maxplayercount);
+    buf.WriteString(info->moddir);
+    buf.WriteByte(info->passwordprotected);
+    buf.WriteString(info->product);
+    buf.WriteString(info->region);
+    buf.WriteString(info->servername);
+    buf.Transmit();
+  }
 }

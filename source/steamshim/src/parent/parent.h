@@ -32,6 +32,23 @@ typedef struct {
   bool runserver;
 } SteamshimOptions;
 
+typedef struct {
+  bool advertise;
+  int botplayercount;
+  bool dedicatedserver;
+  const char *gamedata;
+  const char *gamedescription;
+  const char *gametags;
+  int heartbeatinterval;
+  const char *mapname;
+  int maxplayercount;
+  const char *moddir;
+  bool passwordprotected;
+  const char *product;
+  const char *region;
+  const char *servername;
+} ServerInfo;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
