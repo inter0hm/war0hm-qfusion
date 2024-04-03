@@ -1284,43 +1284,6 @@ static void Mod_LoadElems( const lump_t *l )
 		out[i] = LittleLong( in[i] );
 }
 
-/*
-* Mod_LoadPlanes
-*/
-static void Mod_LoadPlanes( const lump_t *l )
-{
-	int i, j;
-	cplane_t *out;
-	dplane_t *in;
-	int count;
-
-	in = ( void * )( mod_base + l->fileofs );
-	if( l->filelen % sizeof( *in ) )
-		ri.Com_Error( ERR_DROP, "Mod_LoadPlanes: funny lump size in %s", loadmodel->name );
-	count = l->filelen / sizeof( *in );
-	
-	out = Q_CallocAligned( count, 16, sizeof( *out ) );
-	Q_LinkToPool(out, loadmodel->mempool);
-
-	loadbmodel->planes = out;
-	loadbmodel->numplanes = count;
-
-	for( i = 0; i < count; i++, in++, out++ )
-	{
-		out->type = PLANE_NONAXIAL;
-		out->signbits = 0;
-
-		for( j = 0; j < 3; j++ )
-		{
-			out->normal[j] = LittleFloat( in->normal[j] );
-			if( out->normal[j] < 0 )
-				out->signbits |= 1<<j;
-			if( out->normal[j] == 1.0f )
-				out->type = j;
-		}
-		out->dist = LittleFloat( in->dist );
-	}
-}
 
 /*
 * Mod_LoadLightgrid
@@ -1635,6 +1598,7 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	lump_t* const light_lumps = &header->lumps[LUMP_LIGHTING];
 	lump_t* const face_lumps = &header->lumps[LUMP_FACES];
 	lump_t* const shaderrefs_lumps = &header->lumps[LUMP_SHADERREFS];
+	lump_t* const planes_lumps = &header->lumps[LUMP_PLANES];
 	
 	const size_t lightMapWidth = mod_bspFormat->lightmapWidth;
 	const size_t lightMapHeight = mod_bspFormat->lightmapHeight;
@@ -1658,11 +1622,17 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	if( face_lumps->filelen % ( isBspRavenFormat ? sizeof( rdface_t ) : sizeof( dface_t ) ) ) {
 		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
 	}
+	
+	if( planes_lumps->filelen % sizeof(dplane_t) ) {
+		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
+	}
 
 	// faces
 	const size_t numFaces = face_lumps->filelen / ( isBspRavenFormat ? sizeof( rdface_t ) : sizeof( dface_t ));
+	const size_t numPlanes = planes_lumps->filelen / sizeof(dplane_t);
 	rdface_t* const q3_ravenFaces = (void *)( mod_base + face_lumps->fileofs );
 	dface_t* const q3_faces = (void *)( mod_base + face_lumps->fileofs );
+	dplane_t* const q3_planes = (void *)( mod_base + planes_lumps->fileofs ); 
 
 	{
 		const size_t count = model_lumps->filelen / sizeof( dmodel_t );
@@ -1909,7 +1879,29 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 
 	// load into heap
 	Mod_PreloadFaces( &header->lumps[LUMP_FACES] );
-	Mod_LoadPlanes( &header->lumps[LUMP_PLANES] );
+	{
+		cplane_t* out = Q_CallocAligned( numPlanes, 16, sizeof(cplane_t) );
+		Q_LinkToPool(out, loadmodel->mempool);
+
+		loadbmodel->planes = out;
+		loadbmodel->numplanes = numPlanes;
+
+		for(size_t i = 0; i < numPlanes; i++)
+		{
+			out->type = PLANE_NONAXIAL;
+			out->signbits = 0;
+
+			for(size_t j = 0; j < 3; j++ )
+			{
+				out[i].normal[j] = LittleFloat( q3_planes[i].normal[j] );
+				if( out[i].normal[j] < 0 )
+					out[i].signbits |= 1<<j;
+				if( out[i].normal[j] == 1.0f )
+					out[i].type = j;
+			}
+			out[i].dist = LittleFloat( q3_planes[i].dist );
+		}
+	}
 	Mod_LoadFogs( &header->lumps[LUMP_FOGS], &header->lumps[LUMP_BRUSHES], &header->lumps[LUMP_BRUSHSIDES] );
 	Mod_LoadFaces( &header->lumps[LUMP_FACES] );
 	if( mod_bspFormat->flags & BSP_RAVEN )
