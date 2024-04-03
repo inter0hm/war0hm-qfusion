@@ -1016,56 +1016,6 @@ static void Mod_LoadPatchGroups( const lump_t *l )
 #undef Mod_PreloadPatches_COUNT
 }
 
-/*
-* Mod_LoadNodes
-*/
-static void Mod_LoadNodes( const lump_t *l )
-{
-	int i, j, count, p;
-	dnode_t	*in;
-	mnode_t	*out;
-	bool badBounds;
-
-	in = ( void * )( mod_base + l->fileofs );
-	if( l->filelen % sizeof( *in ) )
-		ri.Com_Error( ERR_DROP, "Mod_LoadNodes: funny lump size in %s", loadmodel->name );
-	count = l->filelen / sizeof( *in );
-	out = Q_CallocAligned(count,16,sizeof( *out ) );
-	Q_LinkToPool(out, loadmodel->mempool);
-							
-	loadbmodel->nodes = out;
-	loadbmodel->numnodes = count;
-
-	for( i = 0; i < count; i++, in++, out++ )
-	{
-		out->plane = loadbmodel->planes + LittleLong( in->planenum );
-
-		for( j = 0; j < 2; j++ )
-		{
-			p = LittleLong( in->children[j] );
-			if( p >= 0 )
-				out->children[j] = loadbmodel->nodes + p;
-			else
-				out->children[j] = ( mnode_t * )( loadbmodel->leafs + ( -1 - p ) );
-		}
-
-		badBounds = false;
-		for( j = 0; j < 3; j++ )
-		{
-			out->mins[j] = (float)LittleLong( in->mins[j] );
-			out->maxs[j] = (float)LittleLong( in->maxs[j] );
-			if( out->mins[j] > out->maxs[j] )
-				badBounds = true;
-		}
-
-		if( badBounds || VectorCompare( out->mins, out->maxs ) )
-		{
-			ri.Com_DPrintf( S_COLOR_YELLOW "WARNING: bad node %i bounds:\n", i );
-			ri.Com_DPrintf( S_COLOR_YELLOW "mins: %i %i %i\n", Q_rint( out->mins[0] ), Q_rint( out->mins[1] ), Q_rint( out->mins[2] ) );
-			ri.Com_DPrintf( S_COLOR_YELLOW "maxs: %i %i %i\n", Q_rint( out->maxs[0] ), Q_rint( out->maxs[1] ), Q_rint( out->maxs[2] ) );
-		}
-	}
-}
 
 
 /*
@@ -1332,6 +1282,7 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	lump_t* const brushsides_faces_lumps = &header->lumps[LUMP_BRUSHSIDES];
 	lump_t* const fog_lumps = &header->lumps[LUMP_FOGS];
 	lump_t* const lightarray_lumps = &header->lumps[LUMP_LIGHTARRAY];
+	lump_t* const nodes_lumps = &header->lumps[LUMP_NODES];
 	
 	const size_t lightMapWidth = mod_bspFormat->lightmapWidth;
 	const size_t lightMapHeight = mod_bspFormat->lightmapHeight;
@@ -1346,6 +1297,12 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	uint16_t *const q3_lightarrays = (void *)( mod_base + lightarray_lumps->fileofs );
 	const size_t numlightArrays = lightarray_lumps->filelen / sizeof( uint16_t);
 
+	if( nodes_lumps->filelen % sizeof( dnode_t ) ) {
+		ri.Com_Error( ERR_DROP, "Mod_LoadBrushsides: funny lump size in %s", loadmodel->name );
+	}
+	dnode_t *const q3_nodes = (void *)( mod_base + nodes_lumps->fileofs );
+	const size_t q3_nodes_len = nodes_lumps->filelen / sizeof( dnode_t);
+	
 	if( fog_lumps->filelen % sizeof( dfog_t ) ) {
 		ri.Com_Error( ERR_DROP, "Mod_LoadBrushsides: funny lump size in %s", loadmodel->name );
 	}
@@ -1723,7 +1680,40 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 		Mod_LoadLightgrid( &header->lumps[LUMP_LIGHTGRID] );
 	Mod_LoadPatchGroups( &header->lumps[LUMP_FACES] );
 	Mod_LoadLeafs( &header->lumps[LUMP_LEAFS], &header->lumps[LUMP_LEAFFACES] );
-	Mod_LoadNodes( &header->lumps[LUMP_NODES] );
+	{
+		mnode_t *const mnodes = Q_CallocAligned( q3_nodes_len, 16, sizeof( *mnodes ) );
+		Q_LinkToPool( mnodes, loadmodel->mempool );
+
+		loadbmodel->nodes = mnodes;
+		loadbmodel->numnodes = q3_nodes_len;
+
+		for( size_t i = 0; i < q3_nodes_len; i++ ) {
+			mnodes[i].plane = loadbmodel->planes + LittleLong( q3_nodes[i].planenum );
+
+			for( size_t j = 0; j < 2; j++ ) {
+				const int childOffset = LittleLong( q3_nodes[i].children[j] );
+				if( childOffset >= 0 )
+					mnodes[i].children[j] = loadbmodel->nodes + childOffset;
+				else
+					mnodes[i].children[j] = (mnode_t *)( loadbmodel->leafs + ( -1 - childOffset ) );
+			}
+
+			bool badBounds = false;
+			for( size_t j = 0; j < 3; j++ ) {
+				mnodes[i].mins[j] = (float)LittleLong( q3_nodes[i].mins[j] );
+				mnodes[i].maxs[j] = (float)LittleLong( q3_nodes[i].maxs[j] );
+				if( mnodes[i].mins[j] > mnodes[i].maxs[j] )
+					badBounds = true;
+			}
+
+			if( badBounds || VectorCompare(  mnodes[i].mins, mnodes[i].maxs ) ) {
+				ri.Com_DPrintf( S_COLOR_YELLOW "WARNING: bad node %i bounds:\n", i );
+				ri.Com_DPrintf( S_COLOR_YELLOW "mins: %i %i %i\n", Q_rint( mnodes[i].mins[0] ), Q_rint( mnodes[i].mins[1] ), Q_rint( mnodes[i].mins[2] ) );
+				ri.Com_DPrintf( S_COLOR_YELLOW "maxs: %i %i %i\n", Q_rint( mnodes[i].maxs[0] ), Q_rint( mnodes[i].maxs[1] ), Q_rint( mnodes[i].maxs[2] ) );
+			}
+		}
+	}
+
 	if( isBspRavenFormat ) {
 		mgridlight_t **const out = Q_CallocAligned( numlightArrays, 16, sizeof( mgridlight_t ) );
 		Q_LinkToPool( out, loadmodel->mempool );
