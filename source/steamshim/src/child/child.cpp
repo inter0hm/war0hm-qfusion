@@ -23,6 +23,7 @@ freely, subject to the following restrictions:
 #include <ctime>
 #include <chrono>
 #include <thread>
+#include <stdlib.h>
 
 #include "child_private.h"
 #include "../steamshim_private.h"
@@ -33,6 +34,7 @@ freely, subject to the following restrictions:
 #include "steam/isteamutils.h"
 #include "steam/steam_api.h"
 #include "steam/steam_gameserver.h"
+#include "ServerBrowser.h"
 
 
 static bool GRunServer = false;
@@ -44,6 +46,7 @@ static ISteamUser *GSteamUser = NULL;
 static AppId_t GAppID = 0;
 static uint64 GUserID = 0;
 static ISteamGameServer *GSteamGameServer = NULL;
+ServerBrowser *GServerBrowser = NULL;
 static time_t time_since_last_pump = 0;
 
 static SteamCallbacks *GSteamCallbacks;
@@ -185,6 +188,10 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
                 msg.Transmit();
             }
             break;
+            {
+                GServerBrowser->RefreshInternetServers();
+            }
+            break;
     } // switch
 
     return true;
@@ -221,15 +228,6 @@ static void processCommands()
 
 static bool initSteamworks(PipeType fd)
 {
-    if (GRunServer) {
-        // this will fail if port is in use
-        if (!SteamGameServer_Init(0, 27016, 0,eServerModeNoAuthentication,"0.0.0.0"))
-            return 0;
-        GSteamGameServer = SteamGameServer();
-        if (!GSteamGameServer)
-            return 0;
-        
-    }
     if (GRunClient){
         // this can fail for many reasons:
         //  - you forgot a steam_appid.txt in the current working directory.
@@ -244,6 +242,25 @@ static bool initSteamworks(PipeType fd)
 
         GAppID = GSteamUtils ? GSteamUtils->GetAppID() : 0;
 	    GUserID = GSteamUser ? GSteamUser->GetSteamID().ConvertToUint64() : 0;
+
+
+        GServerBrowser = new ServerBrowser();
+
+        GServerBrowser->RefreshInternetServers();
+
+
+    }
+
+    if (GRunServer) {
+        // this will fail if port is in use
+        if (!SteamGameServer_Init(0, 27015, 27019, eServerModeAuthenticationAndSecure,"0.0.0.0"))
+            return 0;
+        GSteamGameServer = SteamGameServer();
+        if (!GSteamGameServer)
+            return 0;
+
+        GSteamGameServer->LogOnAnonymous();
+        
     }
     
     GSteamCallbacks = new SteamCallbacks();
@@ -287,7 +304,7 @@ int main(int argc, char **argv)
 #ifndef _WIN32
     signal(SIGPIPE, SIG_IGN);
 
-    if( argc > 1 && strcmp(argv[1], "steamdebug") ) {
+    if( argc > 1 && !strcmp(argv[1], "steamdebug") ) {
         debug = true;
     }
 #endif
