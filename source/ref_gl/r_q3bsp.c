@@ -1346,130 +1346,6 @@ static void Mod_ApplySuperStylesToFace( const rdface_t *in, msurface_t *out )
 	out->superLightStyle = R_AddSuperLightStyle( loadmodel, lightmaps, lightmapStyles, vertexStyles, lmRects );
 }
 
-/*
-* Mod_Finish
-*/
-static void Mod_Finish( const lump_t *faces, const lump_t *light, vec3_t gridSize, vec3_t ambient, vec3_t outline )
-{
-	unsigned int i, j;
-	msurface_t *surf;
-	mfog_t *testFog;
-	bool globalFog;
-	rdface_t *in;
-
-	// remembe the BSP format just in case
-	loadbmodel->format = mod_bspFormat;
-
-	// set up lightgrid
-	if( gridSize[0] < 1 || gridSize[1] < 1 || gridSize[2] < 1 )
-		VectorSet( loadbmodel->gridSize, 64, 64, 128 );
-	else
-		VectorCopy( gridSize, loadbmodel->gridSize );
-
-	for( j = 0; j < 3; j++ )
-	{
-		vec3_t maxs;
-
-		loadbmodel->gridMins[j] = loadbmodel->gridSize[j] * ceil( ( loadbmodel->submodels[0].mins[j] + 1 ) / loadbmodel->gridSize[j] );
-		maxs[j] = loadbmodel->gridSize[j] *floor( ( loadbmodel->submodels[0].maxs[j] - 1 ) / loadbmodel->gridSize[j] );
-		loadbmodel->gridBounds[j] = ( maxs[j] - loadbmodel->gridMins[j] )/loadbmodel->gridSize[j];
-		loadbmodel->gridBounds[j] = max( loadbmodel->gridBounds[j], 0 ) + 1;
-	}
-	loadbmodel->gridBounds[3] = loadbmodel->gridBounds[1] * loadbmodel->gridBounds[0];
-
-	// ambient lighting
-	for( i = 0; i < 3; i++ )
-		mapConfig.ambient[i] = ambient[i];
-	
-	// outline color
-	for( i = 0; i < 3; i++ )
-		mapConfig.outlineColor[i] = (uint8_t)(bound( 0, outline[i]*255.0f, 255 ));
-	mapConfig.outlineColor[3] = 255;
-
-	for( i = 0, testFog = loadbmodel->fogs; i < loadbmodel->numfogs; testFog++, i++ )
-	{
-		if( !testFog->shader )
-			continue;
-		if( testFog->visibleplane )
-			continue;
-
-
-		testFog->visibleplane = Q_Malloc(sizeof( cplane_t ));
-		memset(testFog->visibleplane, 0, sizeof( cplane_t ));
-		Q_LinkToPool(testFog->visibleplane, loadmodel->mempool);
-		VectorSet( testFog->visibleplane->normal, 0, 0, 1 );
-		testFog->visibleplane->type = PLANE_Z;
-		testFog->visibleplane->dist = loadbmodel->submodels[0].maxs[0] + 1;
-	}
-
-	// make sure that the only fog in the map has valid shader
-	globalFog = ( loadbmodel->numfogs == 1 ) ? true : false;
-	if( globalFog )
-	{
-		testFog = &loadbmodel->fogs[0];
-		if( !testFog->shader )
-			globalFog = false;
-	}
-
-	R_SortSuperLightStyles( loadmodel );
-
-	in = loadmodel_dsurfaces;
-	surf = loadbmodel->surfaces;
-	for( i = 0; i < loadbmodel->numsurfaces; i++, in++, surf++ ) {
-		surf->mesh = Mod_CreateMeshForSurface( in, surf, loadmodel_patchgrouprefs[i] );
-		if( surf->mesh ) {
-			surf->numVerts = surf->mesh->numVerts;
-			surf->numElems = surf->mesh->numElems;
-		}
-
-		Mod_ApplySuperStylesToFace( in, surf );
-
-		// force outlines hack for old maps
-		if( !mapConfig.forceWorldOutlines 
-			&& surf->shader && ( surf->shader->flags & SHADER_FORCE_OUTLINE_WORLD )  ) {
-			mapConfig.forceWorldOutlines = true;
-		}
-
-		if( globalFog && surf->mesh && surf->fog != testFog ) {
-			if( !( surf->shader->flags & SHADER_SKY ) && !surf->shader->fog_dist )
-				globalFog = false;
-		}
-	}
-
-	if( globalFog ) {
-		loadbmodel->globalfog = testFog;
-		ri.Com_DPrintf( "Global fog detected: %s\n", testFog->shader->name );
-	}
-
-	if( !( mod_bspFormat->flags & BSP_RAVEN ) ) {
-		Q_Free( loadmodel_dsurfaces );
-	}
-	loadmodel_dsurfaces = NULL;
-	loadmodel_numsurfaces = 0;
-
-	Q_Free( loadmodel_xyz_array );
-	loadmodel_xyz_array = NULL;
-	loadmodel_numverts = 0;
-
-	Q_Free( loadmodel_surfelems );
-	loadmodel_surfelems = NULL;
-	loadmodel_numsurfelems = 0;
-
-	Q_Free( loadmodel_lightmapRects );
-	loadmodel_lightmapRects = NULL;
-	loadmodel_numlightmaps = 0;
-
-	Q_Free( loadmodel_shaderrefs );
-	loadmodel_shaderrefs = NULL;
-	loadmodel_numshaderrefs = 0;
-
-	Q_Free( loadmodel_patchgrouprefs );
-	loadmodel_patchgrouprefs = NULL;
-
-	Q_Free( loadmodel_patchgroups );
-	loadmodel_patchgroups = NULL;
-	loadmodel_numpatchgroups = loadmodel_maxpatchgroups = 0;
-}
 
 /*
 * Mod_LoadQ3BrushModel
@@ -1895,5 +1771,114 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	else
 		Mod_LoadLightArray();
 
-	Mod_Finish( &header->lumps[LUMP_FACES], &header->lumps[LUMP_LIGHTING], gridSize, ambient, outline );
+	{
+		// remembe the BSP format just in case
+		loadbmodel->format = mod_bspFormat;
+
+		// set up lightgrid
+		if( gridSize[0] < 1 || gridSize[1] < 1 || gridSize[2] < 1 )
+			VectorSet( loadbmodel->gridSize, 64, 64, 128 );
+		else
+			VectorCopy( gridSize, loadbmodel->gridSize );
+
+		for(size_t j = 0; j < 3; j++ ) {
+			vec3_t maxs;
+
+			loadbmodel->gridMins[j] = loadbmodel->gridSize[j] * ceil( ( loadbmodel->submodels[0].mins[j] + 1 ) / loadbmodel->gridSize[j] );
+			maxs[j] = loadbmodel->gridSize[j] * floor( ( loadbmodel->submodels[0].maxs[j] - 1 ) / loadbmodel->gridSize[j] );
+			loadbmodel->gridBounds[j] = ( maxs[j] - loadbmodel->gridMins[j] ) / loadbmodel->gridSize[j];
+			loadbmodel->gridBounds[j] = max( loadbmodel->gridBounds[j], 0 ) + 1;
+		}
+		loadbmodel->gridBounds[3] = loadbmodel->gridBounds[1] * loadbmodel->gridBounds[0];
+
+		// ambient lighting
+		for( i = 0; i < 3; i++ )
+			mapConfig.ambient[i] = ambient[i];
+
+		// outline color
+		for( i = 0; i < 3; i++ )
+			mapConfig.outlineColor[i] = (uint8_t)( bound( 0, outline[i] * 255.0f, 255 ) );
+		mapConfig.outlineColor[3] = 255;
+		
+		mfog_t *testFog;
+		for( i = 0, testFog = loadbmodel->fogs; i < loadbmodel->numfogs; testFog++, i++ ) {
+			if( !testFog->shader )
+				continue;
+			if( testFog->visibleplane )
+				continue;
+
+			testFog->visibleplane = Q_Malloc( sizeof( cplane_t ) );
+			memset( testFog->visibleplane, 0, sizeof( cplane_t ) );
+			Q_LinkToPool( testFog->visibleplane, loadmodel->mempool );
+			VectorSet( testFog->visibleplane->normal, 0, 0, 1 );
+			testFog->visibleplane->type = PLANE_Z;
+			testFog->visibleplane->dist = loadbmodel->submodels[0].maxs[0] + 1;
+		}
+
+		// make sure that the only fog in the map has valid shader
+		bool globalFog = ( loadbmodel->numfogs == 1 ) ? true : false;
+		if( globalFog ) {
+			testFog = &loadbmodel->fogs[0];
+			if( !testFog->shader )
+				globalFog = false;
+		}
+
+		R_SortSuperLightStyles( loadmodel );
+
+		rdface_t *in = loadmodel_dsurfaces;
+		msurface_t *surf = loadbmodel->surfaces;
+		for( i = 0; i < loadbmodel->numsurfaces; i++, in++, surf++ ) {
+			surf->mesh = Mod_CreateMeshForSurface( in, surf, loadmodel_patchgrouprefs[i] );
+			if( surf->mesh ) {
+				surf->numVerts = surf->mesh->numVerts;
+				surf->numElems = surf->mesh->numElems;
+			}
+
+			Mod_ApplySuperStylesToFace( in, surf );
+
+			// force outlines hack for old maps
+			if( !mapConfig.forceWorldOutlines && surf->shader && ( surf->shader->flags & SHADER_FORCE_OUTLINE_WORLD ) ) {
+				mapConfig.forceWorldOutlines = true;
+			}
+
+			if( globalFog && surf->mesh && surf->fog != testFog ) {
+				if( !( surf->shader->flags & SHADER_SKY ) && !surf->shader->fog_dist )
+					globalFog = false;
+			}
+		}
+
+		if( globalFog ) {
+			loadbmodel->globalfog = testFog;
+			ri.Com_DPrintf( "Global fog detected: %s\n", testFog->shader->name );
+		}
+
+		if( !( mod_bspFormat->flags & BSP_RAVEN ) ) {
+			Q_Free( loadmodel_dsurfaces );
+		}
+		loadmodel_dsurfaces = NULL;
+		loadmodel_numsurfaces = 0;
+
+		Q_Free( loadmodel_xyz_array );
+		loadmodel_xyz_array = NULL;
+		loadmodel_numverts = 0;
+
+		Q_Free( loadmodel_surfelems );
+		loadmodel_surfelems = NULL;
+		loadmodel_numsurfelems = 0;
+
+		Q_Free( loadmodel_lightmapRects );
+		loadmodel_lightmapRects = NULL;
+		loadmodel_numlightmaps = 0;
+
+		Q_Free( loadmodel_shaderrefs );
+		loadmodel_shaderrefs = NULL;
+		loadmodel_numshaderrefs = 0;
+
+		Q_Free( loadmodel_patchgrouprefs );
+		loadmodel_patchgrouprefs = NULL;
+
+		Q_Free( loadmodel_patchgroups );
+		loadmodel_patchgroups = NULL;
+		loadmodel_numpatchgroups = loadmodel_maxpatchgroups = 0;
+	}
 }
