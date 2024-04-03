@@ -1245,55 +1245,6 @@ static void Mod_LoadLightgrid_RBSP( const lump_t *l )
 	memcpy( out, in, count*sizeof( *out ) );
 }
 
-/*
-* Mod_LoadLightArray
-*/
-static void Mod_LoadLightArray( void )
-{
-	int i, count;
-	mgridlight_t **out;
-
-	count = loadbmodel->numlightgridelems;
-	out = Q_CallocAligned( count, 16, sizeof( *out ) );
-	Q_LinkToPool( out, loadmodel->mempool );
-
-	loadbmodel->lightarray = out;
-	loadbmodel->numlightarrayelems = count;
-
-	for( i = 0; i < count; i++, out++ )
-		*out = loadbmodel->lightgrid + i;
-}
-
-/*
-* Mod_LoadLightArray_RBSP
-*/
-static void Mod_LoadLightArray_RBSP( const lump_t *l )
-{
-	int i, count;
-	unsigned index;
-	unsigned short *in;
-	mgridlight_t **out;
-
-	in = ( void * )( mod_base + l->fileofs );
-	if( l->filelen % sizeof( *in ) )
-		ri.Com_Error( ERR_DROP, "Mod_LoadLightArray: funny lump size in %s", loadmodel->name );
-	count = l->filelen / sizeof( *in );
-	out = Q_CallocAligned( count, 16, sizeof( *out ) );
-	Q_LinkToPool( out, loadmodel->mempool );
-
-	loadbmodel->lightarray = out;
-	loadbmodel->numlightarrayelems = count;
-
-	for( i = 0; i < count; i++, in++, out++ )
-	{
-		index = LittleShort( *in );
-		if( index >= (unsigned)loadbmodel->numlightgridelems ) {
-			ri.Com_Error( ERR_DROP, "Mod_LoadLightArray_RBSP: funny grid index(%i):%i in %s", i, index, loadmodel->name );
-		}
-		*out = loadbmodel->lightgrid + index;
-	}
-}
-
 
 /*
 * Mod_ApplySuperStylesToFace
@@ -1380,6 +1331,7 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	lump_t* const brush_lumps = &header->lumps[LUMP_BRUSHES];
 	lump_t* const brushsides_faces_lumps = &header->lumps[LUMP_BRUSHSIDES];
 	lump_t* const fog_lumps = &header->lumps[LUMP_FOGS];
+	lump_t* const lightarray_lumps = &header->lumps[LUMP_LIGHTARRAY];
 	
 	const size_t lightMapWidth = mod_bspFormat->lightmapWidth;
 	const size_t lightMapHeight = mod_bspFormat->lightmapHeight;
@@ -1387,6 +1339,12 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	// we don't need lightmaps for vertex lighting
 	const bool hasLightmaps = (!r_lighting_vertexlight->integer) && light_lumps->filelen > 0;
 	const bool isBspRavenFormat = mod_bspFormat->flags & BSP_RAVEN;
+
+	if( lightarray_lumps->filelen % sizeof( uint16_t ) ) {
+		ri.Com_Error( ERR_DROP, "Mod_LoadBrushsides: funny lump size in %s", loadmodel->name );
+	}
+	uint16_t *const q3_lightarrays = (void *)( mod_base + lightarray_lumps->fileofs );
+	const size_t numlightArrays = lightarray_lumps->filelen / sizeof( uint16_t);
 
 	if( fog_lumps->filelen % sizeof( dfog_t ) ) {
 		ri.Com_Error( ERR_DROP, "Mod_LoadBrushsides: funny lump size in %s", loadmodel->name );
@@ -1766,11 +1724,30 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	Mod_LoadPatchGroups( &header->lumps[LUMP_FACES] );
 	Mod_LoadLeafs( &header->lumps[LUMP_LEAFS], &header->lumps[LUMP_LEAFFACES] );
 	Mod_LoadNodes( &header->lumps[LUMP_NODES] );
-	if( mod_bspFormat->flags & BSP_RAVEN )
-		Mod_LoadLightArray_RBSP( &header->lumps[LUMP_LIGHTARRAY] );
-	else
-		Mod_LoadLightArray();
+	if( isBspRavenFormat ) {
+		mgridlight_t **const out = Q_CallocAligned( numlightArrays, 16, sizeof( mgridlight_t ) );
+		Q_LinkToPool( out, loadmodel->mempool );
 
+		loadbmodel->lightarray = out;
+		loadbmodel->numlightarrayelems = numlightArrays;
+
+		for( i = 0; i < numlightArrays; i++ ) {
+			uint16_t index = LittleShort( q3_lightarrays[i] );
+			if( index >= (unsigned)loadbmodel->numlightgridelems ) {
+				ri.Com_Error( ERR_DROP, "Mod_LoadLightArray_RBSP: funny grid index(%i):%i in %s", i, index, loadmodel->name );
+			}
+			out[i] = loadbmodel->lightgrid + index;
+		}
+	} else {
+		mgridlight_t **const out = Q_CallocAligned( loadbmodel->numlightgridelems, 16, sizeof( mgridlight_t ) );
+		Q_LinkToPool( out, loadmodel->mempool );
+
+		loadbmodel->lightarray = out;
+		loadbmodel->numlightarrayelems = loadbmodel->numlightgridelems;
+
+		for( size_t i = 0; i < loadbmodel->numlightarrayelems; i++ )
+			out[i] = loadbmodel->lightgrid + i;
+	}
 	{
 		// remembe the BSP format just in case
 		loadbmodel->format = mod_bspFormat;
