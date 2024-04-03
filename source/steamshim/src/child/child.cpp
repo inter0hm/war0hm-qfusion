@@ -188,6 +188,47 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
                 msg.Transmit();
             }
             break;
+        case SHIMCMD_UPDATESERVERINFO:
+            {
+                bool advertise = cmd.ReadByte();
+                GSteamGameServer->SetAdvertiseServerActive(advertise);
+                int botplayercount = cmd.ReadInt();
+                GSteamGameServer->SetBotPlayerCount(botplayercount);
+                bool dedicatedserver = cmd.ReadByte();
+                GSteamGameServer->SetDedicatedServer(dedicatedserver);
+                const char *gamedata = cmd.ReadString();
+                if (gamedata[0])
+                    GSteamGameServer->SetGameData(gamedata);
+                const char *gamedescription = cmd.ReadString();
+                if (gamedescription[0])
+                    GSteamGameServer->SetGameDescription(gamedescription);
+                const char *gametags = cmd.ReadString();
+                if (gametags[0])
+                    GSteamGameServer->SetGameTags(gametags);
+                int heartbeatinterval = cmd.ReadInt();
+                // GSteamGameServer->SetHeartbeatInterval(heartbeatinterval);
+                const char *mapname = cmd.ReadString();
+                if (mapname[0])
+                    GSteamGameServer->SetMapName(mapname);
+                int maxplayercount = cmd.ReadInt();
+                GSteamGameServer->SetMaxPlayerCount(maxplayercount);
+                const char *moddir = cmd.ReadString();
+                if (moddir[0])
+                    GSteamGameServer->SetModDir(moddir);
+                bool passwordprotected = cmd.ReadByte();
+                GSteamGameServer->SetPasswordProtected(passwordprotected);
+                const char *product = cmd.ReadString();
+                if (product[0])
+                    GSteamGameServer->SetProduct(product);
+                const char *region = cmd.ReadString();
+                if (region[0])
+                    GSteamGameServer->SetRegion(region);
+                const char *servername = cmd.ReadString();
+                if (servername[0])
+                    GSteamGameServer->SetServerName(servername);
+            }
+            break;
+        case SHIMCMD_REQUESTSERVERS:
             {
                 GServerBrowser->RefreshInternetServers();
             }
@@ -246,6 +287,7 @@ static bool initSteamworks(PipeType fd)
 
         GServerBrowser = new ServerBrowser();
 
+        printf("Initiating refresh of internet servers\n");
         GServerBrowser->RefreshInternetServers();
 
 
