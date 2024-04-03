@@ -277,11 +277,11 @@ void CG_LoadClientInfo( cg_clientInfo_t *ci, const char *info, int client )
 		CGAME_IMPORT.Steam_RequestAvatar(ci->steamid, 0);
 	}
 }
-void CG_CallbackRequestAvatar(uint64_t steamid, char *avatar){
+void CG_CallbackRequestAvatar(uint64_t steamid, uint8_t *avatar){
 	for (int i = 0; i < gs.maxclients; i++){
 		cg_clientInfo_t *ci = &cgs.clientInfo[i];
 		if (ci->steamid == steamid){
-			ci->avatar = trap_R_RegisterRawPic(va("avatar-%llu", ci->steamid), 32, 32, (uint8_t*)avatar, 4);
+			ci->avatar = trap_R_RegisterRawPic(va("avatar-%llu", ci->steamid), 32, 32, avatar, 4);
 			return;
 		}
 	}

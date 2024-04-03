@@ -3,27 +3,16 @@
 #include "../steamshim/src/parent/parent.h"
 #include <string.h>
 
-static void printEvent( const STEAMSHIM_Event *e )
-{
-	if( !steam_debug->integer || !e )
-		return;
-
-	Com_Printf( "%sokay, ival=%d, fval=%f, lval=%llu, name='%s').\n", e->okay ? "" : "!", e->ivalue, e->fvalue, e->lvalue, e->name );
-} 
-
-static const STEAMSHIM_Event* blockOnEvent(STEAMSHIM_EventType type){
+static const SteamshimEvent* blockOnEvent(SteamshimEventType type){
 
 	while( 1 ) {
-		const STEAMSHIM_Event *evt = STEAMSHIM_pump();
+		const SteamshimEvent *evt = STEAMSHIM_pump();
 		if (!evt) continue;
 
 		if (evt->type == type){
-			printEvent( evt );
 			return evt;
 		} else {
 			printf("warning: ignoring event %i\n",evt->type);
-			// event gets ignored!
-			printEvent( evt );
 		}
 	}
 }
@@ -33,9 +22,8 @@ static const STEAMSHIM_Event* blockOnEvent(STEAMSHIM_EventType type){
 */
 void SV_Steam_RunFrame( void )
 {
-	const STEAMSHIM_Event *evt = STEAMSHIM_pump();
+	const SteamshimEvent *evt = STEAMSHIM_pump();
 	if( evt ) {
-		printEvent( evt );
 		switch (evt->type){
 			default: break;
 		}
@@ -54,9 +42,9 @@ int Steam_GetAuthSessionTicket( void ( *callback )( void *, size_t ) )
 int Steam_BeginAuthSession(uint64_t steamid, SteamAuthTicket_t *ticket){
 
 	STEAMSHIM_beginAuthSession(steamid,ticket);
-	const STEAMSHIM_Event *evt = blockOnEvent(SHIMEVENT_AUTHSESSIONVALIDATED);
+	const SteamshimEvent *evt = blockOnEvent(EVT_SV_AUTHSESSIONVALIDATED);
 
-	return evt->ivalue;
+	return evt->sv_authsessionvalidated;
 }
 
 void Steam_EndAuthSession(uint64_t steamid){

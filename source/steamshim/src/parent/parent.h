@@ -53,12 +53,11 @@ typedef struct {
 extern "C" {
 #endif
 
-// pass runclient to connect to the steam app, runserver to host a game server
 // return of 0 means failure
 int STEAMSHIM_init(SteamshimOptions* options);
 void STEAMSHIM_deinit(void);
 int STEAMSHIM_alive(void);
-const STEAMSHIM_Event *STEAMSHIM_pump(void);
+const SteamshimEvent *STEAMSHIM_pump(void);
 void STEAMSHIM_getSteamID();
 void STEAMSHIM_getPersonaName();
 void STEAMSHIM_setRichPresence(int num, const char** key, const char** val);
