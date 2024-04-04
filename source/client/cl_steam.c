@@ -97,6 +97,17 @@ void Steam_RequestAvatar(uint64_t steamid, int size)
 }
 
 /*
+* Steam_RequestAvatarBlocking
+* size is 0 for 32x32, 1 for 64x64, 2 for 128x128
+*/
+uint8_t *Steam_RequestAvatarBlocking(uint64_t steamid, int size)
+{
+	STEAMSHIM_requestAvatar(steamid, size);
+	const SteamshimEvent *evt = blockOnEvent(EVT_CL_AVATARRECIEVED);
+	return evt->cl_avatarrecieved.avatar;
+}
+
+/*
 * Steam_AdvertiseGame
 */
 void Steam_AdvertiseGame( const uint8_t *ip, unsigned short port )

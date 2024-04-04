@@ -687,6 +687,7 @@ void Steam_GetPersonaName( char *name, size_t namesize );
 const SteamAuthTicket_t* Steam_GetAuthSessionTicketBlocking();
 void Steam_SetRichPresence( int num, const char **key, const char **val );
 void Steam_RequestAvatar(uint64_t steamid, int size);
+uint8_t *Steam_RequestAvatarBlocking(uint64_t steamid, int size);
 void CL_Steam_RunFrame( void );
 void Steam_OpenProfile( uint64_t steamid );
 
