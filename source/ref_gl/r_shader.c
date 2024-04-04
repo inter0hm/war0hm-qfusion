@@ -2899,9 +2899,9 @@ shader_t *R_ShaderById( unsigned int id )
 }
 
 /*
-* R_TouchShadersByName
+* R_ShaderByName
 */
-void R_TouchShadersByName( const char *name )
+struct shader_s *R_ShaderByName( const char *name )
 {
 	unsigned int shortNameSize;
 	char *shortName;
@@ -2910,20 +2910,31 @@ void R_TouchShadersByName( const char *name )
 	shader_t *hnode, *s;
 
 	if( !name || !name[0] )
-		return;
+		return NULL;
 
 	shortNameSize = strlen( name ) + 1;
 	shortName = alloca( shortNameSize );
 	nameLength = R_ShaderCleanName( name, shortName, shortNameSize );
 	if( !nameLength )
-		return;
+		return NULL;
 
 	key = COM_SuperFastHash( ( const uint8_t * )shortName, nameLength, nameLength ) % SHADERS_HASH_SIZE;
 	hnode = &r_shaders_hash_headnode[key];
 	for( s = hnode->next; s != hnode; s = s->next ) {
 		if( !strcmp( s->name, shortName ) ) {
-			R_TouchShader( s );
+			return s;
 		}
+	}
+}
+
+/*
+* R_TouchShadersByName
+*/
+void R_TouchShadersByName( const char *name )
+{
+	shader_t *s = R_ShaderByName( name );
+	if( s ) {
+		R_TouchShader( s );
 	}
 }
 

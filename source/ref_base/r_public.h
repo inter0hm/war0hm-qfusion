@@ -145,6 +145,7 @@ typedef struct
 	struct shader_s *( *RegisterSkin )( const char *name );
 	struct skinfile_s *( *RegisterSkinFile )( const char *name );
 	struct shader_s *( *RegisterVideo )( const char *name );
+	struct shader_s *( *ShaderByName )( const char *name );
 
 	void		( *RemapShader )( const char *from, const char *to, int timeOffset );
 	void		( *GetShaderDimensions )( const struct shader_s *shader, int *width, int *height );

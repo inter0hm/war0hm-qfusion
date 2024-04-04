@@ -132,6 +132,9 @@ namespace trap
 		inline void R_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, vec4_t color, struct shader_s *shader ) {
 			UI_IMPORT.R_DrawStretchPic( x, y, w, h, s1, t1, s2, t2, color, shader );
 		}
+		inline struct shader_s* R_ShaderByName( const char *name ) {
+			return UI_IMPORT.R_ShaderByName( name );
+		}
 
 		inline void R_DrawRotatedStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, float angle, vec4_t color, struct shader_s *shader ) {
 			UI_IMPORT.R_DrawRotatedStretchPic( x, y, w, h, s1, t1, s2, t2, angle, color, shader );

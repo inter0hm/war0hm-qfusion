@@ -308,6 +308,8 @@ shader_t	*R_RegisterVideo( const char *name );
 
 unsigned	R_PackShaderOrder( const shader_t *shader );
 
+
+struct shader_s *R_ShaderByName( const char *name );
 void		R_TouchShader( shader_t *s );
 void		R_TouchShadersByName( const char *name );
 void		R_FreeUnusedShadersByType( const shaderType_e *types, unsigned int numTypes );

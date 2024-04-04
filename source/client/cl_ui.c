@@ -255,6 +255,7 @@ void CL_UIModule_Init( void )
 	import.R_SkeletalGetBoneInfo = re.SkeletalGetBoneInfo;
 	import.R_SkeletalGetBonePose = re.SkeletalGetBonePose;
 	import.R_GetShaderCinematic = re.GetShaderCinematic;
+	import.R_ShaderByName = re.ShaderByName;
 
 	import.S_RegisterSound = CL_SoundModule_RegisterSound;
 	import.S_StartLocalSound = CL_SoundModule_StartLocalSound;

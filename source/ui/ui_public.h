@@ -92,6 +92,8 @@ typedef struct
 	struct shader_s *( *R_RegisterSkin )( const char *name );
 	struct shader_s *( *R_RegisterPic )( const char *name );
 	struct shader_s *( *R_RegisterRawPic )( const char *name, int width, int height, uint8_t *data, int samples );
+	struct shader_s *( *R_ShaderByName )( const char *name );
+
 	struct shader_s *( *R_RegisterLevelshot )( const char *name, struct shader_s *defaultPic, bool *matchesDefault );
 	struct skinfile_s *( *R_RegisterSkinFile )( const char *name );
 	struct shader_s *( *R_RegisterVideo )( const char *name );
