@@ -1247,7 +1247,6 @@ static void Mod_ApplySuperStylesToFace( const rdface_t *in, msurface_t *out )
 	out->superLightStyle = R_AddSuperLightStyle( loadmodel, lightmaps, lightmapStyles, vertexStyles, lmRects );
 }
 
-
 /*
 * Mod_LoadQ3BrushModel
 */
@@ -1291,84 +1290,66 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	const bool hasLightmaps = (!r_lighting_vertexlight->integer) && light_lumps->filelen > 0;
 	const bool isBspRavenFormat = mod_bspFormat->flags & BSP_RAVEN;
 
-	if( lightarray_lumps->filelen % sizeof( uint16_t ) ) {
+	if((lightarray_lumps->filelen % sizeof( uint16_t )) ||
+		 (nodes_lumps->filelen % sizeof( dnode_t )) ||
+		 (fog_lumps->filelen % sizeof( dfog_t )) ||
+		 (brush_lumps->filelen % sizeof( dbrush_t )) ||
+		 (brushsides_faces_lumps->filelen % ( isBspRavenFormat ? sizeof( rdbrushside_t ) : sizeof( dbrushside_t ) )) ||
+		 (hasLightmaps && light_lumps->filelen % lightMapSize) ||
+		 (shaderrefs_lumps->filelen % sizeof( dshaderref_t )) ||
+		 (shaderrefs_lumps->filelen % sizeof( dshaderref_t )) ||
+		 (model_lumps->filelen % sizeof( dmodel_t )) ||
+		 (planes_lumps->filelen % sizeof( dplane_t )) ||
+		 (face_lumps->filelen % ( isBspRavenFormat ? sizeof( rdface_t ) : sizeof( dface_t ) ))
+	) {
 		ri.Com_Error( ERR_DROP, "Mod_LoadBrushsides: funny lump size in %s", loadmodel->name );
 	}
+
 	uint16_t *const q3_lightarrays = (void *)( mod_base + lightarray_lumps->fileofs );
 	const size_t numlightArrays = lightarray_lumps->filelen / sizeof( uint16_t);
 
-	if( nodes_lumps->filelen % sizeof( dnode_t ) ) {
-		ri.Com_Error( ERR_DROP, "Mod_LoadBrushsides: funny lump size in %s", loadmodel->name );
-	}
 	dnode_t *const q3_nodes = (void *)( mod_base + nodes_lumps->fileofs );
 	const size_t q3_nodes_len = nodes_lumps->filelen / sizeof( dnode_t);
 	
-	if( fog_lumps->filelen % sizeof( dfog_t ) ) {
-		ri.Com_Error( ERR_DROP, "Mod_LoadBrushsides: funny lump size in %s", loadmodel->name );
-	}
 	dfog_t *const q3_fogs = (void *)( mod_base + fog_lumps->fileofs );
 	const size_t numFogs = fog_lumps->filelen / sizeof( dfog_t );
 
-	if( brush_lumps->filelen % sizeof( dbrush_t ) ) {
-		ri.Com_Error( ERR_DROP, "Mod_LoadBrushsides: funny lump size in %s", loadmodel->name );
-	}
-	const size_t numBrushes = brush_lumps->filelen / sizeof( dbrush_t );
 	dbrush_t *const q3_brushs = (void *)( mod_base + brush_lumps->fileofs );
+	const size_t numBrushes = brush_lumps->filelen / sizeof( dbrush_t );
 
-	if( brushsides_faces_lumps->filelen % ( isBspRavenFormat ? sizeof( rdbrushside_t ) : sizeof( dbrushside_t ) ) ) {
-		ri.Com_Error( ERR_DROP, "Mod_LoadBrushsides: funny lump size in %s", loadmodel->name );
-	}
 	const size_t numBrushSides = brushsides_faces_lumps->filelen / ( isBspRavenFormat ? sizeof( rdbrushside_t ) : sizeof( dbrushside_t ) );
 	dbrushside_t *const q3_brushSides = (void *)( mod_base + brushsides_faces_lumps->fileofs );
 	rdbrushside_t *const q3_ravenbrushSides = (void *)( mod_base + brushsides_faces_lumps->fileofs );
 
-	if( hasLightmaps && light_lumps->filelen % lightMapSize ) {
-		ri.Com_Error( ERR_DROP, "Mod_LoadLighting: funny lump size in %s", loadmodel->name );
-	}
+	const size_t modelLen = model_lumps->filelen / sizeof( dmodel_t );
+	dmodel_t *const q3_model = (void *)( (uint8_t *)buffer + model_lumps->fileofs );
 
-	if( shaderrefs_lumps->filelen % sizeof( dshaderref_t ) ) {
-		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
-	}
-
-	if( model_lumps->filelen % sizeof( dmodel_t ) ) {
-		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
-	}
-
-	// faces
-	if( face_lumps->filelen % ( isBspRavenFormat ? sizeof( rdface_t ) : sizeof( dface_t ) ) ) {
-		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
-	}
-	dface_t *const q3_faces = (void *)( mod_base + face_lumps->fileofs );
 	const size_t numFaces = face_lumps->filelen / ( isBspRavenFormat ? sizeof( rdface_t ) : sizeof( dface_t ) );
+	dface_t *const q3_faces = (void *)( mod_base + face_lumps->fileofs );
 	rdface_t *const q3_ravenFaces = (void *)( mod_base + face_lumps->fileofs );
 
-	if( planes_lumps->filelen % sizeof( dplane_t ) ) {
-		ri.Com_Error( ERR_DROP, "Mod_LoadSubmodels: funny lump size in %s", loadmodel->name );
-	}
-	dplane_t *const q3_planes = (void *)( mod_base + planes_lumps->fileofs );
 	const size_t numPlanes = planes_lumps->filelen / sizeof( dplane_t );
+	dplane_t *const q3_planes = (void *)( mod_base + planes_lumps->fileofs );
 
 	{
-		const size_t count = model_lumps->filelen / sizeof( dmodel_t );
-		dmodel_t *const q3_model = (void *)( (uint8_t *)buffer + model_lumps->fileofs );
 
-		uint8_t *const sub_model_mem = Q_CallocAligned( count, 16, sizeof( mbrushmodel_t ) + sizeof( model_t ) );
-		mmodel_t *const models = Q_CallocAligned( count, 16, sizeof( mmodel_t ) );
+		uint8_t *const sub_model_mem = Q_CallocAligned( modelLen, 16, sizeof( mbrushmodel_t ) + sizeof( model_t ) );
+		mmodel_t *const models = Q_CallocAligned( modelLen, 16, sizeof( mmodel_t ) );
 
 		Q_LinkToPool( models, loadmodel->mempool );
 		Q_LinkToPool( sub_model_mem, loadmodel->mempool );
 
 		model_t *const inline_models = (model_t *)sub_model_mem;
-		mbrushmodel_t *const brush_models = (mbrushmodel_t *)( sub_model_mem + ( sizeof( model_t ) * count ) );
+		mbrushmodel_t *const brush_models = (mbrushmodel_t *)( sub_model_mem + ( sizeof( model_t ) * modelLen ) );
 
 		loadmodel->extradata = brush_models;
 
 		loadbmodel = brush_models;
 		loadbmodel->submodels = models;
-		loadbmodel->numsubmodels = count;
+		loadbmodel->numsubmodels = modelLen;
 		loadbmodel->inlines = inline_models;
 
-		for( size_t i = 0; i < count; i++ ) {
+		for( size_t i = 0; i < modelLen; i++ ) {
 			inline_models[i].extradata = &brush_models[i];
 
 			for( size_t j = 0; j < 3; j++ ) {
