@@ -1017,102 +1017,6 @@ static void Mod_LoadPatchGroups( const lump_t *l )
 }
 
 
-
-/*
-* Mod_LoadLeafs
-*/
-static void Mod_LoadLeafs( const lump_t *l, const lump_t *msLump )
-{
-	int i, j, k, count, countMarkSurfaces;
-	dleaf_t	*in;
-	mleaf_t	*out;
-	size_t size;
-	uint8_t *buffer;
-	bool badBounds;
-	int *inMarkSurfaces;
-	int numMarkSurfaces, firstMarkSurface;
-	int numVisSurfaces, numFragmentSurfaces;
-
-	inMarkSurfaces = ( void * )( mod_base + msLump->fileofs );
-	if( msLump->filelen % sizeof( *inMarkSurfaces ) )
-		ri.Com_Error( ERR_DROP, "Mod_LoadMarksurfaces: funny lump size in %s", loadmodel->name );
-	countMarkSurfaces = msLump->filelen / sizeof( *inMarkSurfaces );
-
-	in = ( void * )( mod_base + l->fileofs );
-	if( l->filelen % sizeof( *in ) )
-		ri.Com_Error( ERR_DROP, "Mod_LoadLeafs: funny lump size in %s", loadmodel->name );
-	count = l->filelen / sizeof( *in );
-	out = Q_CallocAligned( count, 16, sizeof( *out ) );
-	Q_LinkToPool( out, loadmodel->mempool );
-
-	loadbmodel->leafs = out;
-	loadbmodel->numleafs = count;
-
-	for( i = 0; i < count; i++, in++, out++ )
-	{
-		badBounds = false;
-		for( j = 0; j < 3; j++ )
-		{
-			out->mins[j] = (float)LittleLong( in->mins[j] );
-			out->maxs[j] = (float)LittleLong( in->maxs[j] );
-			if( out->mins[j] > out->maxs[j] )
-				badBounds = true;
-		}
-		out->cluster = LittleLong( in->cluster );
-
-		if( i && ( badBounds || VectorCompare( out->mins, out->maxs ) ) && out->cluster >= 0 )
-		{
-			ri.Com_DPrintf( S_COLOR_YELLOW "WARNING: bad leaf bounds\n" );
-			out->cluster = -1;
-		}
-
-		if( loadbmodel->pvs && ( out->cluster >= loadbmodel->pvs->numclusters ) )
-		{
-			Com_Printf( S_COLOR_YELLOW "WARNING: leaf cluster > numclusters" );
-			out->cluster = -1;
-		}
-
-		out->plane = NULL;
-		out->area = LittleLong( in->area );
-		if( out->area >= loadbmodel->numareas )
-			loadbmodel->numareas = out->area + 1;
-
-		numVisSurfaces = numFragmentSurfaces = 0;
-		numMarkSurfaces = LittleLong( in->numleaffaces );
-		if( !numMarkSurfaces )
-		{
-			//out->cluster = -1;
-			continue;
-		}
-
-		firstMarkSurface = LittleLong( in->firstleafface );
-		if( firstMarkSurface < 0 || numMarkSurfaces + firstMarkSurface > countMarkSurfaces )
-			ri.Com_Error( ERR_DROP, "MOD_LoadBmodel: bad marksurfaces in leaf %i", i );
-
-		numVisSurfaces = numMarkSurfaces;
-		numFragmentSurfaces = numMarkSurfaces;
-
-		size = ((numVisSurfaces + 1) + (numFragmentSurfaces + 1)) * sizeof( msurface_t * );
-		buffer = ( uint8_t * )Q_CallocAligned(((numVisSurfaces + 1) + (numFragmentSurfaces + 1)), 16, sizeof( msurface_t *));
-		Q_LinkToPool(buffer, loadmodel->mempool);
-
-		out->firstVisSurface = ( msurface_t ** )buffer;
-		buffer += ( numVisSurfaces + 1 ) * sizeof( msurface_t * );
-
-		out->firstFragmentSurface = ( msurface_t ** )buffer;
-		buffer += ( numFragmentSurfaces + 1 ) * sizeof( msurface_t * );
-
-		numVisSurfaces = numFragmentSurfaces = 0;
-		for( j = 0; j < numMarkSurfaces; j++ )
-		{
-			k = LittleLong( inMarkSurfaces[firstMarkSurface + j] );
-
-			out->firstVisSurface[numVisSurfaces++] = loadbmodel->surfaces + k;
-			out->firstFragmentSurface[numFragmentSurfaces++] = loadbmodel->surfaces + k;
-		}
-	}
-}
-
 /*
 * Mod_LoadElems
 */
@@ -1282,6 +1186,8 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	lump_t* const fog_lumps = &header->lumps[LUMP_FOGS];
 	lump_t* const lightarray_lumps = &header->lumps[LUMP_LIGHTARRAY];
 	lump_t* const nodes_lumps = &header->lumps[LUMP_NODES];
+	lump_t* const leaf_lumps = &header->lumps[LUMP_LEAFS];
+	lump_t* const leaffaces_lumps = &header->lumps[LUMP_LEAFFACES];
 	
 	const size_t lightMapWidth = mod_bspFormat->lightmapWidth;
 	const size_t lightMapHeight = mod_bspFormat->lightmapHeight;
@@ -1291,6 +1197,8 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	const bool isBspRavenFormat = mod_bspFormat->flags & BSP_RAVEN;
 
 	if((lightarray_lumps->filelen % sizeof( uint16_t )) ||
+		 (leaf_lumps ->filelen % sizeof(dleaf_t)) ||
+		 (leaffaces_lumps->filelen % sizeof(int32_t)) ||
 		 (nodes_lumps->filelen % sizeof( dnode_t )) ||
 		 (fog_lumps->filelen % sizeof( dfog_t )) ||
 		 (brush_lumps->filelen % sizeof( dbrush_t )) ||
@@ -1304,6 +1212,11 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	) {
 		ri.Com_Error( ERR_DROP, "Mod_LoadBrushsides: funny lump size in %s", loadmodel->name );
 	}
+
+	dleaf_t *const q3_leafs = (void *)( mod_base + leaf_lumps->fileofs );
+	int32_t *const q3_leaffaces = (void *)( mod_base + leaffaces_lumps->fileofs );
+	const size_t numleafs = leaf_lumps->filelen / sizeof( dleaf_t );
+	const size_t numLeafFaces = leaffaces_lumps->filelen / sizeof(int32_t);
 
 	uint16_t *const q3_lightarrays = (void *)( mod_base + lightarray_lumps->fileofs );
 	const size_t numlightArrays = lightarray_lumps->filelen / sizeof( uint16_t);
@@ -1660,7 +1573,71 @@ void Mod_LoadQ3BrushModel( model_t *mod, model_t *parent, void *buffer, bspForma
 	else
 		Mod_LoadLightgrid( &header->lumps[LUMP_LIGHTGRID] );
 	Mod_LoadPatchGroups( &header->lumps[LUMP_FACES] );
-	Mod_LoadLeafs( &header->lumps[LUMP_LEAFS], &header->lumps[LUMP_LEAFFACES] );
+	{
+		mleaf_t *const mod_leafs = Q_CallocAligned( numleafs, 16, sizeof( mleaf_t ) );
+		Q_LinkToPool( mod_leafs, loadmodel->mempool );
+
+		loadbmodel->leafs = mod_leafs;
+		loadbmodel->numleafs = numleafs;
+
+		for(size_t i = 0; i < numleafs; i++) {
+			bool badBounds = false;
+			for(size_t j = 0; j < 3; j++ ) {
+				mod_leafs[i].mins[j] = (float)LittleLong( q3_leafs[i].mins[j] );
+				mod_leafs[i].maxs[j] = (float)LittleLong( q3_leafs[i].maxs[j] );
+				if( mod_leafs[i].mins[j] > mod_leafs[i].maxs[j] )
+					badBounds = true;
+			}
+			mod_leafs[i].cluster = LittleLong( q3_leafs[i].cluster );
+
+			if( i && ( badBounds || VectorCompare( mod_leafs[i].mins, mod_leafs[i].maxs ) ) && mod_leafs[i].cluster >= 0 ) {
+				ri.Com_DPrintf( S_COLOR_YELLOW "WARNING: bad leaf bounds\n" );
+				mod_leafs[i].cluster = -1;
+			}
+
+			if( loadbmodel->pvs && ( mod_leafs[i].cluster >= loadbmodel->pvs->numclusters ) ) {
+				Com_Printf( S_COLOR_YELLOW "WARNING: leaf cluster > numclusters" );
+				mod_leafs[i].cluster = -1;
+			}
+
+			mod_leafs[i].plane = NULL;
+			mod_leafs[i].area = LittleLong( q3_leafs[i].area );
+			if( mod_leafs[i].area >= loadbmodel->numareas )
+				loadbmodel->numareas = mod_leafs[i].area + 1;
+
+			int numVisSurfaces = 0;
+			int numFragmentSurfaces = 0;
+			int numMarkSurfaces = LittleLong( q3_leafs[i].numleaffaces );
+			if( !numMarkSurfaces ) {
+				// out->cluster = -1;
+				continue;
+			}
+
+			int firstMarkSurface = LittleLong( q3_leafs[i].firstleafface );
+			if( firstMarkSurface < 0 || numMarkSurfaces + firstMarkSurface > numLeafFaces)
+				ri.Com_Error( ERR_DROP, "MOD_LoadBmodel: bad marksurfaces in leaf %i", i );
+
+			numVisSurfaces = numMarkSurfaces;
+			numFragmentSurfaces = numMarkSurfaces;
+
+			uint8_t* buffer = (uint8_t *)Q_CallocAligned( ( ( numVisSurfaces + 1 ) + ( numFragmentSurfaces + 1 ) ), 16, sizeof( msurface_t * ) );
+			Q_LinkToPool( buffer, loadmodel->mempool );
+
+			mod_leafs[i].firstVisSurface = (msurface_t **)buffer;
+			buffer += ( numVisSurfaces + 1 ) * sizeof( msurface_t * );
+
+			mod_leafs[i].firstFragmentSurface = (msurface_t **)buffer;
+			buffer += ( numFragmentSurfaces + 1 ) * sizeof( msurface_t * );
+
+			numVisSurfaces = numFragmentSurfaces = 0;
+			for(size_t j = 0; j < numMarkSurfaces; j++ ) {
+				int k = LittleLong( q3_leaffaces[firstMarkSurface + j] );
+				mod_leafs[i].firstVisSurface[numVisSurfaces++] = loadbmodel->surfaces + k;
+				mod_leafs[i].firstFragmentSurface[numFragmentSurfaces++] = loadbmodel->surfaces + k;
+			}
+		}
+	}
+
 	{
 		mnode_t *const mnodes = Q_CallocAligned( q3_nodes_len, 16, sizeof( *mnodes ) );
 		Q_LinkToPool( mnodes, loadmodel->mempool );
