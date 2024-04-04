@@ -147,6 +147,11 @@ bool UI_RenderInterface::LoadTexture(Rocket::Core::TextureHandle & texture_handl
 		}
 	}
 
+	if ( source2.Find("shader_raw_/") != -1 ) {
+		source2.Erase(0, 12);
+		shader = trap::R_ShaderByName(source2.CString());
+	}
+
 	if( !shader ) {
 		shader = trap::R_RegisterPic( source2.CString() );
 	}
@@ -164,8 +169,6 @@ bool UI_RenderInterface::LoadTexture(Rocket::Core::TextureHandle & texture_handl
 	}
 
 	texture_handle = TextureHandle( shader );
-
-	// Com_Printf( "RenderInterface::LoadTexture %s successful (dimensions %dx%d\n", source.CString(), texture_dimensions.x, texture_dimensions.y );
 
 	return true;
 }
