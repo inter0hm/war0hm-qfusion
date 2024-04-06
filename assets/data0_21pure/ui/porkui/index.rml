@@ -1,76 +1,19 @@
 <rml>
 <head>
 	<title>home</title>
-	<link type="text/template" href="template.rml" />
+	<link type="text/template" href="template_index.rml" />
 	<link type="text/css" rel="stylesheet" href="css/home.rcss" />
+
+	<link rel="stylesheet" type="text/css" href="css/modelview.rcss" />
+
+	<script src="as/modelview.as"></script>
+	<script src="as/model_setup.as"></script>
 	<script>
 		int lastClientState = 0;
 		bool resetBgTrack = false; 
 		const String defaultBackgroundTrack = "sounds/music/menu.m3u";
 
-		void onNewsImageLoad( Element @elem, Event @event )
-		{
-			Element @imageElem = event.getTarget();
-			ElementImage @image = imageElem;
-			if( @image == null ) {
-				return;
-			}
-
-			float pixelRatio = window.pixelRatio;
-
-			int imageWidth = int( image.width * pixelRatio );
-			int imageHeight = int( image.height * pixelRatio );
-			if( ( imageWidth <= 0 ) || ( imageHeight <= 0 ) ) {
-				imageElem.css( 'display', 'none' );
-				return;
-			}
-
-			Element @body = window.document.body;
-			Element @content = body.getElementById( 'content' );
-			Element @news_container = body.getElementById( 'news_container' );
-			int newsWidth = int( news_container.resolveProp( 'width', content.clientWidth() ) - 16.0f * pixelRatio );
-			if( imageWidth > newsWidth ) {
-				float scale = float( newsWidth ) / float( imageWidth );
-				imageWidth = int( float( imageWidth ) * scale );
-				imageHeight = int( float( imageHeight ) * scale );
-			}
-
-			imageElem.css( 'width', imageWidth + 'px' );
-			imageElem.css( 'height', imageHeight + 'px' );
-		}
-
-		void onNewsLoad( Element @elem, Event @event )
-		{
-			if( event.getPhase() != EVENT_PHASE_TARGET ) {
-				return;
-			}
-			if( elem.getAttr( 'src', '' ).empty() ) {
-				return;
-			}
-
-			uint i;
-
-			array<Element @> anchors = elem.getElementsByTagName( 'a' );
-			for( i = 0; i < anchors.length(); i++ ) {
-				Element @anchor = anchors[i];
-				if( anchor.getAttr( 'target', '' ).empty() ) {
-					anchor.setAttr( 'target', '_browser' );
-				}
-
-				if( !window.browserAvailable && ( anchor.getAttr( 'target', '' ) == '_browser' ) ) {
-					anchor.setInnerRML( anchor.getAttr( 'href', '' ) );
-					anchor.setAttr( 'href', '#' );
-					anchor.setAttr( 'target', '' );
-				}
-			}
-
-			if( !window.browserAvailable ) {
-				array<Element @> openInBrowser = elem.getElementsByClassName( 'open-in-browser' );
-				for( i = 0; i < openInBrowser.length(); i++ ) {
-					openInBrowser[i].css( 'display', 'none' );
-				}
-			}
-		}
+		ModelSetup mSetup;
 		
 		void onHomeLoad( Element @body, Event @event )
 		{
@@ -81,31 +24,19 @@
 			onTemplateLoad( body, event );
 				
 			window.setInterval( trackClientState, 100 );
-			
-			Element @news_container = body.getElementById( 'news_container' );
-			Element @content = body.getElementById( 'content' );
-			Element @friends_container = body.getElementById( 'friends_container' );
-			news_container.css( 'height',
-				( content.clientHeight() 
-				- body.getElementById( 'profile_container' ).clientHeight()
-				- int( content.resolveProp( 'padding-top', content.clientHeight() ) )
-				) + 'px'
-			)
-			.css( 'width', 
-				( content.clientWidth() 
-				- friends_container.clientWidth()
-				- int( content.resolveProp( 'padding-left', content.clientWidth() ) )
-				- int( content.resolveProp( 'padding-right', content.clientWidth() ) )
-				) + 'px'
-			);
-			
-			friends_container.css( 'height', news_container.css( 'height' ) );
-
 		}
 
 		void onHomeShow( Element @body, Event @event )
 		{
 			onTemplateShow( body, event );
+
+
+			ModelSetup setup( "model-view", "model-skin", "model-color", "model", "skin", "color", false );
+			ModelView m = setup.InitializeModelSetup( @body );
+			mSetup = setup;
+
+			m.SetYRotationSpeed( @body, "25");
+			m.YRotation(@body, "180");
 		}
 
 		// precache UI pages while the renderer is busy loading textures in background threads
@@ -166,12 +97,81 @@
 </head>
 <body template="porkui" onload="$onHomeLoad" onshow="$onHomeShow" onfirstrender="$onHomeFirstRender" onregisterworldmodel="$onHomeRegisterWorldModel">
 
-<iframe id="profile_container" src="profile.rml" />
+<div id="homeheader">
+	<img id="logo" src="/ui/porkui/gfx/logo.png"/>
+</div>
 
-<div id="news_container"></div>
+<div id="split">
 
-<iframe id="friends_container" src="friends.rml" />
+	<div id="leftcontainer">
+		<div id="profile">
+			<div id="pfp">
+			</div>
+			<div id="profileuser">
+				<div id="profusername">
+					coolelectronics
+				</div>
+				<div id="profclan">
+					:3
+				</div>
+			</div>
+		</div>
 
+		<div class="homenavi">
+
+			<div class="boxtitle">
+				Play
+			</div>
+
+			<a href="#" id="link_game" onclick="$openTutorialDialog">Servers</a>	
+			<a href="#" id="link_game" onclick="$openTutorialDialog">Host Game</a>	
+		</div>
+		
+
+		<div class="homenavi">
+			<a href="options.rml" id="link_options">Options</a>
+			<a href="credits.rml" id="link_credits">Credits</a>
+		</div>
+	
+
+		<div class="homenavi">
+			<a href="#" id="link_quit" onclick="OpenQuitDialog();">Quit</a>
+		</div>
+
+	</div>
+
+	<div id="friends" class="homenavi">
+		<div class="boxtitle">
+			Friends
+		</div>
+		
+	</div>
+
+	<div id="homemodel">
+		<modelview id="model-view" class="model-view model">
+
+		</modelview>
+	</div>
+
+</div>
+<div id="homefooter">
+		<div id="version"> 
+			v2.15
+		</div>
+<a href="https://twitter.com/warforksocial" target="_browser">
+			<img src="/ui/porkui/gfx/x.png" class="social-icon" />
+		</a>
+		<a href="https://warfork.com/discord" target="_browser">
+			<img src="/ui/porkui/gfx/discord.png" class="social-icon" />
+		</a>
+		<a href="https://warfork.com/" target="_browser">
+			<img src="/ui/porkui/gfx/www.png" class="social-icon" />
+		</a>
+
+		<a href="#" onclick="$openConsole">
+			<img src="/ui/porkui/gfx/console.png" class="social-icon" id="console" />
+		</a>
+</div>
 
 </body>
 </rml>

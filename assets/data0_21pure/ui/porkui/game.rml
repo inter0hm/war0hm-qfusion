@@ -252,11 +252,11 @@
 
 
 			<a id="link-chasecam" href="chasecam.rml" class="styled-button">Chasecam</a>
+			<img src="avatar-76561199071513456" width="32" height="32"></img>
 
 			<br/>
 			<a id="link-players" href="blocklist.rml" class="styled-button">Players</a>
-			<a id="link-main" href="index.rml" class="styled-button">Main menu</a>
-			<button id="btn-return" command="" onclick="$onCmdButtonClick">Return to game</button>
+			<a id="link-main" href="options.rml" class="styled-button">Options</a>
 		</div>
 	</div>
 </body>

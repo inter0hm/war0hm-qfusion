@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "ftlib.h"
 #include "../qcommon/asyncstream.h"
 #include "../qalgo/hash.h"
+#include <stdint.h>
 #include <stdlib.h>
 
 cvar_t *cl_stereo_separation;
@@ -2248,8 +2249,9 @@ static void CL_InitLocal( void )
 	steam_id = Cvar_Get( "steam_id", "", CVAR_USERINFO|CVAR_READONLY);
 
 	if (Steam_Active()){
+		uint64_t steamid = Steam_GetSteamID();
 		char id[18];
-		Q_snprintfz(id, sizeof id, "%llu", Steam_GetSteamID());
+		Q_snprintfz(id, sizeof id, "%llu", steamid);
 		Cvar_ForceSet(steam_id->name, id);
 	}
 
@@ -3197,6 +3199,12 @@ void CL_Init( void )
 
 	VID_Init();
 
+	if (Steam_Active()) {
+		uint8_t *avatar = Steam_RequestAvatarBlocking(Steam_GetSteamID(), 2);
+		re.RegisterRawPic("avatar", 32, 32, avatar, 4);
+	}
+	
+
 	CL_ClearState();
 
 	// IPv4
@@ -3225,7 +3233,7 @@ void CL_Init( void )
 
 	CL_InitMedia();
 
-    CL_InitDiscord();
+  CL_InitDiscord();
 	CL_UIModule_ForceMenuOn();
 
 	// check for update

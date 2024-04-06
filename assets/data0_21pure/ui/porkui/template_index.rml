@@ -10,50 +10,16 @@
 	<script src="as/animations.as" />
 	<script src="as/tutorial.as" />
 	<script>
-		/* navigation panel */
-		Element @navi = null;
 
 		void onTemplateLoad( Element @body, Event @ev )
 		{
-			if( ev.getPhase() != EVENT_PHASE_TARGET ) {
-				// some idiv loading
-				return;
-			}
 
-			/* set content div height */
-			Element @content = body.getElementById( 'content' );
-			
-			if( @content != null ) {
-				int contentHeight = window.height 
-					- int( body.getElementById( 'footer' ).clientHeight() )
-					- int( content.resolveProp( 'padding-top', 0.0 ) )
-					- int( content.resolveProp( 'padding-bottom', 0.0 ) )
-					- int( content.resolveProp( 'top', 0.0 ) );
-
-				content.css( 'height', String( contentHeight ) + 'px' );
-
-				int max_width = int( 1024 * window.pixelRatio );
-				if( window.width > max_width ) {
-					int padding = (window.width - max_width) / 2;
-					content.css( 'padding-left', String ( padding ) );
-					content.css( 'padding-right', String ( padding ) );
-				}
-			}
-			
-		body.getElementById( 'version_str' ).setInnerRML( "Warfork (Steam Release)" );
-
-			/* grab the navigation panel */
-			@navi = body.getElementById( 'navi' );
 		}
 
 		void onTemplateShow( Element @body, Event @ev )
 		{
 			ElementDocument @document = body.ownerDocument;
 
-			/* set active page */
-			if( document.title.length() > 0 ) {
-				setActivePage( document.title );
-			}
 
 			/* make the background invisible if the engine says so */
 			Element @background = body.getElementById( 'background-map' );
@@ -69,33 +35,6 @@
 			NotificationPopup( 'notification', text, 500, isError ? "error" : "ok" );
 		}
 
-		/* active page is one of home, join, local, options and demos */
-		void setActivePage( const String @id )
-		{
-			Element @elem;
-
-			if( @navi == null ) {
-				// Com_Printf("^4Warning: setActivePage, @navi is null\n");
-				return;
-			}
-
-			/* disable active pages */
-			String activeId = 'link_' + id;
-
-			uint numChildren = navi.getNumChildren();
-			for( uint i = 0; i < numChildren; i++ ) {
-				Element @child = navi.getChild( i );
-				if( child.id == activeId ) {
-					child.setAttr( 'href', '#' ); // anchor to self
-					child.togglePseudo( 'active', true );
-					child.setAttr( 'current', '1' );
-				}
-				else {
-					child.togglePseudo( 'active', false );
-					child.setAttr( 'current', '0' );
-				}
-			}
-		}
 
 		void openConsole( Element @self, Event @ev )
 		{
@@ -182,47 +121,17 @@
 
 	<div id="background-overlay" />
 
-	<div id="header">
-	</div>
 	
 	<!-- Main navigation bar -->
-	<div id="navi">
-		<a href="#" id="link_game" onclick="$openTutorialDialog">Play</a>	
-		<!-- <a href="chat.rml" id="link_chat">Chat</a> -->		
-		<a href="options.rml" id="link_options">Options</a>
-		<a href="#" id="link_quit" onclick="OpenQuitDialog();">Quit</a>
-	</div>
 	
 	<!-- Saved- dialog -->
 	<div id="notification">
 	</div>		
 
 	<!-- Content -->
-	<div id="content">
+	<div id="content2">
 	</div>
 
-	<!-- Footer -->
-	<div id="footer">
-		<hr class="w100p nicehr" />
-		<span id="version_str"></span>
-	</div>
-	
-	<div id="social-links"> 
-		<a href="https://twitter.com/warforksocial" target="_browser">
-			<img src="/ui/porkui/gfx/x.png" class="social-icon" />
-		</a>
-		<a href="https://warfork.com/discord" target="_browser">
-			<img src="/ui/porkui/gfx/discord.png" class="social-icon" />
-		</a>
-		<a href="https://warfork.com/" target="_browser">
-			<img src="/ui/porkui/gfx/www.png" class="social-icon" />
-		</a>
-		<a href="#" onclick="$openConsole">
-			<img src="/ui/porkui/gfx/console.png" class="social-icon" id="console" />
-		</a>
-	</div>
-
-	<div id="header-bottom" />
 
 </body>
 </template>
