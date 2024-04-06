@@ -1,7 +1,7 @@
 <rml>
 <head>
 	<title>home</title>
-	<link type="text/template" href="template_index.rml" />
+	<link type="text/template" href="template.rml" />
 	<link type="text/css" rel="stylesheet" href="css/home.rcss" />
 
 	<link rel="stylesheet" type="text/css" href="css/modelview.rcss" />
@@ -37,6 +37,9 @@
 
 			m.SetYRotationSpeed( @body, "25");
 			m.YRotation(@body, "180");
+
+			body.getElementById("profusername").getChild(0).setAttr("value", game.cvar("name"));
+			body.getElementById("profclan").getChild(0).setAttr("value", game.cvar("clan"));
 		}
 
 		// precache UI pages while the renderer is busy loading textures in background threads
@@ -109,10 +112,10 @@
 			</div>
 			<div id="profileuser">
 				<div id="profusername">
-					coolelectronics
+					<field formatter="colorcode" />
 				</div>
 				<div id="profclan">
-					:3
+					<field formatter="colorcode" />
 				</div>
 			</div>
 		</div>
@@ -124,13 +127,12 @@
 			</div>
 
 			<a href="#" id="link_game" onclick="$openTutorialDialog">Servers</a>	
-			<a href="#" id="link_game" onclick="$openTutorialDialog">Host Game</a>	
+			<a href="game_quick.rml">Host Game</a>	
 		</div>
 		
 
 		<div class="homenavi">
 			<a href="options.rml" id="link_options">Options</a>
-			<a href="credits.rml" id="link_credits">Credits</a>
 		</div>
 	
 
@@ -140,25 +142,26 @@
 
 	</div>
 
-	<div id="friends" class="homenavi">
-		<div class="boxtitle">
-			Friends
-		</div>
-		
-	</div>
-
 	<div id="homemodel">
 		<modelview id="model-view" class="model-view model">
 
 		</modelview>
 	</div>
 
+	<div id="friends" class="homenavi">
+		<div class="boxtitle">
+			Friends
+		</div>
+		
+	</div>
 </div>
+
 <div id="homefooter">
 		<div id="version"> 
 			v2.15
+			<a href="credits.rml">Credits</a>
 		</div>
-<a href="https://twitter.com/warforksocial" target="_browser">
+		<a href="https://twitter.com/warforksocial" target="_browser">
 			<img src="/ui/porkui/gfx/x.png" class="social-icon" />
 		</a>
 		<a href="https://warfork.com/discord" target="_browser">
@@ -167,11 +170,11 @@
 		<a href="https://warfork.com/" target="_browser">
 			<img src="/ui/porkui/gfx/www.png" class="social-icon" />
 		</a>
-
 		<a href="#" onclick="$openConsole">
 			<img src="/ui/porkui/gfx/console.png" class="social-icon" id="console" />
 		</a>
 </div>
+
 
 </body>
 </rml>
