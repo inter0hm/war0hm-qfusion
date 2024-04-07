@@ -108,8 +108,7 @@
 
 	<div id="leftcontainer">
 		<div id="profile">
-			<div id="pfp">
-			</div>
+			<img id="pfp" src="/shader_raw_/avatar64" />
 			<div id="profileuser">
 				<div id="profusername">
 					<field formatter="colorcode" />

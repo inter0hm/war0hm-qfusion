@@ -3200,8 +3200,8 @@ void CL_Init( void )
 	VID_Init();
 
 	if (Steam_Active()) {
-		uint8_t *avatar = Steam_RequestAvatarBlocking(Steam_GetSteamID(), 2);
-		re.RegisterRawPic("avatar", 32, 32, avatar, 4);
+		uint8_t *avatar = Steam_RequestAvatarBlocking(Steam_GetSteamID(), 1);
+		re.RegisterRawPic("avatar64", 64, 64, avatar, 4);
 	}
 	
 

@@ -70,10 +70,6 @@
 	background: #99ccff;
 
 	sound-click: /sounds/menu/ok.wav;
-	ninep-decorator: ninepatch;
-	ninep-src: /shader_raw_/avatar;
-	ninep-coords: 0.125 0.125 0.125 0.125;
-	ninep-size: 4dp 4dp 4dp 4dp;
 	tab-index: auto;
 }
 
