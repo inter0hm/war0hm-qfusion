@@ -50,6 +50,7 @@ class DatetimeFormatter;
 class DurationFormatter;
 class FiletypeFormatter;
 class ColorCodeFormatter;
+class ShaderFormatter;
 class EmptyFormatter;
 class ServerFlagsFormatter;
 
@@ -193,6 +194,7 @@ private:
 	DurationFormatter *duration_fmt;
 	FiletypeFormatter *filetype_fmt;
 	ColorCodeFormatter *colorcode_fmt;
+	ShaderFormatter *shader_fmt;
 	EmptyFormatter *empty_fmt;
 	ServerFlagsFormatter *serverflags_fmt;
 

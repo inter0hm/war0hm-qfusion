@@ -40,7 +40,6 @@
 .boxtitle {  
 	color: #fff;
 	background: #000000a0;
-	width: 100%;
 	font-size: 30dp;
 	text-align: center;
 }
@@ -96,6 +95,17 @@
 	right: 0dp;
 	width: 30%;
 	height: 100%;
+	overflow-y: hidden;
+	overflow-x: hidden;
+
+}
+#friends_container {
+
+	/* HACK */
+	width: 99.9%;
+
+	height: 95%;
+	overflow-y: scroll;
 }
 
 
@@ -123,3 +133,38 @@
 	background: #000000a0;
 }
 
+#modalframe {
+	position: fixed;
+	top: 25%;
+	left: 25%;
+	width: 50%;
+	height: 50%;
+	background: #000000a0;
+}
+
+#friends_datagrid {
+	padding: 15dp;
+}
+
+#friends_datagrid datagridheader { height: 0px; }
+#friends_datagrid datagridrow { 
+	margin-bottom: 10dp;
+	height: 64px;
+	position: relative;
+}
+#friends_datagrid datagridrow span {
+	font-size: 20dp;
+	position: fixed;
+	bottom: 32px;
+	padding-left: 10dp;
+}
+#friends_datagrid datagridrow:hover { background: #3f3c49; }
+#friends_datagrid datagridrow:selected  { background: #3f3c49; }
+#friends_datagrid datagridcolumn:hover { background: #3f3c49; }
+
+
+
+.shaderimg {
+	width: 64px;
+	height: 64px;
+}

@@ -35,6 +35,7 @@
 #include "formatters/ui_duration_formatter.h"
 #include "formatters/ui_filetype_formatter.h"
 #include "formatters/ui_colorcode_formatter.h"
+#include "formatters/ui_shader_formatter.h"
 #include "formatters/ui_empty_formatter.h"
 #include "formatters/ui_serverflags_formatter.h"
 
@@ -49,7 +50,7 @@ UI_Main::UI_Main( int vidWidth, int vidHeight, float pixelRatio,
 	int protocol, const char *demoExtension, const char *basePath )
 	// pointers to zero
 	: asmodule(nullptr), rocketModule(nullptr),
-	levelshot_fmt(0), datetime_fmt(0), duration_fmt(0), filetype_fmt(0), colorcode_fmt(0), 
+	levelshot_fmt(0), datetime_fmt(0), duration_fmt(0), filetype_fmt(0), colorcode_fmt(0), shader_fmt(0),
 	empty_fmt(0), serverflags_fmt(0),
 	serverBrowser(0), gameTypes(0), maps(0), vidProfiles(0), huds(0), videoModes(0), 
 	demos(0), mods(0), 
@@ -423,6 +424,7 @@ void UI_Main::createFormatters( void )
 	duration_fmt = __new__( DurationFormatter )();
 	filetype_fmt = __new__( FiletypeFormatter )();
 	colorcode_fmt = __new__( ColorCodeFormatter )();
+	shader_fmt = __new__( ShaderFormatter )();
 	empty_fmt = __new__( EmptyFormatter )();
 	serverflags_fmt = __new__( ServerFlagsFormatter )();
 }

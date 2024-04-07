@@ -101,14 +101,16 @@ static SteamshimEvent* ProcessEvent(){
                     SteamFriend *sfriend = new SteamFriend();
                     sfriend->steamID = buf.ReadLong();
                     sfriend->relationship = buf.ReadInt();
-                    sfriend->personaName = buf.ReadString();
+                    sfriend->personaState = buf.ReadInt();
+                    sfriend->personaName = strdup(buf.ReadString());
+                    sfriend->playingGameID = buf.ReadInt();
                     sfriend->numRpcKeys = buf.ReadInt();
 
                     char **keys = new char*[sfriend->numRpcKeys];
                     char **vals = new char*[sfriend->numRpcKeys];
                     for (int j=0; j < sfriend->numRpcKeys; j++){
-                        keys[j] = buf.ReadString();
-                        vals[j] = buf.ReadString();
+                        keys[j] = strdup(buf.ReadString());
+                        vals[j] = strdup(buf.ReadString());
                     }
                     sfriend->rpcKeys = keys;
                     sfriend->rpcValues = vals;
@@ -235,7 +237,7 @@ extern "C" {
 
   const SteamshimEvent *STEAMSHIM_pump(void)
   {
-    Write1ByteMessage(CMD_PUMP);
+    // Write1ByteMessage(CMD_PUMP);
     return ProcessEvent();
   } 
 
@@ -323,6 +325,9 @@ extern "C" {
   }
 
   void STEAMSHIM_requestFriendsInfo(){
-    Write1ByteMessage(CMD_CL_REQUESTFRIENDSINFO);
+    PipeBuffer buf;
+    buf.WriteByte(CMD_CL_REQUESTFRIENDSINFO);
+    buf.WriteInt(0x04); // k_EFriendFlagImmediate
+    buf.Transmit();
   }
 }

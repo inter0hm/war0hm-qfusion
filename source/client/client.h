@@ -691,4 +691,4 @@ uint8_t *Steam_RequestAvatarBlocking(uint64_t steamid, int size);
 void CL_Steam_RunFrame( void );
 void Steam_OpenProfile( uint64_t steamid );
 void Steam_UpdateFriendsInfo();
-bool Steam_GetFriend(size_t index, char *name_out, uint64_t *steamid_out, uint8_t **avatar_out);
+bool Steam_GetFriend(size_t index, char *name_out, uint64_t *steamid_out, uint8_t **avatar_out, int *personastate_out, int *playingGameid_out);

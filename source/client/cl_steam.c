@@ -140,11 +140,19 @@ void Steam_UpdateFriendsInfo() {
 	}
 
 	for (int i = 0; i < numFriends; i++) {
-		friends[i].avatar = Steam_RequestAvatarBlocking(evt->cl_friendsinforecieved.friends[i]->steamID, 1);
+		uint8_t *avatar = malloc(128 * 128 * 4);
+		// static buffer, will be overwritten
+		memcpy(avatar, Steam_RequestAvatarBlocking(friends[i].info->steamID, 1), 128 * 128 * 4);
+
+		for (int j = 0; j < friends[i].info->numRpcKeys; j++) {
+			printf("rpc key: %s\n", friends[i].info->rpcKeys[j]);
+			printf("rpc value: %s\n", friends[i].info->rpcValues[j]);
+		}
+		friends[i].avatar = avatar;
 	}
 }
 
-bool Steam_GetFriend(size_t index, char *name_out, uint64_t *steamid_out, uint8_t **avatar_out) {
+bool Steam_GetFriend(size_t index, char *name_out, uint64_t *steamid_out, uint8_t **avatar_out, int *personastate_out, int *playingGameid_out) {
 	if (index >= numFriends) {
 		return false;
 	}
@@ -154,5 +162,9 @@ bool Steam_GetFriend(size_t index, char *name_out, uint64_t *steamid_out, uint8_
 		*steamid_out = friends[index].info->steamID;
 	if (avatar_out)
 		*avatar_out = friends[index].avatar;
+	if (personastate_out)
+		*personastate_out = friends[index].info->personaState;
+	if (playingGameid_out)
+		*playingGameid_out = friends[index].info->playingGameID;
 	return true;
 }

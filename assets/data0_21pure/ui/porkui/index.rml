@@ -105,6 +105,17 @@
 			}
 			return true;
 		}		
+
+	void onSteamFriendsRowAdd( Element @self, Event @ev )
+	{
+		ElementDataGrid @grid = @self; // implicit cast to ElementDataGrid
+		if( @grid == null ) {
+			// not a datagrid
+			return;
+		}
+
+	}
+
 	</script>
 </head>
 <body template="porkui" onload="$onHomeLoad" onshow="$onHomeShow" onfirstrender="$onHomeFirstRender" onregisterworldmodel="$onHomeRegisterWorldModel">
@@ -161,9 +172,13 @@
 			Friends
 		</div>
 		
-		<datagrid id="friends_datagrid" source="" onrowselect="$onBlockedRowSelect">
-			<col fields="name" width="150dp"></col>
-		</datagrid>
+		<div id="friends_container">
+			<datagrid id="friends_datagrid" source="" onrowadd="$onSteamFriendsRowAdd" onrowselect="$onBlockedRowSelect">
+				<col fields="avatar" formatter="shader" width="64px"></col>
+				<col fields="name" formatter="colorcode" width="0px"></col>
+				<col fields="state"></col>
+			</datagrid>
+		</div>
 	</div>
 </div>
 

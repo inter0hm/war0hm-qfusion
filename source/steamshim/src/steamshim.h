@@ -70,6 +70,8 @@ typedef int Event_sv_authsessionvalidated_t;
 typedef struct {
     uint64_t steamID;
     int relationship;
+    int personaState;
+    int playingGameID;
     char *personaName;
 
     int numRpcKeys;

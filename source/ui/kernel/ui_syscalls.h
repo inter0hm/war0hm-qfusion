@@ -469,8 +469,8 @@ namespace trap
 			return UI_IMPORT.GetBlocklistItem( index, steamid_out, name, name_len_in_out );
 		}
 
-		inline bool Steam_GetFriend( size_t index, char *name_out, uint64_t *steamid_out, uint8_t **avatar_out ) {
-			return UI_IMPORT.Steam_GetFriend( index, name_out, steamid_out, avatar_out );
+		inline bool Steam_GetFriend( size_t index, char *name_out, uint64_t *steamid_out, uint8_t **avatar_out, int *personastate_out, int *playingGameid_out ) {
+			return UI_IMPORT.Steam_GetFriend( index, name_out, steamid_out, avatar_out, personastate_out, playingGameid_out );
 		}
 }
 

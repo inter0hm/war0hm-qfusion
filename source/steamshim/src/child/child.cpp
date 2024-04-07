@@ -212,8 +212,17 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
                     msg.WriteLong(id.ConvertToUint64());
                     int relationship = SteamFriends()->GetFriendRelationship(id);
                     msg.WriteInt(relationship);
+                    int state = SteamFriends()->GetFriendPersonaState(id);
+                    msg.WriteInt(state);
                     const char *name = SteamFriends()->GetFriendPersonaName(id);
                     msg.WriteString(name);
+                    
+                    FriendGameInfo_t *pFriendGameInfo;
+                    if (SteamFriends()->GetFriendGamePlayed(id, pFriendGameInfo)){
+                        msg.WriteInt(pFriendGameInfo->m_gameID.AppID());
+                    } else {
+                        msg.WriteInt(0);
+                    }
                     
                     int rpkeycount = SteamFriends()->GetFriendRichPresenceKeyCount(id);
                     msg.WriteInt(rpkeycount);
