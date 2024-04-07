@@ -21,8 +21,9 @@ freely, subject to the following restrictions:
 #include "steam/isteamuser.h"
 #include "steam/steam_api.h"
 #include "steam/steam_gameserver.h"
+#include "../steamshim.h"
 
-void TransmitAvatar(uint64 id);
+void TransmitAvatar(uint64 id, SteamAvatarSize size);
 class SteamCallbacks
 {
 public:

@@ -256,7 +256,7 @@ extern "C" {
       buf.Transmit();
   }
 
-  void STEAMSHIM_requestAvatar(uint64_t steamid, int size){
+  void STEAMSHIM_requestAvatar(uint64_t steamid, SteamAvatarSize size){
     PipeBuffer buf;
     buf.WriteByte(CMD_CL_REQUESTAVATAR);
     buf.WriteLong(steamid);
