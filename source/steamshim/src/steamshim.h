@@ -41,6 +41,8 @@ typedef enum eventtype
     EVT_CL_GAMEJOINREQUESTED,
     EVT_CL_SERVERRECIEVED,
 
+    EVT_CL_FRIENDSINFORECIEVED,
+
     EVT_SV_AUTHSESSIONVALIDATED,
 } SteamshimEventType;
 
@@ -65,6 +67,23 @@ typedef struct Event_cl_serverrecieved {
 typedef int Event_sv_authsessionvalidated_t;
 
 
+typedef struct {
+    uint64_t steamID;
+    int relationship;
+    char *personaName;
+
+    int numRpcKeys;
+    char **rpcKeys;
+    char **rpcValues;
+} SteamFriend;
+
+typedef struct Event_cl_friendsinforecieved {
+    int numFriends;
+    // max possible number of friends
+    SteamFriend *friends[2000];
+
+} Event_cl_friendsinforecieved_t;
+
 typedef struct SteamshimEvent {
     SteamshimEventType type;
     union {
@@ -76,6 +95,7 @@ typedef struct SteamshimEvent {
         Event_cl_gamejoinrequested_t cl_gamejoinrequested;
         Event_cl_serverrecieved_t cl_serverrecieved;
         Event_sv_authsessionvalidated_t sv_authsessionvalidated;
+        Event_cl_friendsinforecieved_t cl_friendsinforecieved;
     };
 } SteamshimEvent;
 

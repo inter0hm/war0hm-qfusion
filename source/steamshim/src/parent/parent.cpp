@@ -93,6 +93,29 @@ static SteamshimEvent* ProcessEvent(){
                 event.cl_commandlinerecieved = string;
             }
             break;
+        case EVT_CL_FRIENDSINFORECIEVED:
+            {
+                int count = buf.ReadInt();
+                event.cl_friendsinforecieved.numFriends = count;
+                for (int i=0; i < count; i++){
+                    SteamFriend *sfriend = new SteamFriend();
+                    sfriend->steamID = buf.ReadLong();
+                    sfriend->relationship = buf.ReadInt();
+                    sfriend->personaName = buf.ReadString();
+                    sfriend->numRpcKeys = buf.ReadInt();
+
+                    char **keys = new char*[sfriend->numRpcKeys];
+                    char **vals = new char*[sfriend->numRpcKeys];
+                    for (int j=0; j < sfriend->numRpcKeys; j++){
+                        keys[j] = buf.ReadString();
+                        vals[j] = buf.ReadString();
+                    }
+                    sfriend->rpcKeys = keys;
+                    sfriend->rpcValues = vals;
+                    event.cl_friendsinforecieved.friends[i] = sfriend;
+                }
+            }
+            break;
     }
 
     return &event;
@@ -293,5 +316,13 @@ extern "C" {
     buf.WriteString(info->region);
     buf.WriteString(info->servername);
     buf.Transmit();
+  }
+
+  void STEAMSHIM_requestServers(){
+    Write1ByteMessage(CMD_CL_REQUESTSERVERS);
+  }
+
+  void STEAMSHIM_requestFriendsInfo(){
+    Write1ByteMessage(CMD_CL_REQUESTFRIENDSINFO);
   }
 }

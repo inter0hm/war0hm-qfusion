@@ -201,6 +201,32 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
                 GServerBrowser->RefreshInternetServers();
             }
             break;
+        case CMD_CL_REQUESTFRIENDSINFO:
+            {
+                int flag = cmd.ReadInt();
+                int count = SteamFriends()->GetFriendCount(flag);
+                msg.WriteByte(EVT_CL_FRIENDSINFORECIEVED);
+                msg.WriteInt(count);
+                for (int i=0; i < count; i++){
+                    CSteamID id = SteamFriends()->GetFriendByIndex(i, flag);
+                    msg.WriteLong(id.ConvertToUint64());
+                    int relationship = SteamFriends()->GetFriendRelationship(id);
+                    msg.WriteInt(relationship);
+                    const char *name = SteamFriends()->GetFriendPersonaName(id);
+                    msg.WriteString(name);
+                    
+                    int rpkeycount = SteamFriends()->GetFriendRichPresenceKeyCount(id);
+                    msg.WriteInt(rpkeycount);
+                    for (int j=0; j < rpkeycount; j++){
+                        const char *key = SteamFriends()->GetFriendRichPresenceKeyByIndex(id, j);
+                        const char *val = SteamFriends()->GetFriendRichPresence(id, key);
+                        msg.WriteString(key);
+                        msg.WriteString(val);
+                    }
+                }
+                msg.Transmit();
+            }
+            break;
     } // switch
 
     return true;

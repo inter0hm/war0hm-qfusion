@@ -124,3 +124,29 @@ void Steam_AdvertiseGame( const uint8_t *ip, unsigned short port )
 	}
 	Steam_SetRichPresence(1, keys, values);
 }
+
+static int numFriends = 0;
+struct {
+	uint8_t *avatar;
+	SteamFriend *info;
+} friends[2000];
+
+void Steam_UpdateFriendsInfo() {
+	STEAMSHIM_requestFriendsInfo();
+	const SteamshimEvent *evt = blockOnEvent(EVT_CL_FRIENDSINFORECIEVED);
+	numFriends = evt->cl_friendsinforecieved.numFriends;
+	for (int i = 0; i < numFriends; i++) {
+		friends[i].info = evt->cl_friendsinforecieved.friends[i];
+		friends[i].avatar = Steam_RequestAvatarBlocking(evt->cl_friendsinforecieved.friends[i]->steamID, 1);
+	}
+}
+
+bool Steam_GetFriend(size_t index, char *name_out, uint64_t *steamid_out, uint8_t **avatar_out) {
+	if (index >= numFriends) {
+		return false;
+	}
+	*name_out = *friends[index].info->personaName;
+	*steamid_out = friends[index].info->steamID;
+	*avatar_out = friends[index].avatar;
+	return true;
+}
