@@ -69,7 +69,7 @@ class ModelSetup
 	}
 	
 	// this must be called after constructor
-	void InitializeModelSetup( Element @elem )
+	ModelView InitializeModelSetup( Element @elem )
 	{
 		String model = cModel.string;
 		
@@ -100,6 +100,7 @@ class ModelSetup
 		Reset( @elem );	
 
 		SetColor( @elem );
+		return m;
 	}
 	
 	String getCurrentModel( void )
