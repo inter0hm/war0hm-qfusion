@@ -79,6 +79,12 @@ typedef struct SteamshimEvent {
     };
 } SteamshimEvent;
 
+typedef enum {
+    AVATAR_SMALL,
+    AVATAR_MEDIUM,
+    AVATAR_LARGE,
+} SteamAvatarSize;
+
 #ifdef __cplusplus
 }
 #endif

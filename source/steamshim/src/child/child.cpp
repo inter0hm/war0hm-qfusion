@@ -128,9 +128,10 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
         case CMD_CL_REQUESTAVATAR:
             {
                 uint64 id = cmd.ReadLong();
+                SteamAvatarSize size = (SteamAvatarSize)cmd.ReadInt();
 
                 if (!SteamFriends()->RequestUserInformation(id, false)){
-                    TransmitAvatar(id);
+                    TransmitAvatar(id, size);
                 }
             }
             break;
