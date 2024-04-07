@@ -13,6 +13,8 @@
 		bool resetBgTrack = false; 
 		const String defaultBackgroundTrack = "sounds/music/menu.m3u";
 
+
+		Element @friendsDatagrid;
 		ModelSetup mSetup;
 		
 		void onHomeLoad( Element @body, Event @event )
@@ -22,6 +24,11 @@
 			}
 
 			onTemplateLoad( body, event );
+
+
+			@friendsDatagrid = body.getElementById( 'friends_datagrid' );
+
+			cast<ElementDataGrid>(friendsDatagrid).setDataSource( 'steamfriends.any' );
 				
 			window.setInterval( trackClientState, 100 );
 		}
@@ -40,6 +47,7 @@
 
 			body.getElementById("profusername").getChild(0).setAttr("value", game.cvar("name"));
 			body.getElementById("profclan").getChild(0).setAttr("value", game.cvar("clan"));
+
 		}
 
 		// precache UI pages while the renderer is busy loading textures in background threads
@@ -90,6 +98,7 @@
 
 		bool trackClientState()
 		{
+
 			if( game.clientState != lastClientState ) {
 				resetBgTrack = lastClientState != 0; // restart the bg music if the client's state has changed
 				lastClientState = game.clientState;
@@ -152,6 +161,9 @@
 			Friends
 		</div>
 		
+		<datagrid id="friends_datagrid" source="" onrowselect="$onBlockedRowSelect">
+			<col fields="name" width="150dp"></col>
+		</datagrid>
 	</div>
 </div>
 

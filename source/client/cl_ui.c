@@ -311,6 +311,7 @@ void CL_UIModule_Init( void )
 
 	import.Steam_OpenProfile = &Steam_OpenProfile;
 	import.GetBlocklistItem = CL_GameModule_GetBlocklistItem;
+	import.Steam_GetFriend = Steam_GetFriend;
 
 
 #ifndef UI_HARD_LINKED

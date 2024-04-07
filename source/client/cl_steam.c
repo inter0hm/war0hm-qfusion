@@ -137,6 +137,9 @@ void Steam_UpdateFriendsInfo() {
 	numFriends = evt->cl_friendsinforecieved.numFriends;
 	for (int i = 0; i < numFriends; i++) {
 		friends[i].info = evt->cl_friendsinforecieved.friends[i];
+	}
+
+	for (int i = 0; i < numFriends; i++) {
 		friends[i].avatar = Steam_RequestAvatarBlocking(evt->cl_friendsinforecieved.friends[i]->steamID, 1);
 	}
 }
@@ -145,8 +148,11 @@ bool Steam_GetFriend(size_t index, char *name_out, uint64_t *steamid_out, uint8_
 	if (index >= numFriends) {
 		return false;
 	}
-	*name_out = *friends[index].info->personaName;
-	*steamid_out = friends[index].info->steamID;
-	*avatar_out = friends[index].avatar;
+	if (name_out)
+		strcpy(name_out, friends[index].info->personaName);
+	if (steamid_out)
+		*steamid_out = friends[index].info->steamID;
+	if (avatar_out)
+		*avatar_out = friends[index].avatar;
 	return true;
 }

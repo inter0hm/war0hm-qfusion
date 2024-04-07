@@ -3202,6 +3202,7 @@ void CL_Init( void )
 	if (Steam_Active()) {
 		uint8_t *avatar = Steam_RequestAvatarBlocking(Steam_GetSteamID(), 1);
 		re.RegisterRawPic("avatar64", 64, 64, avatar, 4);
+		Steam_UpdateFriendsInfo();
 	}
 	
 

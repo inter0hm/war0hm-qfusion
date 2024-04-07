@@ -5,7 +5,6 @@
  *      Author: hc
  */
 
-#include "datasources/ui_blockedplayers_datasource.h"
 #include "ui_precompiled.h"
 #include "kernel/ui_common.h"
 #include "kernel/ui_main.h"
@@ -28,6 +27,8 @@
 #include "datasources/ui_serverbrowser_datasource.h"
 #include "datasources/ui_tvchannels_datasource.h"
 #include "datasources/ui_gameajax_datasource.h"
+#include "datasources/ui_blockedplayers_datasource.h"
+#include "datasources/ui_friends_datasource.h"
 
 #include "formatters/ui_levelshot_formatter.h"
 #include "formatters/ui_datetime_formatter.h"
@@ -52,7 +53,7 @@ UI_Main::UI_Main( int vidWidth, int vidHeight, float pixelRatio,
 	empty_fmt(0), serverflags_fmt(0),
 	serverBrowser(0), gameTypes(0), maps(0), vidProfiles(0), huds(0), videoModes(0), 
 	demos(0), mods(0), 
-	playerModels(0), tvchannels(0), gameajax(0), blockedplayers(0),
+	playerModels(0), tvchannels(0), gameajax(0), blockedplayers(0), friends(0),
 
 	// other members
 	quickMenuURL(""),
@@ -393,6 +394,7 @@ void UI_Main::createDataSources( void )
 	tvchannels = __new__( TVChannelsDataSource )();
 	gameajax = __new__( GameAjaxDataSource )();
 	blockedplayers = __new__( BlockedPlayersDataSource )();
+	friends = __new__( FriendsDataSource )();
 	playerModels = __new__( ModelsDataSource )();
 	vidProfiles = __new__( ProfilesDataSource )();
 }
@@ -409,6 +411,7 @@ void UI_Main::destroyDataSources( void )
 	__SAFE_DELETE_NULLIFY( tvchannels );
 	__SAFE_DELETE_NULLIFY( gameajax );
 	__SAFE_DELETE_NULLIFY( blockedplayers );
+	__SAFE_DELETE_NULLIFY( friends );
 	__SAFE_DELETE_NULLIFY( playerModels );
 	__SAFE_DELETE_NULLIFY( vidProfiles );
 }

@@ -43,6 +43,7 @@ class ModelsDataSource;
 class TVChannelsDataSource;
 class GameAjaxDataSource;
 class BlockedPlayersDataSource;
+class FriendsDataSource;
 
 class LevelShotFormatter;
 class DatetimeFormatter;
@@ -207,6 +208,7 @@ private:
 	TVChannelsDataSource *tvchannels;
 	GameAjaxDataSource *gameajax;
 	BlockedPlayersDataSource *blockedplayers;
+	FriendsDataSource *friends;
 
 	UI_Navigation navigations[UI_NUM_CONTEXTS];
 	Rocket::Core::String quickMenuURL;

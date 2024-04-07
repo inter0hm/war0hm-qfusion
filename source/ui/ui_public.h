@@ -191,6 +191,7 @@ typedef struct
 	// steam
 	void *( *Steam_OpenProfile )( uint64_t steamid );
 	bool ( *GetBlocklistItem )( size_t index, uint64_t* steamid_out, char* name, size_t* name_len_in_out );
+	bool ( *Steam_GetFriend )(size_t index, char *name_out, uint64_t *steamid_out, uint8_t **avatar_out);
 } ui_import_t;
 
 typedef struct
