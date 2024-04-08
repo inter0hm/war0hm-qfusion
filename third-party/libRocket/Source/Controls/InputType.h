@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,14 +26,13 @@
  *
  */
 
-#ifndef ROCKETCONTROLSINPUTTYPE_H
-#define ROCKETCONTROLSINPUTTYPE_H
+#ifndef RMLUICONTROLSINPUTTYPE_H
+#define RMLUICONTROLSINPUTTYPE_H
 
-#include "../../Include/Rocket/Core/String.h"
-#include "../../Include/Rocket/Core/Event.h"
-#include "../../Include/Rocket/Core/Types.h"
+#include "../../Include/RmlUi/Core/Event.h"
+#include "../../Include/RmlUi/Core/Types.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 class ElementFormControlInput;
@@ -52,7 +52,7 @@ public:
 
 	/// Returns a string representation of the current value of the form control.
 	/// @return The value of the form control.
-	virtual Rocket::Core::String GetValue() const;
+	virtual Rml::Core::String GetValue() const;
 	/// Returns if this value should be submitted with the form.
 	/// @return True if the form control is to be submitted, false otherwise.
 	virtual bool IsSubmitted();
@@ -63,13 +63,16 @@ public:
 	/// Called every render from the host element.
 	virtual void OnRender();
 
+	/// Called every time the host element's size changes.
+	virtual void OnResize();
+
 	/// Checks for necessary functional changes in the control as a result of changed attributes.
 	/// @param[in] changed_attributes The list of changed attributes.
 	/// @return True if no layout is required, false if the layout needs to be dirtied.
-	virtual bool OnAttributeChange(const Core::AttributeNameList& changed_attributes);
+	virtual bool OnAttributeChange(const Core::ElementAttributes& changed_attributes);
 	/// Called when properties on the control are changed.
 	/// @param[in] changed_properties The properties changed on the element.
-	virtual void OnPropertyChange(const Core::PropertyNameList& changed_properties);
+	virtual void OnPropertyChange(const Core::PropertyIdSet& changed_properties);
 
 	/// Called when the element is added into a hierarchy.
 	virtual void OnChildAdd();
@@ -78,11 +81,11 @@ public:
 
 	/// Checks for necessary functional changes in the control as a result of the event.
 	/// @param[in] event The event to process.
-	virtual void ProcessEvent(Core::Event& event) = 0;
+	virtual void ProcessDefaultAction(Core::Event& event) = 0;
 
 	/// Sizes the dimensions to the element's inherent size.
 	/// @return True.
-	virtual bool GetIntrinsicDimensions(Rocket::Core::Vector2f& dimensions) = 0;
+	virtual bool GetIntrinsicDimensions(Rml::Core::Vector2f& dimensions) = 0;
 
 protected:
 	ElementFormControlInput* element;

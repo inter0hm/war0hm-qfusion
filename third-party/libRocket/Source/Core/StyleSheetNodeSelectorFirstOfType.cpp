@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +28,9 @@
 
 #include "precompiled.h"
 #include "StyleSheetNodeSelectorFirstOfType.h"
-#include "../../Include/Rocket/Core/Element.h"
-#include "../../Include/Rocket/Core/StyleSheetKeywords.h"
+#include "../../Include/RmlUi/Core/Element.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 StyleSheetNodeSelectorFirstOfType::StyleSheetNodeSelectorFirstOfType()
@@ -42,13 +42,13 @@ StyleSheetNodeSelectorFirstOfType::~StyleSheetNodeSelectorFirstOfType()
 }
 
 // Returns true if the element is the first DOM child in its parent of its type.
-bool StyleSheetNodeSelectorFirstOfType::IsApplicable(const Element* element, int ROCKET_UNUSED_PARAMETER(a), int ROCKET_UNUSED_PARAMETER(b))
+bool StyleSheetNodeSelectorFirstOfType::IsApplicable(const Element* element, int RMLUI_UNUSED_PARAMETER(a), int RMLUI_UNUSED_PARAMETER(b))
 {
-	ROCKET_UNUSED(a);
-	ROCKET_UNUSED(b);
+	RMLUI_UNUSED(a);
+	RMLUI_UNUSED(b);
 
 	Element* parent = element->GetParentNode();
-	if (parent == NULL)
+	if (parent == nullptr)
 		return false;
 
 	int child_index = 0;
@@ -62,7 +62,7 @@ bool StyleSheetNodeSelectorFirstOfType::IsApplicable(const Element* element, int
 		// Otherwise, if this child shares our element's tag, then our element is not the first tagged child; the
 		// selector fails.
 		if (child->GetTagName() == element->GetTagName() &&
-			child->GetDisplay() != DISPLAY_NONE)
+			child->GetDisplay() != Style::Display::None)
 			return false;
 
 		child_index++;

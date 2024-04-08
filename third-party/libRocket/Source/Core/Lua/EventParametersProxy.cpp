@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,12 +28,12 @@
  
 #include "precompiled.h"
 #include "EventParametersProxy.h"
-#include <Rocket/Core/Lua/Utilities.h>
-#include <Rocket/Core/Variant.h>
-#include <Rocket/Core/Dictionary.h>
+#include <RmlUi/Core/Lua/Utilities.h>
+#include <RmlUi/Core/Variant.h>
+#include <RmlUi/Core/Dictionary.h>
 
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 
@@ -55,7 +56,8 @@ int EventParametersProxy__index(lua_State* L)
         EventParametersProxy* obj = LuaType<EventParametersProxy>::check(L,1);
         LUACHECKOBJ(obj);
         const char* key = lua_tostring(L,2);
-        Variant* param = obj->owner->GetParameters()->Get(key);
+		auto it = obj->owner->GetParameters().find(key);
+		const Variant* param = (it == obj->owner->GetParameters().end() ? nullptr : &it->second);
         PushVariant(L,param);
         return 1;
     }
@@ -69,14 +71,18 @@ int EventParametersProxy__pairs(lua_State* L)
 {
     EventParametersProxy* obj = LuaType<EventParametersProxy>::check(L,1);
     LUACHECKOBJ(obj);
-    int* pindex = (int*)lua_touserdata(L,3);
-    if((*pindex) == -1)
-        *pindex = 0;
-    String key = "";
-    Variant* value = NULL;
-    if(obj->owner->GetParameters()->Iterate((*pindex),key,value))
+    int& pindex = *(int*)lua_touserdata(L,3);
+    if((pindex) == -1)
+        pindex = 0;
+	const Dictionary& attributes = obj->owner->GetParameters();
+    if(pindex >= 0 && pindex < (int)attributes.size())
     {
-        lua_pushstring(L,key.CString());
+		auto it = attributes.begin();
+		for (int i = 0; i < pindex; ++i)
+			++it;
+		const String& key = it->first;
+		const Variant* value = &it->second;
+        lua_pushstring(L,key.c_str());
         PushVariant(L,value);
     }
     else
@@ -97,18 +103,18 @@ int EventParametersProxy__ipairs(lua_State* L)
 
 RegType<EventParametersProxy> EventParametersProxyMethods[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 luaL_Reg EventParametersProxyGetters[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 luaL_Reg EventParametersProxySetters[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
-LUACORETYPEDEFINE(EventParametersProxy,false)
+LUACORETYPEDEFINE(EventParametersProxy)
 }
 }
 }

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,14 +30,14 @@
 #include "DataFormatter.h"
 
 
-using Rocket::Core::Log;
-namespace Rocket {
+using Rml::Core::Log;
+namespace Rml {
 namespace Controls {
 namespace Lua {
 //method
 int DataFormatternew(lua_State* L)
 {
-    DataFormatter* df;
+    DataFormatter* df = nullptr;
     int ref = LUA_NOREF;
     int top = lua_gettop(L);
     if(top == 0)
@@ -85,37 +86,37 @@ int DataFormatterSetAttrFormatData(lua_State* L)
     return 0;
 }
 
-Rocket::Core::Lua::RegType<DataFormatter> DataFormatterMethods[] =
+Rml::Core::Lua::RegType<DataFormatter> DataFormatterMethods[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg DataFormatterGetters[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg DataFormatterSetters[] =
 {
     LUASETTER(DataFormatter,FormatData)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 }
 }
 }
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
-using Rocket::Controls::Lua::DataFormatter;
+using Rml::Controls::Lua::DataFormatter;
 template<> void ExtraInit<DataFormatter>(lua_State* L, int metatable_index)
 {
-    lua_pushcfunction(L,Rocket::Controls::Lua::DataFormatternew);
+    lua_pushcfunction(L,Rml::Controls::Lua::DataFormatternew);
     lua_setfield(L,metatable_index-1,"new");
     return;
 }
-LUACONTROLSTYPEDEFINE(DataFormatter,false)
+LUACONTROLSTYPEDEFINE(DataFormatter)
 }
 }
 }

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,24 +26,20 @@
  *
  */
 
-#include "../../Include/Rocket/Controls/ElementDataGridCell.h"
-#include "../../Include/Rocket/Core/Event.h"
-#include "../../Include/Rocket/Core/Property.h"
-#include "../../Include/Rocket/Controls/ElementDataGrid.h"
+#include "../../Include/RmlUi/Controls/ElementDataGridCell.h"
+#include "../../Include/RmlUi/Core/Event.h"
+#include "../../Include/RmlUi/Core/Property.h"
+#include "../../Include/RmlUi/Controls/ElementDataGrid.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
-ElementDataGridCell::ElementDataGridCell(const Rocket::Core::String& tag) : Core::Element(tag)
+ElementDataGridCell::ElementDataGridCell(const Rml::Core::String& tag) : Core::Element(tag), column(0), header(nullptr)
 {
 }
 
 ElementDataGridCell::~ElementDataGridCell()
 {
-	if (header) {
-		header->RemoveEventListener("resize", this);
-		header->RemoveReference();
-	}
 }
 
 void ElementDataGridCell::Initialise(int _column, Core::Element* _header)
@@ -51,28 +48,14 @@ void ElementDataGridCell::Initialise(int _column, Core::Element* _header)
 	header = _header;
 	if (header)
 	{
-		header->AddReference();
-		header->AddEventListener("resize", this);
-		SetProperty("width", Core::Property(header->GetBox().GetSize(Core::Box::MARGIN).x, Core::Property::PX));
+		if(auto p = header->GetLocalProperty("width"))
+			SetProperty(Core::PropertyId::Width, *p);
 	}
 }
 
 int ElementDataGridCell::GetColumn()
 {
 	return column;
-}
-
-void ElementDataGridCell::ProcessEvent(Core::Event& event)
-{
-	Core::Element::ProcessEvent(event);
-
-	if (event == "resize")
-	{
-		if (event.GetTargetElement() == header)
-		{
-			SetProperty("width", Core::Property(header->GetBox().GetSize(Core::Box::MARGIN).x, Core::Property::PX));
-		}
-	}
 }
 
 }

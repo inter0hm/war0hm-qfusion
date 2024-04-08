@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,28 +28,27 @@
 
 #include <ShellRenderInterfaceExtensions.h>
 #include <ShellRenderInterfaceOpenGL.h>
-#include <Rocket/Core.h>
+#include <RmlUi/Core.h>
+#include <type_traits>
 
 #define GL_CLAMP_TO_EDGE 0x812F
 
-ShellRenderInterfaceOpenGL::ShellRenderInterfaceOpenGL()
+ShellRenderInterfaceOpenGL::ShellRenderInterfaceOpenGL() : m_width(0), m_height(0), m_transform_enabled(false), m_rmlui_context(nullptr)
 {
-	m_rocket_context = NULL;
-	m_width = 0;
-	m_height = 0;
+
 }
 
-// Called by Rocket when it wants to render geometry that it does not wish to optimise.
-void ShellRenderInterfaceOpenGL::RenderGeometry(Rocket::Core::Vertex* vertices, int ROCKET_UNUSED_PARAMETER(num_vertices), int* indices, int num_indices, const Rocket::Core::TextureHandle texture, const Rocket::Core::Vector2f& translation)
+// Called by RmlUi when it wants to render geometry that it does not wish to optimise.
+void ShellRenderInterfaceOpenGL::RenderGeometry(Rml::Core::Vertex* vertices, int RMLUI_UNUSED_PARAMETER(num_vertices), int* indices, int num_indices, const Rml::Core::TextureHandle texture, const Rml::Core::Vector2f& translation)
 {
-	ROCKET_UNUSED(num_vertices);
+	RMLUI_UNUSED(num_vertices);
 	
 	glPushMatrix();
 	glTranslatef(translation.x, translation.y, 0);
 
-	glVertexPointer(2, GL_FLOAT, sizeof(Rocket::Core::Vertex), &vertices[0].position);
+	glVertexPointer(2, GL_FLOAT, sizeof(Rml::Core::Vertex), &vertices[0].position);
 	glEnableClientState(GL_COLOR_ARRAY);
-	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Rocket::Core::Vertex), &vertices[0].colour);
+	glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(Rml::Core::Vertex), &vertices[0].colour);
 
 	if (!texture)
 	{
@@ -60,7 +60,7 @@ void ShellRenderInterfaceOpenGL::RenderGeometry(Rocket::Core::Vertex* vertices, 
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, (GLuint) texture);
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-		glTexCoordPointer(2, GL_FLOAT, sizeof(Rocket::Core::Vertex), &vertices[0].tex_coord);
+		glTexCoordPointer(2, GL_FLOAT, sizeof(Rml::Core::Vertex), &vertices[0].tex_coord);
 	}
 
 	glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, indices);
@@ -68,44 +68,88 @@ void ShellRenderInterfaceOpenGL::RenderGeometry(Rocket::Core::Vertex* vertices, 
 	glPopMatrix();
 }
 
-// Called by Rocket when it wants to compile geometry it believes will be static for the forseeable future.		
-Rocket::Core::CompiledGeometryHandle ShellRenderInterfaceOpenGL::CompileGeometry(Rocket::Core::Vertex* ROCKET_UNUSED_PARAMETER(vertices), int ROCKET_UNUSED_PARAMETER(num_vertices), int* ROCKET_UNUSED_PARAMETER(indices), int ROCKET_UNUSED_PARAMETER(num_indices), const Rocket::Core::TextureHandle ROCKET_UNUSED_PARAMETER(texture))
+// Called by RmlUi when it wants to compile geometry it believes will be static for the forseeable future.		
+Rml::Core::CompiledGeometryHandle ShellRenderInterfaceOpenGL::CompileGeometry(Rml::Core::Vertex* RMLUI_UNUSED_PARAMETER(vertices), int RMLUI_UNUSED_PARAMETER(num_vertices), int* RMLUI_UNUSED_PARAMETER(indices), int RMLUI_UNUSED_PARAMETER(num_indices), const Rml::Core::TextureHandle RMLUI_UNUSED_PARAMETER(texture))
 {
-	ROCKET_UNUSED(vertices);
-	ROCKET_UNUSED(num_vertices);
-	ROCKET_UNUSED(indices);
-	ROCKET_UNUSED(num_indices);
-	ROCKET_UNUSED(texture);
+	RMLUI_UNUSED(vertices);
+	RMLUI_UNUSED(num_vertices);
+	RMLUI_UNUSED(indices);
+	RMLUI_UNUSED(num_indices);
+	RMLUI_UNUSED(texture);
 
-	return (Rocket::Core::CompiledGeometryHandle) NULL;
+	return (Rml::Core::CompiledGeometryHandle) nullptr;
 }
 
-// Called by Rocket when it wants to render application-compiled geometry.		
-void ShellRenderInterfaceOpenGL::RenderCompiledGeometry(Rocket::Core::CompiledGeometryHandle ROCKET_UNUSED_PARAMETER(geometry), const Rocket::Core::Vector2f& ROCKET_UNUSED_PARAMETER(translation))
+// Called by RmlUi when it wants to render application-compiled geometry.		
+void ShellRenderInterfaceOpenGL::RenderCompiledGeometry(Rml::Core::CompiledGeometryHandle RMLUI_UNUSED_PARAMETER(geometry), const Rml::Core::Vector2f& RMLUI_UNUSED_PARAMETER(translation))
 {
-	ROCKET_UNUSED(geometry);
-	ROCKET_UNUSED(translation);
+	RMLUI_UNUSED(geometry);
+	RMLUI_UNUSED(translation);
 }
 
-// Called by Rocket when it wants to release application-compiled geometry.		
-void ShellRenderInterfaceOpenGL::ReleaseCompiledGeometry(Rocket::Core::CompiledGeometryHandle ROCKET_UNUSED_PARAMETER(geometry))
+// Called by RmlUi when it wants to release application-compiled geometry.		
+void ShellRenderInterfaceOpenGL::ReleaseCompiledGeometry(Rml::Core::CompiledGeometryHandle RMLUI_UNUSED_PARAMETER(geometry))
 {
-	ROCKET_UNUSED(geometry);
+	RMLUI_UNUSED(geometry);
 }
 
-// Called by Rocket when it wants to enable or disable scissoring to clip content.		
+// Called by RmlUi when it wants to enable or disable scissoring to clip content.		
 void ShellRenderInterfaceOpenGL::EnableScissorRegion(bool enable)
 {
-	if (enable)
-		glEnable(GL_SCISSOR_TEST);
-	else
+	if (enable) {
+		if (!m_transform_enabled) {
+			glEnable(GL_SCISSOR_TEST);
+			glDisable(GL_STENCIL_TEST);
+		} else {
+			glDisable(GL_SCISSOR_TEST);
+			glEnable(GL_STENCIL_TEST);
+		}
+	} else {
 		glDisable(GL_SCISSOR_TEST);
+		glDisable(GL_STENCIL_TEST);
+	}
 }
 
-// Called by Rocket when it wants to change the scissor region.		
+// Called by RmlUi when it wants to change the scissor region.		
 void ShellRenderInterfaceOpenGL::SetScissorRegion(int x, int y, int width, int height)
 {
-	glScissor(x, m_height - (y + height), width, height);
+	if (!m_transform_enabled) {
+		glScissor(x, m_height - (y + height), width, height);
+	} else {
+		// clear the stencil buffer
+		glStencilMask(-1);
+		glClear(GL_STENCIL_BUFFER_BIT);
+
+		// fill the stencil buffer
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDepthMask(GL_FALSE);
+		glStencilFunc(GL_NEVER, 1, -1);
+		glStencilOp(GL_REPLACE, GL_KEEP, GL_KEEP);
+
+		float fx = (float)x;
+		float fy = (float)y;
+		float fwidth = (float)width;
+		float fheight = (float)height;
+
+		// draw transformed quad
+		GLfloat vertices[] = {
+			fx, fy, 0,
+			fx, fy + fheight, 0,
+			fx + fwidth, fy + fheight, 0,
+			fx + fwidth, fy, 0
+		};
+		glDisableClientState(GL_COLOR_ARRAY);
+		glVertexPointer(3, GL_FLOAT, 0, vertices);
+		GLushort indices[] = { 1, 2, 0, 3 };
+		glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_SHORT, indices);
+		glEnableClientState(GL_COLOR_ARRAY);
+	
+		// prepare for drawing the real thing
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glDepthMask(GL_TRUE);
+		glStencilMask(0);
+		glStencilFunc(GL_EQUAL, 1, -1);
+	}
 }
 
 // Set to byte packing, or the compiler will expand our struct, which means it won't read correctly from file
@@ -128,11 +172,11 @@ struct TGAHeader
 // Restore packing
 #pragma pack()
 
-// Called by Rocket when a texture is required by the library.		
-bool ShellRenderInterfaceOpenGL::LoadTexture(Rocket::Core::TextureHandle& texture_handle, Rocket::Core::Vector2i& texture_dimensions, const Rocket::Core::String& source)
+// Called by RmlUi when a texture is required by the library.		
+bool ShellRenderInterfaceOpenGL::LoadTexture(Rml::Core::TextureHandle& texture_handle, Rml::Core::Vector2i& texture_dimensions, const Rml::Core::String& source)
 {
-	Rocket::Core::FileInterface* file_interface = Rocket::Core::GetFileInterface();
-	Rocket::Core::FileHandle file_handle = file_interface->Open(source);
+	Rml::Core::FileInterface* file_interface = Rml::Core::GetFileInterface();
+	Rml::Core::FileHandle file_handle = file_interface->Open(source);
 	if (!file_handle)
 	{
 		return false;
@@ -142,7 +186,7 @@ bool ShellRenderInterfaceOpenGL::LoadTexture(Rocket::Core::TextureHandle& textur
 	size_t buffer_size = file_interface->Tell(file_handle);
 	file_interface->Seek(file_handle, 0, SEEK_SET);
 	
-	ROCKET_ASSERTMSG(buffer_size > sizeof(TGAHeader), "Texture file size is smaller than TGAHeader, file must be corrupt or otherwise invalid");
+	RMLUI_ASSERTMSG(buffer_size > sizeof(TGAHeader), "Texture file size is smaller than TGAHeader, file must be corrupt or otherwise invalid");
 	if(buffer_size <= sizeof(TGAHeader))
 	{
 		file_interface->Close(file_handle);
@@ -161,14 +205,14 @@ bool ShellRenderInterfaceOpenGL::LoadTexture(Rocket::Core::TextureHandle& textur
 	
 	if (header.dataType != 2)
 	{
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Only 24/32bit uncompressed TGAs are supported.");
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Only 24/32bit uncompressed TGAs are supported.");
 		return false;
 	}
 	
 	// Ensure we have at least 3 colors
 	if (color_mode < 3)
 	{
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Only 24 and 32bit textures are supported");
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Only 24 and 32bit textures are supported");
 		return false;
 	}
 	
@@ -206,8 +250,8 @@ bool ShellRenderInterfaceOpenGL::LoadTexture(Rocket::Core::TextureHandle& textur
 	return success;
 }
 
-// Called by Rocket when a texture is required to be built from an internally-generated sequence of pixels.
-bool ShellRenderInterfaceOpenGL::GenerateTexture(Rocket::Core::TextureHandle& texture_handle, const Rocket::Core::byte* source, const Rocket::Core::Vector2i& source_dimensions)
+// Called by RmlUi when a texture is required to be built from an internally-generated sequence of pixels.
+bool ShellRenderInterfaceOpenGL::GenerateTexture(Rml::Core::TextureHandle& texture_handle, const Rml::Core::byte* source, const Rml::Core::Vector2i& source_dimensions)
 {
 	GLuint texture_id = 0;
 	glGenTextures(1, &texture_id);
@@ -226,14 +270,30 @@ bool ShellRenderInterfaceOpenGL::GenerateTexture(Rocket::Core::TextureHandle& te
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	texture_handle = (Rocket::Core::TextureHandle) texture_id;
+	texture_handle = (Rml::Core::TextureHandle) texture_id;
 
 	return true;
 }
 
-// Called by Rocket when a loaded texture is no longer required.		
-void ShellRenderInterfaceOpenGL::ReleaseTexture(Rocket::Core::TextureHandle texture_handle)
+// Called by RmlUi when a loaded texture is no longer required.		
+void ShellRenderInterfaceOpenGL::ReleaseTexture(Rml::Core::TextureHandle texture_handle)
 {
 	glDeleteTextures(1, (GLuint*) &texture_handle);
+}
+
+// Called by RmlUi when it wants to set the current transform matrix to a new matrix.
+void ShellRenderInterfaceOpenGL::SetTransform(const Rml::Core::Matrix4f* transform)
+{
+	m_transform_enabled = (bool)transform;
+
+	if (transform)
+	{
+		if (std::is_same<Rml::Core::Matrix4f, Rml::Core::ColumnMajorMatrix4f>::value)
+			glLoadMatrixf(transform->data());
+		else if (std::is_same<Rml::Core::Matrix4f, Rml::Core::RowMajorMatrix4f>::value)
+			glLoadMatrixf(transform->Transpose().data());
+	}
+	else
+		glLoadIdentity();
 }
 

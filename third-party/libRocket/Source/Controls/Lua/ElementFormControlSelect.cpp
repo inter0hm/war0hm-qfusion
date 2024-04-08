@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,14 +29,14 @@
 #include "precompiled.h"
 #include "ElementFormControlSelect.h"
 #include "SelectOptionsProxy.h"
-#include <Rocket/Controls/ElementFormControlSelect.h>
-#include <Rocket/Controls/ElementFormControl.h>
-#include <Rocket/Core/Element.h>
+#include <RmlUi/Controls/ElementFormControlSelect.h>
+#include <RmlUi/Controls/ElementFormControl.h>
+#include <RmlUi/Core/Element.h>
 #include "ElementFormControl.h"
-#include <Rocket/Core/Lua/Utilities.h>
+#include <RmlUi/Core/Lua/Utilities.h>
 
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 namespace Lua {
 
@@ -46,7 +47,7 @@ int ElementFormControlSelectAdd(lua_State* L, ElementFormControlSelect* obj)
     const char* value = luaL_checkstring(L,2);
     int before = -1; //default
     if(lua_gettop(L) >= 3)
-        before = luaL_checkint(L,3);
+        before = (int)luaL_checkinteger(L,3);
 
     int index = obj->Add(rml,value,before);
     lua_pushinteger(L,index);
@@ -55,7 +56,7 @@ int ElementFormControlSelectAdd(lua_State* L, ElementFormControlSelect* obj)
 
 int ElementFormControlSelectRemove(lua_State* L, ElementFormControlSelect* obj)
 {
-    int index = luaL_checkint(L,1);
+    int index = (int)luaL_checkinteger(L,1);
     obj->Remove(index);
     return 0;
 }
@@ -86,49 +87,49 @@ int ElementFormControlSelectSetAttrselection(lua_State* L)
 {
     ElementFormControlSelect* obj = LuaType<ElementFormControlSelect>::check(L,1);
     LUACHECKOBJ(obj);
-    int selection = luaL_checkint(L,2);
+    int selection = (int)luaL_checkinteger(L,2);
     obj->SetSelection(selection);
     return 0;
 }
 
 
-Rocket::Core::Lua::RegType<ElementFormControlSelect> ElementFormControlSelectMethods[] =
+Rml::Core::Lua::RegType<ElementFormControlSelect> ElementFormControlSelectMethods[] =
 {
     LUAMETHOD(ElementFormControlSelect,Add)
     LUAMETHOD(ElementFormControlSelect,Remove)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementFormControlSelectGetters[] =
 {
     LUAGETTER(ElementFormControlSelect,options)
     LUAGETTER(ElementFormControlSelect,selection)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementFormControlSelectSetters[] =
 {
     LUASETTER(ElementFormControlSelect,selection)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 }
 }
 }
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 //inherits from ElementFormControl which inherits from Element
-template<> void ExtraInit<Rocket::Controls::ElementFormControlSelect>(lua_State* L, int metatable_index)
+template<> void ExtraInit<Rml::Controls::ElementFormControlSelect>(lua_State* L, int metatable_index)
 {
     //init whatever elementformcontrol did extra, like inheritance
-    ExtraInit<Rocket::Controls::ElementFormControl>(L,metatable_index);
+    ExtraInit<Rml::Controls::ElementFormControl>(L,metatable_index);
     //then inherit from elementformcontrol
-    LuaType<Rocket::Controls::ElementFormControl>::_regfunctions(L,metatable_index,metatable_index-1);
-    AddTypeToElementAsTable<Rocket::Controls::ElementFormControlSelect>(L);
+    LuaType<Rml::Controls::ElementFormControl>::_regfunctions(L,metatable_index,metatable_index-1);
+    AddTypeToElementAsTable<Rml::Controls::ElementFormControlSelect>(L);
 }
-using Rocket::Controls::ElementFormControlSelect;
-LUACONTROLSTYPEDEFINE(ElementFormControlSelect,true)
+using Rml::Controls::ElementFormControlSelect;
+LUACONTROLSTYPEDEFINE(ElementFormControlSelect)
 }
 }
 }

@@ -30,10 +30,9 @@ namespace WSWUI
 {
 
 ModsDataSource::ModsDataSource( void ) :
-	Rocket::Controls::DataSource( SOURCE_NAME )
-	{
-		UpdatePath();
-	}
+	Rml::Controls::DataSource( SOURCE_NAME ) {
+	UpdatePath();
+}
 
 ModsDataSource::~ModsDataSource() {}
 
@@ -59,9 +58,8 @@ void ModsDataSource::UpdatePath( void )
 	}
 }
 
-void ModsDataSource::GetRow( StringList &row, const String &table, int row_index, const StringList &columns )
-{
-	if( row_index < 0 || (size_t)row_index >= modsList.size() )
+void ModsDataSource::GetRow( Rml::Core::StringList &row, const std::string &table, int row_index, const Rml::Core::StringList &columns ) {
+	if( row_index < 0 || (size_t)row_index >= modsList.size() ) {
 		return;
 
 	if( table == TABLE_NAME )
@@ -75,8 +73,7 @@ void ModsDataSource::GetRow( StringList &row, const String &table, int row_index
 	}
 }
 
-int ModsDataSource::GetNumRows( const String &table )
-{
+int ModsDataSource::GetNumRows( const std::string &table ) {
 	return modsList.size();
 }
 

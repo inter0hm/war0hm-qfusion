@@ -23,19 +23,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "kernel/ui_utils.h"
 #include "kernel/ui_common.h"
-#include <Rocket/Core/Element.h>
+#include <RmlUi/Core/Element.h>
 
 namespace WSWUI
 {
-	class InlineDiv : public Rocket::Core::Element
-	{
-	public:
-		InlineDiv(const Rocket::Core::String& tag);
-		virtual ~InlineDiv(){}
+class InlineDiv : public Rml::Core::Element
+{
+public:
+	InlineDiv( const Rml::Core::String& tag );
+	virtual ~InlineDiv() {}
 
-		/// Checks for changes to source address.
-		virtual void OnAttributeChange(const Rocket::Core::AttributeNameList&);
-		virtual void OnChildAdd( Element* element );
+	/// Checks for changes to source address.
+	virtual void OnAttributeChange( const Rml::Core::ElementAttributes& );
+	virtual void OnChildAdd( Element* element );
 
 		// streaming callbacks
 		static void CacheRead( const char *fileName, void *privatep );

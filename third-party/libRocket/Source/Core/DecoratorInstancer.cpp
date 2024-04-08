@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +27,12 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/DecoratorInstancer.h"
+#include "../../Include/RmlUi/Core/DecoratorInstancer.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
-DecoratorInstancer::DecoratorInstancer()
+DecoratorInstancer::DecoratorInstancer() : properties(10, 10)
 {
 }
 
@@ -52,15 +53,14 @@ PropertyDefinition& DecoratorInstancer::RegisterProperty(const String& property_
 }
 
 // Registers a shorthand property definition.
-bool DecoratorInstancer::RegisterShorthand(const String& shorthand_name, const String& property_names, PropertySpecification::ShorthandType type)
+ShorthandId DecoratorInstancer::RegisterShorthand(const String& shorthand_name, const String& property_names, ShorthandType type)
 {
 	return properties.RegisterShorthand(shorthand_name, property_names, type);
 }
 
-// Releases the instancer.
-void DecoratorInstancer::OnReferenceDeactivate()
-{
-	Release();
+
+const Sprite* DecoratorInstancerInterface::GetSprite(const String& name) const {
+	return style_sheet.GetSprite(name);
 }
 
 }

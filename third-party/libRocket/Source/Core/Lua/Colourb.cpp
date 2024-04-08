@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
 #include "Colourb.h"
 
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 
@@ -51,10 +52,10 @@ template<> void ExtraInit<Colourb>(lua_State* L, int metatable_index)
 }
 int Colourbnew(lua_State* L)
 {
-    byte red = (byte)luaL_checkint(L,1);
-    byte green = (byte)luaL_checkint(L,2);
-    byte blue = (byte)luaL_checkint(L,3);
-    byte alpha = (byte)luaL_checkint(L,4);
+    byte red = (byte)luaL_checkinteger(L,1);
+    byte green = (byte)luaL_checkinteger(L,2);
+    byte blue = (byte)luaL_checkinteger(L,3);
+    byte alpha = (byte)luaL_checkinteger(L,4);
 
     Colourb* col = new Colourb(red,green,blue,alpha);
 
@@ -184,7 +185,7 @@ int ColourbSetAttralpha(lua_State* L)
 
 int ColourbSetAttrrgba(lua_State* L)
 {
-    Colourb* obj = NULL;
+    Colourb* obj = nullptr;
     int top = lua_gettop(L);
     //each of the items are optional.
     if(top > 0)
@@ -196,12 +197,12 @@ int ColourbSetAttrrgba(lua_State* L)
             if(top > 2)
             {
                 if(top > 3)
-                    obj->alpha = luaL_checkint(L,4);
-                obj->blue = luaL_checkint(L,3);
+                    obj->alpha = (byte)luaL_checkinteger(L,4);
+                obj->blue = (byte)luaL_checkinteger(L,3);
             }
-            obj->green = luaL_checkint(L,2);
+            obj->green = (byte)luaL_checkinteger(L,2);
         }
-        obj->red = luaL_checkint(L,1);
+        obj->red = (byte)luaL_checkinteger(L,1);
     }
     return 0;
 }
@@ -209,7 +210,7 @@ int ColourbSetAttrrgba(lua_State* L)
 
 RegType<Colourb> ColourbMethods[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ColourbGetters[] =
@@ -219,7 +220,7 @@ luaL_Reg ColourbGetters[] =
     LUAGETTER(Colourb,blue)
     LUAGETTER(Colourb,alpha)
     LUAGETTER(Colourb,rgba)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ColourbSetters[] =
@@ -229,10 +230,10 @@ luaL_Reg ColourbSetters[] =
     LUASETTER(Colourb,blue)
     LUASETTER(Colourb,alpha)
     LUASETTER(Colourb,rgba)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
-LUACORETYPEDEFINE(Colourb,false)
+LUACORETYPEDEFINE(Colourb)
 }
 }
 }

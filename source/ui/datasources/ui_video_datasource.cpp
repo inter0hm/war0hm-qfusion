@@ -31,8 +31,7 @@ namespace WSWUI
 {
 
 VideoDataSource::VideoDataSource( void ) :
-	Rocket::Controls::DataSource( VIDEO_SOURCE )
-{
+	Rml::Controls::DataSource( VIDEO_SOURCE ) {
 	updateVideoModeList();
 }
 
@@ -70,24 +69,20 @@ void VideoDataSource::updateVideoModeList( void )
 		NotifyRowAdd( TABLE_NAME, i, 1 );
 }
 
-void VideoDataSource::GetRow( StringList &row, const String &table, int row_index, const StringList &columns )
-{
-	if( row_index < 0 || (size_t)row_index >= modesList.size() )
+void VideoDataSource::GetRow( Rml::Core::StringList &row, const std::string &table, int row_index, const Rml::Core::StringList &columns ) {
+	if( row_index < 0 || (size_t)row_index >= modesList.size() ) {
 		return;
 
 	// populate table
-	if( table == TABLE_NAME )
-	{
-		for( StringList::const_iterator it = columns.begin(); it != columns.end(); ++it )
-		{
-			if( *it == RESOLUTION )
+	if( table == TABLE_NAME ) {
+		for( Rml::Core::StringList::const_iterator it = columns.begin(); it != columns.end(); ++it ) {
+			if( *it == RESOLUTION ) {
 				row.push_back( modesList[row_index].c_str() );
 		}
 	}
 }
 
-int VideoDataSource::GetNumRows( const String &table )
-{
+int VideoDataSource::GetNumRows( const std::string &table ) {
 	return modesList.size();
 }
 

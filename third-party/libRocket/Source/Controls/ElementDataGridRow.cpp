@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,7 +15,7 @@
  *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,26 +26,27 @@
  *
  */
 
-#include "../../Include/Rocket/Controls/ElementDataGridRow.h"
-#include "../../Include/Rocket/Core.h"
-#include "../../Include/Rocket/Controls/DataSource.h"
-#include "../../Include/Rocket/Controls/DataFormatter.h"
-#include "../../Include/Rocket/Controls/ElementDataGrid.h"
-#include "../../Include/Rocket/Controls/ElementDataGridCell.h"
+#include "../../Include/RmlUi/Controls/ElementDataGridRow.h"
+#include "../../Include/RmlUi/Core.h"
+#include "../../Include/RmlUi/Controls/DataSource.h"
+#include "../../Include/RmlUi/Controls/DataFormatter.h"
+#include "../../Include/RmlUi/Controls/ElementDataGrid.h"
+#include "../../Include/RmlUi/Controls/ElementDataGridCell.h"
+#include "../Core/Clock.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
-const float MAX_UPDATE_TIME = 0.001f;
+static const float MAX_UPDATE_TIME = 0.001f;
 
-ElementDataGridRow::ElementDataGridRow(const Rocket::Core::String& tag) : Core::Element(tag)
+ElementDataGridRow::ElementDataGridRow(const Rml::Core::String& tag) : Core::Element(tag)
 {
-	parent_grid = NULL;
-	parent_row = NULL;
+	parent_grid = nullptr;
+	parent_row = nullptr;
 	child_index = -1;
 	depth = -1;
 
-	data_source = NULL;
+	data_source = nullptr;
 
 	table_relative_index = -1;
 	table_relative_index_dirty = true;
@@ -52,8 +54,8 @@ ElementDataGridRow::ElementDataGridRow(const Rocket::Core::String& tag) : Core::
 	dirty_children = false;
 	row_expanded = true;
 
-	SetProperty("white-space", "nowrap");
-	SetProperty("display", Rocket::Core::Property(Rocket::Core::DISPLAY_INLINE_BLOCK, Rocket::Core::Property::KEYWORD));
+	SetProperty(Core::PropertyId::WhiteSpace, Core::Property(Core::Style::WhiteSpace::Nowrap));
+	SetProperty(Core::PropertyId::Display, Core::Property(Core::Style::Display::InlineBlock));
 }
 
 ElementDataGridRow::~ElementDataGridRow()
@@ -61,7 +63,7 @@ ElementDataGridRow::~ElementDataGridRow()
 	if (data_source)
 	{
 		data_source->DetachListener(this);
-		data_source = NULL;
+		data_source = nullptr;
 	}
 }
 
@@ -79,21 +81,21 @@ void ElementDataGridRow::Initialise(ElementDataGrid* _parent_grid, ElementDataGr
 	}
 
 	int num_columns = parent_grid->GetNumColumns();
-	Rocket::Core::XMLAttributes cell_attributes;
+	Rml::Core::XMLAttributes cell_attributes;
 	for (int i = 0; i < num_columns; i++)
 	{
-		ElementDataGridCell* cell = dynamic_cast< ElementDataGridCell* >(Core::Factory::InstanceElement(this, "#rktctl_datagridcell", "datagridcell", cell_attributes));
+		Core::ElementPtr element = Core::Factory::InstanceElement(this, "#rmlctl_datagridcell", "datagridcell", cell_attributes);
+		ElementDataGridCell* cell = dynamic_cast< ElementDataGridCell* >(element.get());
 		cell->Initialise(i, header_row->GetChild(i));
-		cell->SetProperty("display", Rocket::Core::Property(Rocket::Core::DISPLAY_INLINE_BLOCK, Rocket::Core::Property::KEYWORD));
-		AppendChild(cell);
-		cell->RemoveReference();
+		cell->SetProperty(Core::PropertyId::Display, Core::Property(Core::Style::Display::InlineBlock));
+		AppendChild(std::move(element));
 	}
 }
 
 void ElementDataGridRow::SetChildIndex(int _child_index)
 {
 	if (child_index != _child_index)
-	{
+	{	
 		child_index = _child_index;
 
 		if (parent_row)
@@ -108,12 +110,12 @@ int ElementDataGridRow::GetDepth()
 	return depth;
 }
 
-void ElementDataGridRow::SetDataSource(const Rocket::Core::String& data_source_name)
+void ElementDataGridRow::SetDataSource(const Rml::Core::String& data_source_name)
 {
-	if (data_source != NULL)
+	if (data_source != nullptr)
 	{
 		data_source->DetachListener(this);
-		data_source = NULL;
+		data_source = nullptr;
 	}
 
 	if (ParseDataSource(data_source, data_table, data_source_name))
@@ -127,8 +129,8 @@ bool ElementDataGridRow::UpdateChildren()
 {
 	if (dirty_children)
 	{
-		float start_time = Core::GetSystemInterface()->GetElapsedTime();
-
+		double start_time = Core::Clock::GetElapsedTime();
+		
 		RowQueue dirty_rows;
 		dirty_rows.push(this);
 
@@ -136,8 +138,8 @@ bool ElementDataGridRow::UpdateChildren()
 		{
 			ElementDataGridRow* dirty_row = dirty_rows.front();
 			dirty_rows.pop();
-
-			float time_slice = MAX_UPDATE_TIME - (Core::GetSystemInterface()->GetElapsedTime() - start_time);
+			
+			float time_slice = MAX_UPDATE_TIME - float(Core::Clock::GetElapsedTime() - start_time);
 			if (time_slice <= 0.0f)
 				break;
 
@@ -153,7 +155,7 @@ bool ElementDataGridRow::UpdateChildren()
 
 		return true;
 	}
-
+	
 	return false;
 }
 
@@ -249,36 +251,35 @@ ElementDataGrid* ElementDataGridRow::GetParentGrid()
 	return parent_grid;
 }
 
-void ElementDataGridRow::OnDataSourceDestroy(DataSource* ROCKET_UNUSED_PARAMETER(_data_source))
+void ElementDataGridRow::OnDataSourceDestroy(DataSource* RMLUI_UNUSED_PARAMETER(_data_source))
 {
-	ROCKET_UNUSED(_data_source);
-	if(data_source != NULL)
+	if(data_source != nullptr)
 	{
 		data_source->DetachListener(this);
-		data_source = NULL;
+		data_source = nullptr;
 	}
 	RemoveChildren();
 }
 
-void ElementDataGridRow::OnRowAdd(DataSource* _data_source, const Rocket::Core::String& _data_table, int first_row_added, int num_rows_added)
+void ElementDataGridRow::OnRowAdd(DataSource* _data_source, const Rml::Core::String& _data_table, int first_row_added, int num_rows_added)
 {
 	if (_data_source == data_source && _data_table == data_table)
 		AddChildren(first_row_added, num_rows_added);
 }
 
-void ElementDataGridRow::OnRowRemove(DataSource* _data_source, const Rocket::Core::String& _data_table, int first_row_removed, int num_rows_removed)
+void ElementDataGridRow::OnRowRemove(DataSource* _data_source, const Rml::Core::String& _data_table, int first_row_removed, int num_rows_removed)
 {
 	if (_data_source == data_source && _data_table == data_table)
 		RemoveChildren(first_row_removed, num_rows_removed);
 }
 
-void ElementDataGridRow::OnRowChange(DataSource* _data_source, const Rocket::Core::String& _data_table, int first_row_changed, int num_rows_changed)
+void ElementDataGridRow::OnRowChange(DataSource* _data_source, const Rml::Core::String& _data_table, int first_row_changed, int num_rows_changed)
 {
 	if (_data_source == data_source && _data_table == data_table)
 		ChangeChildren(first_row_changed, num_rows_changed);
 }
 
-void ElementDataGridRow::OnRowChange(DataSource* _data_source, const Rocket::Core::String& _data_table)
+void ElementDataGridRow::OnRowChange(DataSource* _data_source, const Rml::Core::String& _data_table)
 {
 	if (_data_source == data_source && _data_table == data_table)
 		RefreshRows();
@@ -291,7 +292,7 @@ void ElementDataGridRow::RefreshRows()
 	RemoveChildren();
 
 	// Load the children from the data source.
-	if (data_source != NULL)
+	if (data_source != nullptr)
 	{
 		int num_rows = data_source->GetNumRows(data_table);
 		if (num_rows > 0)
@@ -372,13 +373,9 @@ void ElementDataGridRow::AddChildren(int first_row_added, int num_rows_added)
 		first_row_added = (int)children.size();
 	}
 
-	// prevent relayout of the document while adding rows
-	Core::ElementDocument* document = parent_grid->GetOwnerDocument();
-	document->LockLayout(true);
-
 	// We need to make a row for each new child, then pass through the cell
 	// information and the child's data source (if one exists.)
-	if (data_source != NULL)
+	if (data_source != nullptr)
 	{
 		for (int i = 0; i < num_rows_added; i++)
 		{
@@ -390,7 +387,7 @@ void ElementDataGridRow::AddChildren(int first_row_added, int num_rows_added)
 
 			if (!row_expanded)
 			{
-				new_row->SetProperty("display", "none");
+				new_row->SetProperty(Core::PropertyId::Display, Core::Property(Core::Style::Display::None));
 			}
 		}
 
@@ -406,27 +403,20 @@ void ElementDataGridRow::AddChildren(int first_row_added, int num_rows_added)
 		}
 	}
 
-	document->LockLayout(false);
-
 	RefreshChildDependentCells();
 	DirtyRow();
 
-	Rocket::Core::Dictionary parameters;
-	parameters.Set("first_row_added", GetChildTableRelativeIndex(first_row_added));
-	parameters.Set("num_rows_added", num_rows_added);
-	parent_grid->DispatchEvent("rowadd", parameters);
+	Rml::Core::Dictionary parameters;
+	parameters["first_row_added"] = GetChildTableRelativeIndex(first_row_added);
+	parameters["num_rows_added"] = num_rows_added;
+	
+	parent_grid->DispatchEvent(Core::EventId::Rowadd, parameters);
 }
 
 void ElementDataGridRow::RemoveChildren(int first_row_removed, int num_rows_removed)
 {
 	if (num_rows_removed == -1)
-	{
 		num_rows_removed = (int)children.size() - first_row_removed;
-	}
-
-	// prevent relayout of the document while removing rows
-	Core::ElementDocument* document = parent_grid->GetOwnerDocument();
-	document->LockLayout(true);
 
 	for (int i = num_rows_removed - 1; i >= 0; i--)
 	{
@@ -441,12 +431,11 @@ void ElementDataGridRow::RemoveChildren(int first_row_removed, int num_rows_remo
 		children[i]->DirtyTableRelativeIndex();
 	}
 
-	document->LockLayout(false);
-
-	Rocket::Core::Dictionary parameters;
-	parameters.Set("first_row_removed", GetChildTableRelativeIndex(first_row_removed));
-	parameters.Set("num_rows_removed", num_rows_removed);
-	parent_grid->DispatchEvent("rowremove", parameters);
+	Rml::Core::Dictionary parameters;
+	parameters["first_row_removed"] = GetChildTableRelativeIndex(first_row_removed);
+	parameters["num_rows_removed"] = num_rows_removed;
+	
+	parent_grid->DispatchEvent(Core::EventId::Rowremove, parameters);
 }
 
 void ElementDataGridRow::ChangeChildren(int first_row_changed, int num_rows_changed)
@@ -454,10 +443,11 @@ void ElementDataGridRow::ChangeChildren(int first_row_changed, int num_rows_chan
 	for (int i = first_row_changed; i < first_row_changed + num_rows_changed; i++)
 		children[i]->DirtyCells();
 
-	Rocket::Core::Dictionary parameters;
-	parameters.Set("first_row_changed", GetChildTableRelativeIndex(first_row_changed));
-	parameters.Set("num_rows_changed", num_rows_changed);
-	parent_grid->DispatchEvent("rowchange", parameters);
+	Rml::Core::Dictionary parameters;
+	parameters["first_row_changed"] = GetChildTableRelativeIndex(first_row_changed);
+	parameters["num_rows_changed"] = num_rows_changed;
+	
+	parent_grid->DispatchEvent(Core::EventId::Rowchange, parameters);
 }
 
 // Returns the number of rows under this row (children, grandchildren, etc)
@@ -478,8 +468,8 @@ void ElementDataGridRow::Load(const DataQuery& row_information)
 	// ourselves up with it.
 	if (row_information.IsFieldSet(DataSource::CHILD_SOURCE))
 	{
-		Rocket::Core::String data_source = row_information.Get< Rocket::Core::String >(DataSource::CHILD_SOURCE, "");
-		if (!data_source.Empty())
+		Rml::Core::String data_source = row_information.Get< Rml::Core::String >(DataSource::CHILD_SOURCE, "");
+		if (!data_source.empty())
 		{
 			SetDataSource(data_source);
 		}
@@ -503,48 +493,43 @@ void ElementDataGridRow::Load(const DataQuery& row_information)
 			// Now we use the column's formatter to process the raw data into the
 			// XML string, and parse that into the actual Core::Elements. If there is
 			// no formatter, then we just send through the raw text, in CVS form.
-			Rocket::Core::StringList raw_data;
+			Rml::Core::StringList raw_data;
+			raw_data.reserve(column->fields.size());
 			size_t raw_data_total_len = 0;
 			for (size_t i = 0; i < column->fields.size(); i++)
 			{
 				if (column->fields[i] == DataSource::DEPTH)
 				{
-					Rocket::Core::StringList::iterator it = raw_data.insert(raw_data.end(), Core::String());
-					Rocket::Core::String &r = *it;
-					r.FormatString(8, "%d", depth);
-					raw_data_total_len += r.Length();
+					raw_data.push_back(Rml::Core::CreateString(8, "%d", depth));
+					raw_data_total_len += raw_data.back().length();
 				}
 				else if (column->fields[i] == DataSource::NUM_CHILDREN)
 				{
-					Rocket::Core::StringList::iterator it = raw_data.insert(raw_data.end(), Core::String());
-					Rocket::Core::String &r = *it;
-					r.FormatString(8, "%d", children.size());
-					raw_data_total_len += r.Length();
+					raw_data.push_back(Rml::Core::CreateString(8, "%d", children.size()));
+					raw_data_total_len += raw_data.back().length();
 				}
 				else
 				{
-					Rocket::Core::StringList::iterator it = raw_data.insert(raw_data.end(), Core::String());
-					Rocket::Core::String &r = *it;
-					row_information.GetInto< Rocket::Core::String >(column->fields[i], r);
-					raw_data_total_len += r.Length();
+					raw_data.push_back(row_information.Get< Rml::Core::String >(column->fields[i], ""));
+					raw_data_total_len += raw_data.back().length();
 				}
 			}
 
-			Rocket::Core::String cell_string;
+			Rml::Core::String cell_string;
 			if (column->formatter)
 			{
 				column->formatter->FormatData(cell_string, raw_data);
 			}
 			else
 			{
-				cell_string.Reserve(raw_data_total_len + raw_data.size() + 1);
+				cell_string.reserve(raw_data_total_len + raw_data.size() + 1);
 				for (size_t i = 0; i < raw_data.size(); i++)
 				{
 					if (i > 0)
 					{
-						cell_string.Append(",");
+						cell_string += ",";
 					}
-					cell_string.Append(raw_data[i]);
+					cell_string += raw_data[i];
 				}
 			}
 
@@ -556,15 +541,10 @@ void ElementDataGridRow::Load(const DataQuery& row_information)
 
 			// Add the new contents to the cell.
 			Core::Factory::InstanceElementText(cell, cell_string);
-
-			for (size_t i = 0; i < column->fields.size(); ++i)
-			{
-				cell->SetClass(column->fields[i], true);
-			}
 		}
 		else
 		{
-			ROCKET_ERROR;
+			RMLUI_ERROR;
 		}
 	}
 
@@ -574,7 +554,7 @@ void ElementDataGridRow::Load(const DataQuery& row_information)
 // Instantiates the children that haven't been fully loaded yet.
 void ElementDataGridRow::LoadChildren(float time_slice)
 {
-	float start_time = Core::GetSystemInterface()->GetElapsedTime();
+	double start_time = Core::Clock::GetElapsedTime();
 
 	int data_query_offset = -1;
 	int data_query_limit = -1;
@@ -590,7 +570,7 @@ void ElementDataGridRow::LoadChildren(float time_slice)
 	//    In either case, we check if we have a hole that's unfilled, and if
 	//    so, we fill it.
 	bool any_dirty_children = false;
-	for (size_t i = 0; i < children.size() && (Core::GetSystemInterface()->GetElapsedTime() - start_time) < time_slice; i++)
+	for (size_t i = 0; i < children.size() && float(Core::Clock::GetElapsedTime() - start_time) < time_slice; i++)
 	{
 		if (children[i]->dirty_cells)
 		{
@@ -627,7 +607,7 @@ void ElementDataGridRow::LoadChildren(float time_slice)
 		// end of the list or the end of the hole, fill the hole.
 		else if (unfilled_hole && (end_of_list || end_of_hole_found))
 		{
-			float load_time_slice = time_slice - (Core::GetSystemInterface()->GetElapsedTime() - start_time);
+			float load_time_slice = time_slice - float(Core::Clock::GetElapsedTime() - start_time);
 			LoadChildren(data_query_offset, data_query_limit, load_time_slice);
 			data_query_offset =  -1;
 			data_query_limit = -1;
@@ -640,14 +620,14 @@ void ElementDataGridRow::LoadChildren(float time_slice)
 	}
 }
 
-void ElementDataGridRow::LoadChildren(int first_row_to_load, int num_rows_to_load, Rocket::Core::Time time_slice)
+void ElementDataGridRow::LoadChildren(int first_row_to_load, int num_rows_to_load, Rml::Core::Time time_slice)
 {
-	float start_time = Core::GetSystemInterface()->GetElapsedTime();
+	double start_time = Core::Clock::GetElapsedTime();
 
 	// Now fetch these new children from the data source, pass them
 	// through each column's data formatter, and add them as our new
 	// child rows.
-	Rocket::Core::String column_query = parent_grid->GetAllColumnFields() + "," + DataSource::CHILD_SOURCE;
+	Rml::Core::String column_query = parent_grid->GetAllColumnFields() + "," + DataSource::CHILD_SOURCE;
 	DataQuery query(data_source, data_table, column_query, first_row_to_load, num_rows_to_load);
 
 	for (int i = 0; i < num_rows_to_load; i++)
@@ -656,13 +636,13 @@ void ElementDataGridRow::LoadChildren(int first_row_to_load, int num_rows_to_loa
 
 		if (!query.NextRow())
 		{
-			Core::Log::Message(Rocket::Core::Log::LT_WARNING, "Failed to load row %d from data source %s", i, data_table.CString());
+			Core::Log::Message(Rml::Core::Log::LT_WARNING, "Failed to load row %d from data source %s", i, data_table.c_str());
 		}
 
 		// Now load the child with the row in the query.
 		children[index]->Load(query);
 
-		if (Core::GetSystemInterface()->GetElapsedTime() - start_time > time_slice)
+		if (float(Core::Clock::GetElapsedTime() - start_time) > time_slice)
 		{
 			break;
 		}
@@ -690,7 +670,7 @@ void ElementDataGridRow::DirtyRow()
 // Sets this row's child rows to be visible.
 void ElementDataGridRow::Show()
 {
-	SetProperty("display", "inline-block");
+	SetProperty(Core::PropertyId::Display, Core::Property(Core::Style::Display::InlineBlock));
 
 	if (row_expanded)
 	{
@@ -704,7 +684,7 @@ void ElementDataGridRow::Show()
 // Sets this row's children to be invisible.
 void ElementDataGridRow::Hide()
 {
-	SetProperty("display", "none");
+	SetProperty(Core::PropertyId::Display, Core::Property(Core::Style::Display::None));
 
 	for (size_t i = 0; i < children.size(); i++)
 	{

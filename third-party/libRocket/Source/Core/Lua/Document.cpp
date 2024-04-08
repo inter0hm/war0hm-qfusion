@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,12 +28,12 @@
  
 #include "precompiled.h"
 #include "Document.h"
-#include <Rocket/Core/ElementDocument.h>
-#include <Rocket/Core/Context.h>
+#include <RmlUi/Core/ElementDocument.h>
+#include <RmlUi/Core/Context.h>
 #include "Element.h"
-#include <Rocket/Core/Lua/Utilities.h>
+#include <RmlUi/Core/Lua/Utilities.h>
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 
@@ -44,20 +45,36 @@ template<> void ExtraInit<Document>(lua_State* L, int metatable_index)
     AddTypeToElementAsTable<Document>(L);
     
     //create the DocumentFocus table
-    lua_getglobal(L,"DocumentFocus");
+    lua_getglobal(L,"DocumentModal");
     if(lua_isnoneornil(L,-1))
     {
         lua_pop(L,1); //pop unsucessful getglobal
         lua_newtable(L); //create a table for holding the enum
-        lua_pushinteger(L,ElementDocument::NONE);
-        lua_setfield(L,-2,"NONE");
-        lua_pushinteger(L,ElementDocument::FOCUS);
-        lua_setfield(L,-2,"FOCUS");
-        lua_pushinteger(L,ElementDocument::MODAL);
-        lua_setfield(L,-2,"MODAL");
-        lua_setglobal(L,"DocumentFocus");
-        
+        lua_pushinteger(L,(int)ModalFlag::None);
+        lua_setfield(L,-2,"None");
+        lua_pushinteger(L,(int)ModalFlag::Modal);
+        lua_setfield(L,-2,"Modal");
+		lua_pushinteger(L, (int)ModalFlag::Keep);
+        lua_setfield(L,-2,"Keep");
+        lua_setglobal(L,"DocumentModal");
     }
+
+	//create the DocumentFocus table
+	lua_getglobal(L, "DocumentFocus");
+	if (lua_isnoneornil(L, -1))
+	{
+		lua_pop(L, 1); //pop unsucessful getglobal
+		lua_newtable(L); //create a table for holding the enum
+		lua_pushinteger(L, (int)FocusFlag::None);
+		lua_setfield(L, -2, "None");
+		lua_pushinteger(L, (int)FocusFlag::Document);
+		lua_setfield(L, -2, "Document");
+		lua_pushinteger(L, (int)FocusFlag::Keep);
+		lua_setfield(L, -2, "Keep");
+		lua_pushinteger(L, (int)FocusFlag::Auto);
+		lua_setfield(L, -2, "Auto");
+		lua_setglobal(L, "DocumentFocus");
+	}
 }
 
 //methods
@@ -78,11 +95,17 @@ int DocumentShow(lua_State* L, Document* obj)
     int top = lua_gettop(L);
     if(top == 0)
         obj->Show();
-    else
+    else if(top == 1)
     {
-        int flag = luaL_checkinteger(L,1);
-        obj->Show(flag);
+        ModalFlag modal = (ModalFlag)luaL_checkinteger(L,1);
+        obj->Show(modal);
     }
+	else
+	{
+        ModalFlag modal = (ModalFlag)luaL_checkinteger(L,1);
+		FocusFlag focus = (FocusFlag)luaL_checkinteger(L,2);
+		obj->Show(modal, focus);
+	}
     return 0;
 }
 
@@ -101,9 +124,8 @@ int DocumentClose(lua_State* L, Document* obj)
 int DocumentCreateElement(lua_State* L, Document* obj)
 {
     const char* tag = luaL_checkstring(L,1);
-    Element* ele = obj->CreateElement(tag);
-    LuaType<Element>::push(L,ele,true);
-    ele->RemoveReference();
+    ElementPtr* ele = new ElementPtr( obj->CreateElement(tag) );
+    LuaType<ElementPtr>::push(L,ele,true);
     return 1;
 }
 
@@ -111,9 +133,8 @@ int DocumentCreateTextNode(lua_State* L, Document* obj)
 {
     //need ElementText object first
     const char* text = luaL_checkstring(L,1);
-    ElementText* et = obj->CreateTextNode(text);
-    LuaType<ElementText>::push(L, et, true);
-    et->RemoveReference();
+    ElementPtr* et = new ElementPtr( obj->CreateTextNode(text) );
+    LuaType<ElementPtr>::push(L, et, true);
 	return 1;
 }
 
@@ -123,7 +144,7 @@ int DocumentGetAttrtitle(lua_State* L)
 {
     Document* doc = LuaType<Document>::check(L,1);
     LUACHECKOBJ(doc);
-    lua_pushstring(L,doc->GetTitle().CString());
+    lua_pushstring(L,doc->GetTitle().c_str());
     return 1;
 }
 
@@ -156,23 +177,23 @@ RegType<Document> DocumentMethods[] =
     LUAMETHOD(Document,Close)
     LUAMETHOD(Document,CreateElement)
     LUAMETHOD(Document,CreateTextNode)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg DocumentGetters[] =
 {
     LUAGETTER(Document,title)
     LUAGETTER(Document,context)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg DocumentSetters[] =
 {
     LUASETTER(Document,title)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
-LUACORETYPEDEFINE(Document,true)
+LUACORETYPEDEFINE(Document)
 }
 }
 }

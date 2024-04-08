@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,12 @@
  *
  */
 
-#ifndef ROCKETCOREFONTEFFECTOUTLINEINSTANCER_H
-#define ROCKETCOREFONTEFFECTOUTLINEINSTANCER_H
+#ifndef RMLUICOREFONTEFFECTOUTLINEINSTANCER_H
+#define RMLUICOREFONTEFFECTOUTLINEINSTANCER_H
 
-#include "../../Include/Rocket/Core/FontEffectInstancer.h"
+#include "../../Include/RmlUi/Core/FontEffectInstancer.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
@@ -45,17 +46,10 @@ public:
 	FontEffectOutlineInstancer();
 	virtual ~FontEffectOutlineInstancer();
 
-	/// Instances an outline font effect.
-	/// @param[in] name The type of font effect desired.
-	/// @param[in] properties All RCSS properties associated with the outline effect.
-	/// @return The font effect if it was instanced successfully, NULL if an error occured.
-	virtual FontEffect* InstanceFontEffect(const String& name, const PropertyDictionary& properties);
-	/// Releases the outline effect.
-	/// @param[in] font_effect Font effect to release.
-	virtual void ReleaseFontEffect(FontEffect* font_effect);
+	SharedPtr<FontEffect> InstanceFontEffect(const String& name, const PropertyDictionary& properties) override;
 
-	/// Releases the instancer.
-	virtual void Release();
+private:
+	PropertyId id_width, id_color;
 };
 
 }

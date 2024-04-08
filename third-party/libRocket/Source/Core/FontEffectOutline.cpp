@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,15 +29,13 @@
 #include "precompiled.h"
 #include "FontEffectOutline.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 FontEffectOutline::FontEffectOutline()
 {
 	width = 0;
-
-	// Default the z-index of an outline effect to be behind the main layer.
-	SetZIndex(-1);
+	SetLayer(Layer::Back);
 }
 
 FontEffectOutline::~FontEffectOutline()
@@ -78,6 +77,30 @@ bool FontEffectOutline::Initialise(int _width)
 	return true;
 }
 
+// Resizes and repositions the glyph to fit the outline.
+bool FontEffectOutline::GetGlyphMetrics(Vector2i& origin, Vector2i& dimensions, const FontGlyph& RMLUI_UNUSED_PARAMETER(glyph)) const
+{
+	RMLUI_UNUSED(glyph);
+
+	if (dimensions.x * dimensions.y > 0)
+	{
+		origin.x -= width;
+		origin.y -= width;
+
+		dimensions.x += width;
+		dimensions.y += width;
+
+		return true;
+	}
+
+	return false;
+}
+
+// Expands the original glyph texture for the outline.
+void FontEffectOutline::GenerateGlyphTexture(byte* destination_data, const Vector2i& destination_dimensions, int destination_stride, const FontGlyph& glyph) const
+{
+	filter.Run(destination_data, destination_dimensions, destination_stride, glyph.bitmap_data, glyph.bitmap_dimensions, Vector2i(width, width));
+}
 
 }
 }

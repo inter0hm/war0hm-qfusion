@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,40 +29,44 @@
 #include <ShellRenderInterfaceExtensions.h>
 #include <ShellRenderInterfaceOpenGL.h>
 #include <windows.h>
-#include <Rocket/Core.h>
-#include <Rocket/Core/Platform.h>
+#include <RmlUi/Core.h>
+#include <RmlUi/Core/Platform.h>
 #include <Shell.h>
 
 void ShellRenderInterfaceOpenGL::SetContext(void *context)
 {
-	m_rocket_context = context;
+	m_rmlui_context = context;
 }
 
 void ShellRenderInterfaceOpenGL::SetViewport(int width, int height)
 {
 	if(m_width != width || m_height != height) {
+		Rml::Core::Matrix4f projection, view;
+
 		m_width = width;
 		m_height = height;
 		
 		glViewport(0, 0, width, height);
+		projection = Rml::Core::Matrix4f::ProjectOrtho(0, (float)width, (float)height, 0, -10000, 10000);
 		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0, width, height, 0, -1, 1);
+		glLoadMatrixf(projection.data());
+		view = Rml::Core::Matrix4f::Identity();
 		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-	}
-	if(m_rocket_context != NULL)
-	{
-		((Rocket::Core::Context*)m_rocket_context)->SetDimensions(Rocket::Core::Vector2i(width, height));
+		glLoadMatrixf(view.data());
+
+		if(m_rmlui_context != nullptr)
+		{
+			((Rml::Core::Context*)m_rmlui_context)->SetDimensions(Rml::Core::Vector2i(width, height));
+		}
 	}
 }
 
 bool ShellRenderInterfaceOpenGL::AttachToNative(void *nativeWindow)
 {
-	this->render_context = NULL;
+	this->render_context = nullptr;
 	this->window_handle = (HWND)nativeWindow;
 	this->device_context = GetDC(this->window_handle);
-	if (this->device_context == NULL)
+	if (this->device_context == nullptr)
 	{
 		Shell::DisplayError("Could not get device context.");
 		return false;
@@ -95,7 +100,7 @@ bool ShellRenderInterfaceOpenGL::AttachToNative(void *nativeWindow)
 	}
 
 	this->render_context = wglCreateContext(this->device_context);
-	if (this->render_context == NULL)
+	if (this->render_context == nullptr)
 	{ 
 		Shell::DisplayError("Could not create OpenGL rendering context.");
 		return false;
@@ -119,7 +124,7 @@ bool ShellRenderInterfaceOpenGL::AttachToNative(void *nativeWindow)
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	RECT crect;
-	GetClientRect(this->window_handle, &crect)
+	GetClientRect(this->window_handle, &crect);
 	glOrtho(0, (crect.right - crect.left), (crect.bottom - crect.top), 0, -1, 1);
 
 	glMatrixMode(GL_MODELVIEW);
@@ -131,17 +136,17 @@ bool ShellRenderInterfaceOpenGL::AttachToNative(void *nativeWindow)
 void ShellRenderInterfaceOpenGL::DetachFromNative()
 {
 	// Shutdown OpenGL
-	if (this->render_context != NULL)
+	if (this->render_context != nullptr)
 	{
-		wglMakeCurrent(NULL, NULL); 
+		wglMakeCurrent(nullptr, nullptr); 
 		wglDeleteContext(this->render_context);
-		this->render_context = NULL;
+		this->render_context = nullptr;
 	}
 
-	if (this->device_context != NULL)
+	if (this->device_context != nullptr)
 	{
 		ReleaseDC(this->window_handle, this->device_context);
-		this->device_context = NULL;
+		this->device_context = nullptr;
 	}
 }
 
@@ -154,4 +159,5 @@ void ShellRenderInterfaceOpenGL::PresentRenderBuffer()
 {
 	// Flips the OpenGL buffers.
 	SwapBuffers(this->device_context);
+	RMLUI_FrameMark;
 }

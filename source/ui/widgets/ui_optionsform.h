@@ -2,7 +2,7 @@
 #ifndef __UI_OPTIONSFORM_H__
 #define __UI_OPTIONSFORM_H__
 
-#include <Rocket/Controls/ElementForm.h>
+#include <RmlUi/Controls/ElementForm.h>
 
 namespace WSWUI
 {
@@ -45,15 +45,17 @@ namespace WSWUI
 		CvarStorage cvars;
 		Rocket::Core::EventListener *cvarListener;
 
-	public:
-		OptionsForm( const Rocket::Core::String &tag );
-		~OptionsForm();
+class OptionsForm : public Rml::Controls::ElementForm
+{
+	CvarStorage cvars;
+	Rml::Core::EventListener *cvarListener;
 
-		// Rocket Form
-		virtual void ProcessEvent( Rocket::Core::Event &ev );
+public:
+	OptionsForm( const std::string &tag );
+	~OptionsForm();
 
-		// move stored cvar values back to cvars (i.e. Cancel)
-		void restoreOptions();
+	// Rocket Form
+	virtual void ProcessDefaultAction( Rml::Core::Event &ev );
 
 		// move cvar values to storage (i.e. onLoad/Show)
 		void storeOptions();

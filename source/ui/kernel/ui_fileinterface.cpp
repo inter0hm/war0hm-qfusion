@@ -13,8 +13,7 @@
 namespace WSWUI
 {
 
-UI_FileInterface::UI_FileInterface() : Rocket::Core::FileInterface()
-{
+UI_FileInterface::UI_FileInterface() : Rml::Core::FileInterface() {
 	fileSizeMap.clear();
 
 	// TODO Auto-generated constructor stub
@@ -24,25 +23,23 @@ UI_FileInterface::~UI_FileInterface()
 {
 }
 
-Rocket::Core::FileHandle UI_FileInterface::Open(const Rocket::Core::String & path)
-{
+Rml::Core::FileHandle UI_FileInterface::Open( const std::string & path ) {
 	int filenum = 0;
 	int length = -1;
-	Rocket::Core::URL url( path );
-	Rocket::Core::String protocol = url.GetProtocol();
+	Rml::Core::URL url( path );
+	std::string protocol = url.GetProtocol();
 	bool cache = protocol == "cache";
 
 	// local
-	if( protocol.Empty() || protocol == "file" || cache ) {
-		Rocket::Core::String path2( url.GetHost() + "/" + url.GetPathedFileName() );
-		while( path2[0] == '/' ) {
-			path2.Erase( 0, 1 );
+	if( protocol.empty() || protocol == "file" || cache ) {
+		Rml::Core::String path2( url.GetHost() + "/" + url.GetPathedFileName() );
+		while( path2.front() == '/' ) {
+			path2.erase( 0, 1 );
 		}
-		length = FS_FOpenFile( path2.CString(), &filenum, FS_READ | (cache ? FS_CACHE : 0) );
-	}
-	else if( protocol == "http" ) {
+		length = trap::FS_FOpenFile( path2.c_str(), &filenum, FS_READ | ( cache ? FS_CACHE : 0 ) );
+	} else if( protocol == "http" ) {
 		// allow blocking download of remote resources
-		length = FS_FOpenFile( path.CString(), &filenum, FS_READ );
+		length = trap::FS_FOpenFile( path.c_str(), &filenum, FS_READ );
 	}
 
 	if( length == -1 )
@@ -52,11 +49,10 @@ Rocket::Core::FileHandle UI_FileInterface::Open(const Rocket::Core::String & pat
 	fileSizeMap[filenum] = length;
 
 	// Com_Printf("UI_FileInterface opened %s\n", path2.CString() );
-	return static_cast<Rocket::Core::FileHandle>( filenum );
+	return static_cast<Rml::Core::FileHandle>( filenum );
 }
 
-void UI_FileInterface::Close(Rocket::Core::FileHandle file)
-{
+void UI_FileInterface::Close( Rml::Core::FileHandle file ) {
 	if( file != 0 ) {
 		int filenum = static_cast<int>( file );
 
@@ -65,14 +61,12 @@ void UI_FileInterface::Close(Rocket::Core::FileHandle file)
 	}
 }
 
-size_t UI_FileInterface::Read(void *buffer, size_t size, Rocket::Core::FileHandle file)
-{
-	return FS_Read( buffer, size, static_cast<int>( file ) );
+size_t UI_FileInterface::Read( void *buffer, size_t size, Rml::Core::FileHandle file ) {
+	return trap::FS_Read( buffer, size, static_cast<int>( file ) );
 }
 
-bool UI_FileInterface::Seek(Rocket::Core::FileHandle file, long  offset, int origin)
-{
-	if( origin == SEEK_SET )
+bool UI_FileInterface::Seek( Rml::Core::FileHandle file, long offset, int origin ) {
+	if( origin == SEEK_SET ) {
 		origin = FS_SEEK_SET;
 	else if( origin == SEEK_END )
 		origin = FS_SEEK_END;
@@ -84,13 +78,11 @@ bool UI_FileInterface::Seek(Rocket::Core::FileHandle file, long  offset, int ori
 	return ( FS_Seek( static_cast<int>( file ), offset, origin ) != -1 );
 }
 
-size_t UI_FileInterface::Tell(Rocket::Core::FileHandle file)
-{
-	return FS_Tell( static_cast<int>( file ) );
+size_t UI_FileInterface::Tell( Rml::Core::FileHandle file ) {
+	return trap::FS_Tell( static_cast<int>( file ) );
 }
 
-size_t UI_FileInterface::Length(Rocket::Core::FileHandle file)
-{
+size_t UI_FileInterface::Length( Rml::Core::FileHandle file ) {
 	int filenum = static_cast<int>( file );
 	fileSizeMap_t::iterator it = fileSizeMap.find( filenum );
 

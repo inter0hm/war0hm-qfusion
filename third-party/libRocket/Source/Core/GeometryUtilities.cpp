@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +27,9 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/GeometryUtilities.h"
+#include "../../Include/RmlUi/Core/GeometryUtilities.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 GeometryUtilities::GeometryUtilities()
@@ -71,6 +72,37 @@ void GeometryUtilities::GenerateQuad(Vertex* vertices, int* indices, const Vecto
 	indices[3] = index_offset + 1;
 	indices[4] = index_offset + 3;
 	indices[5] = index_offset + 2;
+}
+
+// Generates the geometry required to render a line above, below or through a line of text.
+void GeometryUtilities::GenerateLine(FontFaceHandle font_face_handle, Geometry* geometry, const Vector2f& position, int width, Style::TextDecoration height, const Colourb& colour)
+{
+	std::vector< Vertex >& line_vertices = geometry->GetVertices();
+	std::vector< int >& line_indices = geometry->GetIndices();
+	float underline_thickness = 0;
+	float underline_position = GetFontEngineInterface()->GetUnderline(font_face_handle, underline_thickness);
+	int size = GetFontEngineInterface()->GetSize(font_face_handle);
+	int x_height = GetFontEngineInterface()->GetXHeight(font_face_handle);
+
+	float offset;
+	switch (height)
+	{
+		case Style::TextDecoration::Underline:       offset = -underline_position; break;
+		case Style::TextDecoration::Overline:        offset = -underline_position - (float)size; break;
+		case Style::TextDecoration::LineThrough:     offset = -0.65f * (float)x_height; break;
+		default: return;
+	}
+
+	line_vertices.resize(line_vertices.size() + 4);
+	line_indices.resize(line_indices.size() + 6);
+	GeometryUtilities::GenerateQuad(
+									&line_vertices[0] + ((int)line_vertices.size() - 4),
+									&line_indices[0] + ((int)line_indices.size() - 6),
+									Vector2f(position.x, position.y + offset).Round(),
+									Vector2f((float) width, underline_thickness),
+									colour,
+									(int)line_vertices.size() - 4
+									);
 }
 
 }

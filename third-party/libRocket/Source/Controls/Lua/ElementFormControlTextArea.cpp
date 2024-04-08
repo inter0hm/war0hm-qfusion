@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,11 +28,11 @@
  
 #include "precompiled.h"
 #include "ElementFormControlTextArea.h"
-#include <Rocket/Controls/ElementFormControl.h>
+#include <RmlUi/Controls/ElementFormControl.h>
 #include "ElementFormControl.h"
-#include <Rocket/Core/Lua/Utilities.h>
+#include <RmlUi/Core/Lua/Utilities.h>
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 namespace Lua {
 
@@ -74,7 +75,7 @@ int ElementFormControlTextAreaSetAttrcols(lua_State* L)
 {
     ElementFormControlTextArea* obj = LuaType<ElementFormControlTextArea>::check(L,1);
     LUACHECKOBJ(obj);
-    int cols = luaL_checkint(L,2);
+    int cols = (int)luaL_checkinteger(L,2);
     obj->SetNumColumns(cols);
     return 0;
 }
@@ -83,7 +84,7 @@ int ElementFormControlTextAreaSetAttrmaxlength(lua_State* L)
 {
     ElementFormControlTextArea* obj = LuaType<ElementFormControlTextArea>::check(L,1);
     LUACHECKOBJ(obj);
-    int ml = luaL_checkint(L,2);
+    int ml = (int)luaL_checkinteger(L,2);
     obj->SetMaxLength(ml);
     return 0;
 }
@@ -92,7 +93,7 @@ int ElementFormControlTextAreaSetAttrrows(lua_State* L)
 {
     ElementFormControlTextArea* obj = LuaType<ElementFormControlTextArea>::check(L,1);
     LUACHECKOBJ(obj);
-    int rows = luaL_checkint(L,2);
+    int rows = (int)luaL_checkinteger(L,2);
     obj->SetNumRows(rows);
     return 0;
 }
@@ -107,9 +108,9 @@ int ElementFormControlTextAreaSetAttrwordwrap(lua_State* L)
 }
 
 
-Rocket::Core::Lua::RegType<ElementFormControlTextArea> ElementFormControlTextAreaMethods[] =
+Rml::Core::Lua::RegType<ElementFormControlTextArea> ElementFormControlTextAreaMethods[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementFormControlTextAreaGetters[] =
@@ -118,7 +119,7 @@ luaL_Reg ElementFormControlTextAreaGetters[] =
     LUAGETTER(ElementFormControlTextArea,maxlength)
     LUAGETTER(ElementFormControlTextArea,rows)
     LUAGETTER(ElementFormControlTextArea,wordwrap)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementFormControlTextAreaSetters[] =
@@ -127,24 +128,24 @@ luaL_Reg ElementFormControlTextAreaSetters[] =
     LUASETTER(ElementFormControlTextArea,maxlength)
     LUASETTER(ElementFormControlTextArea,rows)
     LUASETTER(ElementFormControlTextArea,wordwrap)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 }
 }
 }
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
-template<> void ExtraInit<Rocket::Controls::ElementFormControlTextArea>(lua_State* L, int metatable_index)
+template<> void ExtraInit<Rml::Controls::ElementFormControlTextArea>(lua_State* L, int metatable_index)
 {
-    ExtraInit<Rocket::Controls::ElementFormControl>(L,metatable_index);
-    LuaType<Rocket::Controls::ElementFormControl>::_regfunctions(L,metatable_index,metatable_index-1);
-    AddTypeToElementAsTable<Rocket::Controls::ElementFormControlTextArea>(L);
+    ExtraInit<Rml::Controls::ElementFormControl>(L,metatable_index);
+    LuaType<Rml::Controls::ElementFormControl>::_regfunctions(L,metatable_index,metatable_index-1);
+    AddTypeToElementAsTable<Rml::Controls::ElementFormControlTextArea>(L);
 }
 
-using Rocket::Controls::ElementFormControlTextArea;
-LUACONTROLSTYPEDEFINE(ElementFormControlTextArea,true)
+using Rml::Controls::ElementFormControlTextArea;
+LUACONTROLSTYPEDEFINE(ElementFormControlTextArea)
 }
 }
 }

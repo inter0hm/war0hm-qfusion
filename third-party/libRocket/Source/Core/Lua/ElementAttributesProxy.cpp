@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +28,10 @@
  
 #include "precompiled.h"
 #include "ElementAttributesProxy.h"
-#include <Rocket/Core/Variant.h>
-#include <Rocket/Core/Lua/Utilities.h>
+#include <RmlUi/Core/Variant.h>
+#include <RmlUi/Core/Lua/Utilities.h>
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 template<> void ExtraInit<ElementAttributesProxy>(lua_State* L, int metatable_index)
@@ -65,15 +66,20 @@ int ElementAttributesProxy__pairs(lua_State* L)
 {
     ElementAttributesProxy* obj = LuaType<ElementAttributesProxy>::check(L,1);
     LUACHECKOBJ(obj);
-    int* pindex = (int*)lua_touserdata(L,3);
-    if((*pindex) == -1) 
-        *pindex = 0;
-    String key = "";
-    Variant* val;
-    if(obj->owner->IterateAttributes((*pindex),key,val))
+    int& pindex = *(int*)lua_touserdata(L,3);
+    if((pindex) == -1) 
+        pindex = 0;
+	const ElementAttributes& attributes = obj->owner->GetAttributes();
+
+    if(pindex >= 0 && pindex < (int)attributes.size())
     {
-        lua_pushstring(L,key.CString());
-        PushVariant(L,val);
+		auto it = attributes.begin();
+		for (int i = 0; i < pindex; ++i)
+			++it;
+		const String& key = it->first;
+		const Variant* value = &it->second;
+        lua_pushstring(L,key.c_str());
+        PushVariant(L,value);
     }
     else
     {
@@ -93,19 +99,19 @@ int ElementAttributesProxy__ipairs(lua_State* L)
 
 RegType<ElementAttributesProxy> ElementAttributesProxyMethods[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementAttributesProxyGetters[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 luaL_Reg ElementAttributesProxySetters[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
-LUACORETYPEDEFINE(ElementAttributesProxy,false)
+LUACORETYPEDEFINE(ElementAttributesProxy)
 }
 }
 }

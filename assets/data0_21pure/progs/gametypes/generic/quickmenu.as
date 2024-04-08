@@ -19,7 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void GENERIC_ClearQuickMenu( Client @client )
 {
-	client.setQuickMenuItems( "" );
+
+using namespace Rml::Core;
+
+ElementBlur::ElementBlur( const String &tag ) : Element( tag ) {
+	SetProperty( "position", "fixed" );
 }
 
 void GENERIC_SetQuickMenu( Client @client, const String &menuStr )

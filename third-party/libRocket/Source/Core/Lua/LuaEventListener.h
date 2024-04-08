@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,14 +26,13 @@
  *
  */
  
-#ifndef ROCKETCORELUALUAEVENTLISTENER_H
-#define ROCKETCORELUALUAEVENTLISTENER_H
+#ifndef RMLUICORELUALUAEVENTLISTENER_H
+#define RMLUICORELUALUAEVENTLISTENER_H
 
-#include <Rocket/Core/EventListener.h>
-#include <Rocket/Core/String.h>
-#include <Rocket/Core/Lua/lua.hpp>
+#include <RmlUi/Core/EventListener.h>
+#include <RmlUi/Core/Lua/lua.hpp>
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 
@@ -51,13 +51,18 @@ public:
 
     virtual ~LuaEventListener();
 
-    /// Process the incoming Event
-	virtual void ProcessEvent(Event& event);
+	// Deletes itself, which also unreferences the Lua function.
+	void OnDetach(Element* element) override;
+
+	// Calls the associated Lua function.
+	void ProcessEvent(Event& event) override;
+
 private:
     //the lua-side function to call when ProcessEvent is called
-    int luaFuncRef;
-    Element* attached;
-    ElementDocument* parent;
+    int luaFuncRef = -1;
+
+    Element* attached = nullptr;
+    ElementDocument* owner_document = nullptr;
     String strFunc; //for debugging purposes
 };
 

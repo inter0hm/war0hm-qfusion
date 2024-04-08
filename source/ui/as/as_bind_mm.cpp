@@ -87,11 +87,11 @@ public:
 		const int pstate = state;
 		state = trap::MM_GetLoginState();
 
-		Rocket::Core::Dictionary ev_parms;
+		Rml::Core::Dictionary ev_parms;
 
 		if( pstate != state ) {
-			ev_parms.Set( "state", pstate );
-			ev_parms.Set( "old_state", pstate );
+			ev_parms["state"] = pstate;
+			ev_parms["old_state"] = pstate;
 			dispatchEvent( "stateChange", ev_parms );
 		}
 	}
@@ -123,11 +123,12 @@ private:
 	int state;
 	ASInterface *asmodule;
 
-	void dispatchEvent( const char *event, const Rocket::Core::Dictionary &parms )
-	{
-		Rocket::Core::Event *ev = Rocket::Core::Factory::InstanceEvent( NULL, event, parms, false );
+	void dispatchEvent( const char *event, const Rml::Core::Dictionary &parms ) {
+/*
+ 		const Rml::Core::EventSpecification& spec = Rml::Core::EventSpecification::GetOrInsert( event );
+		Rml::Core::Event *ev = Rml::Core::Factory::InstanceEvent( NULL, spec.id, spec.type, parms, false );
 
-		ev->SetPhase( Rocket::Core::Event::PHASE_BUBBLE ); // FIXME?
+		ev->SetPhase( Rml::Core::Event::PHASE_BUBBLE ); // FIXME?
 
 		for( ListenersList::iterator it = listeners.begin(); it != listeners.end(); ) {
 			EventCallback func = it->second;
@@ -153,8 +154,7 @@ erase:
 
 			 ++it;
 		}
-
-		ev->RemoveReference();
+*/
 	}
 
 	void clearEventListeners( void )
@@ -164,7 +164,7 @@ erase:
 		listeners.clear();
 	}
 
-	typedef ASBind::FunctionPtr<void( Rocket::Core::Event* )> EventCallback;
+	typedef ASBind::FunctionPtr<void ( Rml::Core::Event* )> EventCallback;
 	typedef std::pair<std::string, EventCallback> Listener;
 	typedef std::vector<Listener> ListenersList;
 	ListenersList listeners;

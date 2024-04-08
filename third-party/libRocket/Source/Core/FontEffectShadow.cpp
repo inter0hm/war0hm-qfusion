@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,13 +29,12 @@
 #include "precompiled.h"
 #include "FontEffectShadow.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 FontEffectShadow::FontEffectShadow() : offset(0, 0)
 {
-	// Default the z-index of a shadow effect to be behind the main layer.
-	SetZIndex(-1);
+	SetLayer(Layer::Back);
 }
 
 FontEffectShadow::~FontEffectShadow()
@@ -45,6 +45,22 @@ FontEffectShadow::~FontEffectShadow()
 bool FontEffectShadow::Initialise(const Vector2i& _offset)
 {
 	offset = _offset;
+	return true;
+}
+
+// Returns true.
+bool FontEffectShadow::HasUniqueTexture() const
+{
+	return false;
+}
+
+// Resizes and repositions the glyph to fit the outline.
+bool FontEffectShadow::GetGlyphMetrics(Vector2i& origin, Vector2i& RMLUI_UNUSED_PARAMETER(dimensions), const FontGlyph& RMLUI_UNUSED_PARAMETER(glyph)) const
+{
+	RMLUI_UNUSED(dimensions);
+	RMLUI_UNUSED(glyph);
+
+	origin += offset;
 	return true;
 }
 

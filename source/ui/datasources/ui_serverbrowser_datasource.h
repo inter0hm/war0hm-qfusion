@@ -1,7 +1,7 @@
 #ifndef __UI_SERVERBROWSER_H__
 #define __UI_SERVERBROWSER_H__
 
-#include <Rocket/Controls/DataSource.h>
+#include <RmlUi/Controls/DataSource.h>
 
 #include <string>
 #include <vector>
@@ -177,18 +177,89 @@ namespace WSWUI {
 		bool filterServer(const ServerInfo &info) { return true; }
 
 	// private:
-		// options
-		VisibilityState full;
-		VisibilityState empty;
-		VisibilityState instagib;
-		VisibilityState password;
-		VisibilityState ranked;
-		VisibilityState registered;
-		String gametype;
+	// options
+	VisibilityState full;
+	VisibilityState empty;
+	VisibilityState instagib;
+	VisibilityState password;
+	VisibilityState ranked;
+	VisibilityState registered;
+	std::string gametype;
+};
+
+// Module that will queue server pings
+class ServerInfoFetcher
+{
+	// amount if simultaneous queries
+	static const unsigned int TIMEOUT_SEC = 5;      // secs until we replace with another job
+	static const unsigned int QUERY_TIMEOUT_MSEC = 50;      // time between subsequent queries to individual servers
+
+	// waiting line
+	typedef std::queue<std::string> StringQueue;
+	StringQueue serverQueue;
+	// active queries
+	typedef std::pair<int64_t, std::string> ActiveQuery;
+	typedef std::list<ActiveQuery> ActiveList;
+
+	ActiveList activeQueries;
+
+public:
+	ServerInfoFetcher()
+		: lastQueryTime( 0 ), numIssuedQueries( 0 )
+	{}
+	~ServerInfoFetcher() {}
+
+	// add a query to the waiting line
+	void addQuery( const char *adr );
+	// called to tell fetcher to remove this from jobs
+	void queryDone( const char *adr );
+	// stop the whole process
+	void clearQueries();
+	// advance queries
+	void updateFrame();
+
+	unsigned int numActive() const { return activeQueries.size(); }
+	unsigned int numWaiting() const { return serverQueue.size(); }
+	unsigned int numIssued() const { return numIssuedQueries; }
+
+private:
+	int64_t lastQueryTime;
+	unsigned int numIssuedQueries;
+
+	// compare address of active query
+	struct CompareAddress {
+		std::string address;
+		CompareAddress( const char *_address ) : address( _address ) {}
+		bool operator()( const ActiveQuery &other ) {
+			return address == other.second;
+		}
 	};
 
-	// Module that will queue server pings
-	class ServerInfoFetcher
+	// initiates a query
+	void startQuery( const std::string &adr );
+};
+
+//================================================
+
+class ServerBrowserDataSource : public Rml::Controls::DataSource
+{
+	// typedefs
+	// use set for serverinfo list to keep unique elements
+	typedef std::set<ServerInfo, ServerInfo::_LessBinary<uint64_t, &ServerInfo::iaddress> > ServerInfoList;
+	typedef std::list<ServerInfo*> ReferenceList;
+	typedef std::map<std::string, ReferenceList> ReferenceListMap;
+	typedef std::set<uint64_t> FavoritesList;
+
+	// shortcut for the set insert
+	typedef std::pair<ServerInfoList::iterator, bool> ServerInfoListPair;
+
+	static const unsigned int MAX_RETRIES = 3;
+	static const unsigned int REFRESH_TIMEOUT_MSEC = 1000;      // time between subsequent table updates
+
+	// constants
+	/*
+	static const char *TABLE_NAME = "servers";
+	static const char *COLUMN_NAMES[] =
 	{
 		// amount if simultaneous queries
 		static const unsigned int TIMEOUT_SEC = 5;	// secs until we replace with another job
@@ -272,85 +343,17 @@ namespace WSWUI {
 		ReferenceListMap referenceListMap;
 		ReferenceList referenceQueue;
 
-		ServerBrowserFilter filter;
-		ServerInfoFetcher fetcher;
+public:
+	ServerBrowserDataSource();     // : Rml::Core::DataSource("serverbrowser_source")
+	virtual ~ServerBrowserDataSource();
 
 		FavoritesList favorites;
 
-		// we use pointers on referenceList! how can we use struct here?
-		ServerInfo::ComparePtrFunction sortCompare;
-		ServerInfo::ComparePtrFunction lastSortCompare;
-		int sortDirection;	// 1 ascending, -1 descending
+	// this should returns the asked 'columns' on row with 'row_index' from 'table' into 'row'
+	virtual void GetRow( Rml::Core::StringList &row, const std::string &table, int row_index, const Rml::Core::StringList &columns );
 
-		// need to separate full update and refresh?
-		bool active;
-		unsigned updateId;
-		unsigned lastActiveTime;
-
-		// DEBUG
-		int numNotifies;
-
-	public:
-		ServerBrowserDataSource(); // : Rocket::Core::DataSource("serverbrowser_source")
-		virtual ~ServerBrowserDataSource();
-
-		//
-		// functions overriding DataSource ones to provide our functionality
-
-		// this should returns the asked 'columns' on row with 'row_index' from 'table' into 'row'
-		virtual void GetRow( StringList &row, const String &table, int row_index, const StringList &columns );
-
-		// this should return the number of rows in 'table'
-		virtual int GetNumRows( const String &table );
-
-		//
-		// functions available to call when our data changes (e.g. AddToServerList is called)
-		// these inform listeners attached (like datagrid)
-
-		// we have new row
-		// void NotifyRowAdd(const String &table, int first_row_added, int num_rows_added);
-
-	#if 0
-		// benchmarking edition ltd
-		void NotifyRowAdd (const Rocket::Core::String &table, int first_row_added, int num_rows_added)
-		{
-			BenchmarkTimer bt;
-			Rocket::Controls::DataSource::NotifyRowAdd( table, first_row_added, num_rows_added );
-			//Com_Printf("NotifyRowAdd %u\n", bt() );
-
-			numNotifies++;
-		}
-
-		// we removed a row
-		// void NotifyRowRemove(const String &table, int first_row_removed, int num_rows_removed);
-		void NotifyRowRemove(const String &table, int first_row_removed, int num_rows_removed)
-		{
-			BenchmarkTimer bt;
-			Rocket::Controls::DataSource::NotifyRowRemove( table, first_row_removed, num_rows_removed );
-			//Com_Printf("NotifyRowRemove %u\n", bt() );
-			numNotifies++;
-		}
-
-		// change of data in said rows
-		// void NotifyRowChange(const String &table, int first_row_changed, int num_rows_changed);
-		void NotifyRowChange(const String &table, int first_row_changed, int num_rows_changed)
-		{
-			BenchmarkTimer bt;
-			Rocket::Controls::DataSource::NotifyRowChange( table, first_row_changed, num_rows_changed );
-			//Com_Printf("NotifyRowChange %u\n", bt() );
-			numNotifies++;
-		}
-
-		// notify full refresh of table
-		// void NotifyRowChange(const String &table);
-		void NotifyRowChange(const String &table)
-		{
-			BenchmarkTimer bt;
-			Rocket::Controls::DataSource::NotifyRowChange( table );
-			//Com_Printf("NotifyRowChange(full) %u\n", bt() );
-			numNotifies++;
-		}
-	#endif
+	// this should return the number of rows in 'table'
+	virtual int GetNumRows( const std::string &table );
 
 		//
 		// wsw functions
@@ -395,11 +398,11 @@ namespace WSWUI {
 	private:
 		unsigned int lastUpdateTime;
 
-		void tableNameForServerInfo( const ServerInfo &, String &table ) const;
-		void addServerToTable( ServerInfo &info, const String &tableName );
-		void removeServerFromTable( ServerInfo &info, const String &tableName );
-		void notifyOfFavoriteChange( uint64_t iaddr, bool add );
-	};
+	void tableNameForServerInfo( const ServerInfo &, std::string &table ) const;
+	void addServerToTable( ServerInfo &info, const std::string &tableName );
+	void removeServerFromTable( ServerInfo &info, const std::string &tableName );
+	void notifyOfFavoriteChange( uint64_t iaddr, bool add );
+};
 
 }
 #endif // __UI_SERVERBROWSER_H__

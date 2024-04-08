@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,11 +28,9 @@
 
 #include "precompiled.h"
 #include "TextureResource.h"
-#include <Rocket/Core/FontFaceHandle.h>
 #include "TextureDatabase.h"
-#include "../../Include/Rocket/Core.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 TextureResource::TextureResource()
@@ -40,22 +39,28 @@ TextureResource::TextureResource()
 
 TextureResource::~TextureResource()
 {
-	TextureDatabase::RemoveTexture(this);
+	Release();
 }
 
 // Attempts to load a texture from the application into the resource.
-bool TextureResource::Load(const String& _source)
+void TextureResource::Set(const String& _source)
 {
 	Release();
+	texture_callback.reset();
 	source = _source;
+}
 
-	return true;
+void TextureResource::Set(const String& name, const TextureCallback& callback)
+{
+	Release();
+	source = name;
+	texture_callback = std::make_unique<TextureCallback>(callback);
 }
 
 // Returns the resource's underlying texture.
-TextureHandle TextureResource::GetHandle(RenderInterface* render_interface) const
+TextureHandle TextureResource::GetHandle(RenderInterface* render_interface)
 {
-	TextureDataMap::iterator texture_iterator = texture_data.find(render_interface);
+	auto texture_iterator = texture_data.find(render_interface);
 	if (texture_iterator == texture_data.end())
 	{
 		Load(render_interface);
@@ -66,9 +71,9 @@ TextureHandle TextureResource::GetHandle(RenderInterface* render_interface) cons
 }
 
 // Returns the dimensions of the resource's texture.
-const Vector2i& TextureResource::GetDimensions(RenderInterface* render_interface) const
+const Vector2i& TextureResource::GetDimensions(RenderInterface* render_interface)
 {
-	TextureDataMap::iterator texture_iterator = texture_data.find(render_interface);
+	auto texture_iterator = texture_data.find(render_interface);
 	if (texture_iterator == texture_data.end())
 	{
 		Load(render_interface);
@@ -87,13 +92,13 @@ const String& TextureResource::GetSource() const
 // Releases the texture's handle.
 void TextureResource::Release(RenderInterface* render_interface)
 {
-	if (render_interface == NULL)
+	if (!render_interface)
 	{
-		for (TextureDataMap::iterator texture_iterator = texture_data.begin(); texture_iterator != texture_data.end(); ++texture_iterator)
+		for (auto& interface_data_pair : texture_data)
 		{
-			TextureHandle handle = texture_iterator->second.first;
+			TextureHandle handle = interface_data_pair.second.first;
 			if (handle)
-				texture_iterator->first->ReleaseTexture(handle);
+				interface_data_pair.first->ReleaseTexture(handle);
 		}
 
 		texture_data.clear();
@@ -112,52 +117,48 @@ void TextureResource::Release(RenderInterface* render_interface)
 	}
 }
 
-// Attempts to load the texture from the source.
-bool TextureResource::Load(RenderInterface* render_interface) const
+bool TextureResource::Load(RenderInterface* render_interface)
 {
-	// Check for special loader tokens.
-	if (!source.Empty() &&
-		source[0] == '?')
+	RMLUI_ZoneScoped;
+
+	// Generate the texture from the callback function if we have one.
+	if (texture_callback)
 	{
 		Vector2i dimensions;
+		UniquePtr<const byte[]> data = nullptr;
 
-		bool delete_data = false;
-		const byte* data = NULL;
-		int samples = 4;
+		TextureCallback& callback_fnc = *texture_callback;
 
-		// Find the generation protocol and generate the data accordingly.
-		//String protocol = source.Substring(1, source.Find("::") - 1);
-
-		// If texture data was generated, great! Otherwise, fallback to the LoadTexture() code and
-		// hope the client knows what the hell to do with the question mark in their file name.
-		if (data != NULL)
+		if (!callback_fnc(source, data, dimensions) || !data)
 		{
-			TextureHandle handle;
-			bool success = render_interface->GenerateTexture(handle, data, dimensions, samples);
+			Log::Message(Log::LT_WARNING, "Failed to generate texture from callback function %s.", source.c_str());
+			texture_data[render_interface] = TextureData(0, Vector2i(0, 0));
 
-			if (delete_data)
-				delete[] data;
-
-			if (success)
-			{
-				texture_data[render_interface] = TextureData(handle, dimensions);
-				return true;
-			}
-			else
-			{
-				Log::Message(Log::LT_WARNING, "Failed to generate internal texture %s.", source.CString());
-				texture_data[render_interface] = TextureData(0, Vector2i(0, 0));
-
-				return false;
-			}
+			return false;
 		}
+
+		TextureHandle handle;
+		bool success = render_interface->GenerateTexture(handle, data.get(), dimensions);
+
+		if (success)
+		{
+			texture_data[render_interface] = TextureData(handle, dimensions);
+		}
+		else
+		{
+			Log::Message(Log::LT_WARNING, "Failed to generate internal texture %s.", source.c_str());
+			texture_data[render_interface] = TextureData(0, Vector2i(0, 0));
+		}
+
+		return success;
 	}
 
+	// No callback function, load the texture through the render interface.
 	TextureHandle handle;
 	Vector2i dimensions;
 	if (!render_interface->LoadTexture(handle, dimensions, source))
 	{
-		Log::Message(Log::LT_WARNING, "Failed to load texture from %s.", source.CString());
+		Log::Message(Log::LT_WARNING, "Failed to load texture from %s.", source.c_str());
 		texture_data[render_interface] = TextureData(0, Vector2i(0, 0));
 
 		return false;
@@ -165,12 +166,6 @@ bool TextureResource::Load(RenderInterface* render_interface) const
 
 	texture_data[render_interface] = TextureData(handle, dimensions);
 	return true;
-}
-
-void TextureResource::OnReferenceDeactivate()
-{
-	Release();
-	delete this;
 }
 
 }

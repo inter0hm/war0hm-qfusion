@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,12 @@
  *
  */
 
-#ifndef ROCKETCOREPROPERTYPARSERNUMBER_H
-#define ROCKETCOREPROPERTYPARSERNUMBER_H
+#ifndef RMLUICOREPROPERTYPARSERNUMBER_H
+#define RMLUICOREPROPERTYPARSERNUMBER_H
 
-#include "../../Include/Rocket/Core/PropertyParser.h"
+#include "../../Include/RmlUi/Core/PropertyParser.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
@@ -42,7 +43,7 @@ namespace Core {
 class PropertyParserNumber : public PropertyParser
 {
 public:
-	PropertyParserNumber();
+	PropertyParserNumber(int units, Property::Unit zero_unit = Property::UNKNOWN);
 	virtual ~PropertyParserNumber();
 
 	/// Called to parse a RCSS number declaration.
@@ -50,12 +51,15 @@ public:
 	/// @param[in] value The raw value defined for this property.
 	/// @param[in] parameters The parameters defined for this property.
 	/// @return True if the value was validated successfully, false otherwise.
-	virtual bool ParseValue(Property& property, const String& value, const ParameterMap& parameters) const;
-
-	// Destroys the parser.
-	void Release();
+	bool ParseValue(Property& property, const String& value, const ParameterMap& parameters) const override;
 
 private:
+	// Stores a bit mask of allowed units.
+	int units;
+
+	// If zero unit is set and pure numbers are not allowed, parsing of "0" is still allowed and assigned the given unit
+	Property::Unit zero_unit;
+
 	// Stores a list of the numerical units and their suffixes.
 	typedef std::pair< Property::Unit, String > UnitSuffix;
 	std::vector< UnitSuffix > unit_suffixes;

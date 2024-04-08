@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +26,13 @@
  *
  */
 
-#include "../../Include/Rocket/Controls/ElementDataGridExpandButton.h"
-#include "../../Include/Rocket/Controls/ElementDataGridRow.h"
+#include "../../Include/RmlUi/Controls/ElementDataGridExpandButton.h"
+#include "../../Include/RmlUi/Controls/ElementDataGridRow.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
-ElementDataGridExpandButton::ElementDataGridExpandButton(const Rocket::Core::String& tag) : Core::Element(tag)
+ElementDataGridExpandButton::ElementDataGridExpandButton(const Rml::Core::String& tag) : Core::Element(tag)
 {
 	SetClass("collapsed", true);
 }
@@ -40,11 +41,11 @@ ElementDataGridExpandButton::~ElementDataGridExpandButton()
 {
 }
 
-void ElementDataGridExpandButton::ProcessEvent(Core::Event& event)
+void ElementDataGridExpandButton::ProcessDefaultAction(Core::Event& event)
 {
-	Core::Element::ProcessEvent(event);
+	Core::Element::ProcessDefaultAction(event);
 
-	if (event == "click" && event.GetCurrentElement() == this)
+	if (event == Core::EventId::Click && event.GetCurrentElement() == this)
 	{
 		// Look for the first data grid row above us, and toggle their on/off
 		// state.

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,7 +15,7 @@
  *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,7 +32,7 @@
 #include "TextureLayoutRectangle.h"
 #include "TextureLayoutTexture.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 struct RectangleSort
@@ -59,8 +60,8 @@ void TextureLayout::AddRectangle(int id, const Vector2i& dimensions)
 // Returns one of the layout's rectangles.
 TextureLayoutRectangle& TextureLayout::GetRectangle(int index)
 {
-	ROCKET_ASSERT(index >= 0);
-	ROCKET_ASSERT(index < GetNumRectangles());
+	RMLUI_ASSERT(index >= 0);
+	RMLUI_ASSERT(index < GetNumRectangles());
 
 	return rectangles[index];
 }
@@ -74,8 +75,8 @@ int TextureLayout::GetNumRectangles() const
 // Returns one of the layout's textures.
 TextureLayoutTexture& TextureLayout::GetTexture(int index)
 {
-	ROCKET_ASSERT(index >= 0);
-	ROCKET_ASSERT(index < GetNumTextures());
+	RMLUI_ASSERT(index >= 0);
+	RMLUI_ASSERT(index < GetNumTextures());
 
 	return textures[index];
 }
@@ -87,7 +88,7 @@ int TextureLayout::GetNumTextures() const
 }
 
 // Attempts to generate an efficient texture layout for the rectangles.
-bool TextureLayout::GenerateLayout(int max_texture_dimensions, int samples)
+bool TextureLayout::GenerateLayout(int max_texture_dimensions)
 {
 	// Sort the rectangles by height.
 	std::sort(rectangles.begin(), rectangles.end(), RectangleSort());
@@ -95,7 +96,7 @@ bool TextureLayout::GenerateLayout(int max_texture_dimensions, int samples)
 	int num_placed_rectangles = 0;
 	while (num_placed_rectangles != GetNumRectangles())
 	{
-		TextureLayoutTexture texture(samples);
+		TextureLayoutTexture texture;
 		int texture_size = texture.Generate(*this, max_texture_dimensions);
 		if (texture_size == 0)
 			return false;

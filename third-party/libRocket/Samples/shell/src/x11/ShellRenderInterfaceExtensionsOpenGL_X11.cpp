@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,32 +30,36 @@
 #include <ShellRenderInterfaceOpenGL.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/xf86vmode.h>
-#include <Rocket/Core.h>
-#include <Rocket/Core/Platform.h>
+#include <RmlUi/Core.h>
+#include <RmlUi/Core/Platform.h>
 #include "../../include/Shell.h"
 
 void ShellRenderInterfaceOpenGL::SetContext(void *context)
 {
-	m_rocket_context = context;
+	m_rmlui_context = context;
 }
 
 
 void ShellRenderInterfaceOpenGL::SetViewport(int width, int height)
 {
 	if(m_width != width || m_height != height) {
+		Rml::Core::Matrix4f projection, view;
+
 		m_width = width;
 		m_height = height;
 		
 		glViewport(0, 0, width, height);
+		projection = Rml::Core::Matrix4f::ProjectOrtho(0, (float)width, (float)height, 0, -10000, 10000);
 		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0, width, height, 0, -1, 1);
+		glLoadMatrixf(projection.data());
+		view = Rml::Core::Matrix4f::Identity();
 		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-	}
-	if(m_rocket_context != NULL)
-	{
-		((Rocket::Core::Context*)m_rocket_context)->SetDimensions(Rocket::Core::Vector2i(width, height));
+		glLoadMatrixf(view.data());
+
+		if(m_rmlui_context != nullptr)
+		{
+			((Rml::Core::Context*)m_rmlui_context)->SetDimensions(Rml::Core::Vector2i(width, height));
+		}
 	}
 }
 
@@ -64,8 +69,8 @@ bool ShellRenderInterfaceOpenGL::AttachToNative(void *nativeWindow)
 	this->nwData.window = ((__X11NativeWindowData *)nativeWindow)->window;
 	this->nwData.visual_info = ((__X11NativeWindowData *)nativeWindow)->visual_info;
 
-	this->gl_context = glXCreateContext(nwData.display, nwData.visual_info, NULL, GL_TRUE);
-	if (this->gl_context == NULL)
+	this->gl_context = glXCreateContext(nwData.display, nwData.visual_info, nullptr, GL_TRUE);
+	if (this->gl_context == nullptr)
 		return false;
 	
 	if (!glXMakeCurrent(nwData.display, nwData.window, this->gl_context))
@@ -100,9 +105,9 @@ bool ShellRenderInterfaceOpenGL::AttachToNative(void *nativeWindow)
 void ShellRenderInterfaceOpenGL::DetachFromNative()
 {
 	// Shutdown OpenGL	
-	glXMakeCurrent(this->nwData.display, None, NULL);
+	glXMakeCurrent(this->nwData.display, 0L, nullptr);
 	glXDestroyContext(this->nwData.display, this->gl_context);
-	this->gl_context = NULL;
+	this->gl_context = nullptr;
 }
 
 void ShellRenderInterfaceOpenGL::PrepareRenderBuffer()

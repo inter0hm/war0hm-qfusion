@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,28 +27,25 @@
  */
 
 #include "SystemInterface.h"
-#include "../../Include/Rocket/Core.h"
+#include "../../Include/RmlUi/Core.h"
 #include "ElementLog.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Debugger {
 
-SystemInterface::SystemInterface(ElementLog* _log)
+SystemInterface::SystemInterface(Core::SystemInterface* _application_interface, ElementLog* _log)
 {
+	application_interface = _application_interface;
 	log = _log;
-	application_interface = Core::GetSystemInterface();
-	application_interface->AddReference();
-	Core::SetSystemInterface(this);
 }
 
 SystemInterface::~SystemInterface()
 {
-	Core::SetSystemInterface(application_interface);
-	application_interface->RemoveReference();
+	application_interface = nullptr;
 }
 
 // Get the number of seconds elapsed since the start of the application.
-float SystemInterface::GetElapsedTime()
+double SystemInterface::GetElapsedTime()
 {
 	return application_interface->GetElapsedTime();
 }
@@ -65,7 +63,23 @@ bool SystemInterface::LogMessage(Core::Log::Type type, const Core::String& messa
 
 	return application_interface->LogMessage(type, message);
 }
-	
+
+// Set mouse cursor.
+void SystemInterface::SetMouseCursor(const Core::String& cursor_name)
+{
+	application_interface->SetMouseCursor(cursor_name);
+}
+
+void SystemInterface::SetClipboardText(const Core::String& text)
+{
+	application_interface->SetClipboardText(text);
+}
+
+void SystemInterface::GetClipboardText(Core::String& text)
+{
+	application_interface->GetClipboardText(text);
+}
+
 // Activate keyboard (for touchscreen devices)
 void SystemInterface::ActivateKeyboard()
 {

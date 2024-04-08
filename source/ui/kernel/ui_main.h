@@ -213,7 +213,7 @@ private:
 	FriendsDataSource *friends;
 
 	UI_Navigation navigations[UI_NUM_CONTEXTS];
-	Rocket::Core::String quickMenuURL;
+	std::string overlayMenuURL;
 
 	StreamCache *streamCache;
 

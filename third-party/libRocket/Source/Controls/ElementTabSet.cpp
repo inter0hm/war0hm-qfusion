@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,7 +15,7 @@
  *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,14 +26,14 @@
  *
  */
 
-#include "../../Include/Rocket/Controls/ElementTabSet.h"
-#include "../../Include/Rocket/Core/Math.h"
-#include "../../Include/Rocket/Core/Factory.h"
+#include "../../Include/RmlUi/Controls/ElementTabSet.h"
+#include "../../Include/RmlUi/Core/Math.h"
+#include "../../Include/RmlUi/Core/Factory.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
-ElementTabSet::ElementTabSet(const Rocket::Core::String& tag) : Core::Element(tag)
+ElementTabSet::ElementTabSet(const Rml::Core::String& tag) : Core::Element(tag)
 {
 	active_tab = 0;
 }
@@ -42,44 +43,42 @@ ElementTabSet::~ElementTabSet()
 }
 
 // Sets the specifed tab index's tab title RML.
-void ElementTabSet::SetTab(int tab_index, const Rocket::Core::String& rml)
+void ElementTabSet::SetTab(int tab_index, const Rml::Core::String& rml)
 {
-	Core::Element* element = Core::Factory::InstanceElement(NULL, "*", "tab", Rocket::Core::XMLAttributes());
-	Core::Factory::InstanceElementText(element, rml);
-	SetTab(tab_index, element);
-	element->RemoveReference();
+	Core::ElementPtr element = Core::Factory::InstanceElement(nullptr, "*", "tab", Rml::Core::XMLAttributes());
+	Core::Factory::InstanceElementText(element.get(), rml);
+	SetTab(tab_index, std::move(element));
 }
 
 // Sets the specifed tab index's tab panel RML.
-void ElementTabSet::SetPanel(int tab_index, const Rocket::Core::String& rml)
+void ElementTabSet::SetPanel(int tab_index, const Rml::Core::String& rml)
 {
-	Core::Element* element = Core::Factory::InstanceElement(NULL, "*", "panel", Rocket::Core::XMLAttributes());
-	Core::Factory::InstanceElementText(element, rml);
-	SetPanel(tab_index, element);
-	element->RemoveReference();
+	Core::ElementPtr element = Core::Factory::InstanceElement(nullptr, "*", "panel", Rml::Core::XMLAttributes());
+	Core::Factory::InstanceElementText(element.get(), rml);
+	SetPanel(tab_index, std::move(element));
 }
 
 // Set the specifed tab index's title element.
-void ElementTabSet::SetTab(int tab_index, Core::Element* element)
-{
+void ElementTabSet::SetTab(int tab_index, Core::ElementPtr element)
+{	
 	Core::Element* tabs = GetChildByTag("tabs");
 	if (tab_index >= 0 &&
 		tab_index < tabs->GetNumChildren())
-		tabs->ReplaceChild(GetChild(tab_index), element);
+		tabs->ReplaceChild(std::move(element), GetChild(tab_index));
 	else
-		tabs->AppendChild(element);
+		tabs->AppendChild(std::move(element));
 }
 
 // Set the specified tab index's body element.
-void ElementTabSet::SetPanel(int tab_index, Core::Element* element)
-{
-	// Append the window
+void ElementTabSet::SetPanel(int tab_index, Core::ElementPtr element)
+{	
+	// append the window
 	Core::Element* windows = GetChildByTag("panels");
 	if (tab_index >= 0 &&
 		tab_index < windows->GetNumChildren())
-		windows->ReplaceChild(GetChild(tab_index), element);
+		windows->ReplaceChild(std::move(element), GetChild(tab_index));
 	else
-		windows->AppendChild(element);
+		windows->AppendChild(std::move(element));
 }
 
 // Remove one of the tab set's panels and its corresponding tab.
@@ -124,15 +123,15 @@ void ElementTabSet::SetActiveTab(int tab_index)
 		Core::Element* new_window = windows->GetChild(tab_index);
 
 		if (old_window)
-			old_window->SetProperty("display", "none");
+			old_window->SetProperty(Core::PropertyId::Display, Core::Property(Core::Style::Display::None));
 		if (new_window)
-			new_window->SetProperty("display", "inline-block");
+			new_window->SetProperty(Core::PropertyId::Display, Core::Property(Core::Style::Display::InlineBlock));
 
 		active_tab = tab_index;
 
-		Rocket::Core::Dictionary parameters;
-		parameters.Set("tab_index", active_tab);
-		DispatchEvent("tabchange", parameters);
+		Rml::Core::Dictionary parameters;
+		parameters["tab_index"] = active_tab;
+		DispatchEvent(Core::EventId::Tabchange, parameters);
 	}
 }
 
@@ -141,12 +140,11 @@ int ElementTabSet::GetActiveTab() const
 	return active_tab;
 }
 
-// Process the incoming event.
-void ElementTabSet::ProcessEvent(Core::Event& event)
+void ElementTabSet::ProcessDefaultAction(Core::Event& event)
 {
-	Core::Element::ProcessEvent(event);
+	Element::ProcessDefaultAction(event);
 
-	if (event.GetCurrentElement() == this && event == "click")
+	if (event == Core::EventId::Click)
 	{
 		// Find the tab that this click occured on
 		Core::Element* tabs = GetChildByTag("tabs");
@@ -180,8 +178,7 @@ void ElementTabSet::OnChildAdd(Core::Element* child)
 	if (child->GetParentNode() == GetChildByTag("tabs"))
 	{
 		// Set up the new button and append it
-		child->SetProperty("display", "inline-block");
-		child->AddEventListener("click", this);
+		child->SetProperty(Core::PropertyId::Display, Core::Property(Core::Style::Display::InlineBlock));
 
 		if (child->GetParentNode()->GetChild(active_tab) == child)
 			child->SetPseudoClass("selected", true);
@@ -190,53 +187,27 @@ void ElementTabSet::OnChildAdd(Core::Element* child)
 	if (child->GetParentNode() == GetChildByTag("panels"))
 	{
 		// Hide the new tab window
-		child->SetProperty("display", "none");
-
+		child->SetProperty(Core::PropertyId::Display, Core::Property(Core::Style::Display::None));
+		
 		// Make the new element visible if its the active tab
 		if (child->GetParentNode()->GetChild(active_tab) == child)
-			child->SetProperty("display", "inline-block");
+			child->SetProperty(Core::PropertyId::Display, Core::Property(Core::Style::Display::InlineBlock));
 	}
 }
 
-void ElementTabSet::OnChildRemove(Core::Element* child)
-{
-	Core::Element::OnChildRemove(child);
-
-	// If its a tab, remove its event listener
-	if (child->GetParentNode() == GetChildByTag("tabs"))
-	{
-		child->RemoveEventListener("click", this);
-	}
-}
-
-Core::Element* ElementTabSet::GetChildByTag(const Rocket::Core::String& child_tag)
+Core::Element* ElementTabSet::GetChildByTag(const Rml::Core::String& tag)
 {
 	// Look for the existing child
 	for (int i = 0; i < GetNumChildren(); i++)
 	{
-		if (GetChild(i)->GetTagName() == child_tag)
+		if (GetChild(i)->GetTagName() == tag)
 			return GetChild(i);
 	}
 
 	// If it doesn't exist, create it
-	Core::Element* element = Core::Factory::InstanceElement(this, "*", child_tag, Rocket::Core::XMLAttributes());
-	AppendChild(element);
-	element->RemoveReference();
-	return element;
-}
-
-void ElementTabSet::OnAttach(Core::Element * ROCKET_UNUSED_PARAMETER(element))
-{
-	ROCKET_UNUSED(element);
-
-	AddReference();
-}
-
-void ElementTabSet::OnDetach(Core::Element * ROCKET_UNUSED_PARAMETER(element))
-{
-	ROCKET_UNUSED(element);
-
-	RemoveReference();
+	Core::ElementPtr element = Core::Factory::InstanceElement(this, "*", tag, Rml::Core::XMLAttributes());
+	Core::Element* result = AppendChild(std::move(element));
+	return result;
 }
 
 

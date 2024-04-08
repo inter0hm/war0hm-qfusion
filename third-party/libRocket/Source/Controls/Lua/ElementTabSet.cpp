@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,11 +28,11 @@
  
 #include "precompiled.h"
 #include "ElementTabSet.h"
-#include <Rocket/Core/Element.h>
-#include <Rocket/Core/Lua/Utilities.h>
+#include <RmlUi/Core/Element.h>
+#include <RmlUi/Core/Lua/Utilities.h>
 
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 namespace Lua {
 
@@ -39,7 +40,7 @@ namespace Lua {
 int ElementTabSetSetPanel(lua_State* L, ElementTabSet* obj)
 {
     LUACHECKOBJ(obj);
-    int index = luaL_checkint(L,1);
+    int index = (int)luaL_checkinteger(L,1);
     const char* rml = luaL_checkstring(L,2);
 
     obj->SetPanel(index,rml);
@@ -49,7 +50,7 @@ int ElementTabSetSetPanel(lua_State* L, ElementTabSet* obj)
 int ElementTabSetSetTab(lua_State* L, ElementTabSet* obj)
 {
     LUACHECKOBJ(obj);
-    int index = luaL_checkint(L,1);
+    int index = (int)luaL_checkinteger(L,1);
     const char* rml = luaL_checkstring(L,2);
 
     obj->SetTab(index,rml);
@@ -82,30 +83,30 @@ int ElementTabSetSetAttractive_tab(lua_State* L)
 {
     ElementTabSet* obj = LuaType<ElementTabSet>::check(L,1);
     LUACHECKOBJ(obj);
-    int tab = luaL_checkint(L,2);
+    int tab = (int)luaL_checkinteger(L,2);
     obj->SetActiveTab(tab);
     return 0;
 }
 
 
-Rocket::Core::Lua::RegType<ElementTabSet> ElementTabSetMethods[] =
+Rml::Core::Lua::RegType<ElementTabSet> ElementTabSetMethods[] =
 {
     LUAMETHOD(ElementTabSet,SetPanel)
     LUAMETHOD(ElementTabSet,SetTab)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementTabSetGetters[] =
 {
     LUAGETTER(ElementTabSet,active_tab)
     LUAGETTER(ElementTabSet,num_tabs)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementTabSetSetters[] =
 {
     LUASETTER(ElementTabSet,active_tab)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 
@@ -113,19 +114,19 @@ luaL_Reg ElementTabSetSetters[] =
 }
 }
 }
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 //this will be used to "inherit" from Element
-template<> void ExtraInit<Rocket::Controls::ElementTabSet>(lua_State* L, int metatable_index)
+template<> void ExtraInit<Rml::Controls::ElementTabSet>(lua_State* L, int metatable_index)
 {
     ExtraInit<Element>(L,metatable_index);
     LuaType<Element>::_regfunctions(L,metatable_index,metatable_index-1);
-    AddTypeToElementAsTable<Rocket::Controls::ElementTabSet>(L);
+    AddTypeToElementAsTable<Rml::Controls::ElementTabSet>(L);
 }
 
-using Rocket::Controls::ElementTabSet;
-LUACONTROLSTYPEDEFINE(ElementTabSet,true)
+using Rml::Controls::ElementTabSet;
+LUACONTROLSTYPEDEFINE(ElementTabSet)
 }
 }
 }

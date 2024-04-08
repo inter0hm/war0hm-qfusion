@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,40 +26,46 @@
  *
  */
 
-#ifndef ROCKETCOREDECORATORTILEDINSTANCER_H
-#define ROCKETCOREDECORATORTILEDINSTANCER_H
+#ifndef RMLUICOREDECORATORTILEDINSTANCER_H
+#define RMLUICOREDECORATORTILEDINSTANCER_H
 
-#include "../../Include/Rocket/Core/DecoratorInstancer.h"
+#include "../../Include/RmlUi/Core/DecoratorInstancer.h"
 #include "DecoratorTiled.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
+
+class StyleSheet;
 
 /**
 	@author Peter Curry
  */
 
+
 class DecoratorTiledInstancer : public DecoratorInstancer
 {
 public:
-	virtual ~DecoratorTiledInstancer();
+	DecoratorTiledInstancer(size_t num_tiles);
 
 protected:
 	/// Adds the property declarations for a tile.
 	/// @param[in] name The name of the tile property.
-	/// @param[in] register_repeat_modes If true, the tile will have the repeat modes registered.
-	void RegisterTileProperty(const String& name, bool register_repeat_modes);
+	/// @param[in] register_fit_modes If true, the tile will have the fit modes registered.
+	void RegisterTileProperty(const String& name, bool register_fit_modes = false);
+
 	/// Retrieves all the properties for a tile from the property dictionary.
 	/// @param[out] tile The tile structure for storing the tile properties.
-	/// @param[out] texture_name Holds the name of the texture declared for the tile (if one exists).
-	/// @param[out] rcss_path The path of the RCSS file that generated the texture path.
+	/// @param[out] textures Holds the textures declared for the tile.
 	/// @param[in] properties The user-defined list of parameters for the decorator.
-	/// @param[in] name The name of the tile to fetch the properties for.
-	void GetTileProperties(DecoratorTiled::Tile& tile, String& texture_name, String& rcss_path, const PropertyDictionary& properties, const String& name);
+	/// @param[in] interface An interface for querying the active style sheet.
+	bool GetTileProperties(DecoratorTiled::Tile* tiles, Texture* textures, size_t num_tiles_and_textures, const PropertyDictionary& properties, const DecoratorInstancerInterface& interface) const;
 
 private:
-	// Loads a single texture coordinate value from the properties.
-	void LoadTexCoord(const PropertyDictionary& properties, const String& name, float& tex_coord, bool& tex_coord_absolute);
+	struct TilePropertyIds {
+		PropertyId src, fit, align_x, align_y, orientation;
+	};
+
+	std::vector<TilePropertyIds> tile_property_ids;
 };
 
 }

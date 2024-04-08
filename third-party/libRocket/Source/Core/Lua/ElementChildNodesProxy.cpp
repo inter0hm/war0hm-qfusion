@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
 #include "ElementChildNodesProxy.h"
 #include "Element.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 
@@ -51,7 +52,7 @@ int ElementChildNodesProxy__index(lua_State* L)
     {
         ElementChildNodesProxy* obj = LuaType<ElementChildNodesProxy>::check(L,1);
         LUACHECKOBJ(obj);
-        int key = luaL_checkint(L,2);
+        int key = (int)luaL_checkinteger(L,2);
         Element* child = obj->owner->GetChild(key);
         LuaType<Element>::push(L,child,false);
         return 1;
@@ -92,18 +93,18 @@ int ElementChildNodesProxy__ipairs(lua_State* L)
 
 RegType<ElementChildNodesProxy> ElementChildNodesProxyMethods[] = 
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 luaL_Reg ElementChildNodesProxyGetters[] = 
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 luaL_Reg ElementChildNodesProxySetters[] = 
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
-LUACORETYPEDEFINE(ElementChildNodesProxy,false)
+LUACORETYPEDEFINE(ElementChildNodesProxy)
 }
 }
 }

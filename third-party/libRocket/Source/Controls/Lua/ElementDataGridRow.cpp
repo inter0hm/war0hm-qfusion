@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,11 +28,11 @@
  
 #include "precompiled.h"
 #include "ElementDataGridRow.h"
-#include <Rocket/Controls/ElementDataGrid.h>
-#include <Rocket/Core/Lua/Utilities.h>
+#include <RmlUi/Controls/ElementDataGrid.h>
+#include <RmlUi/Core/Lua/Utilities.h>
 
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 namespace Lua {
 
@@ -93,9 +94,9 @@ int ElementDataGridRowSetAttrrow_expanded(lua_State* L)
 
 
 
-Rocket::Core::Lua::RegType<ElementDataGridRow> ElementDataGridRowMethods[] =
+Rml::Core::Lua::RegType<ElementDataGridRow> ElementDataGridRowMethods[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementDataGridRowGetters[] =
@@ -105,29 +106,29 @@ luaL_Reg ElementDataGridRowGetters[] =
     LUAGETTER(ElementDataGridRow,table_relative_index)
     LUAGETTER(ElementDataGridRow,parent_row)
     LUAGETTER(ElementDataGridRow,parent_grid)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementDataGridRowSetters[] =
 {
     LUASETTER(ElementDataGridRow,row_expanded)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 }
 }
 }
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
-template<> void ExtraInit<Rocket::Controls::ElementDataGridRow>(lua_State* L, int metatable_index)
+template<> void ExtraInit<Rml::Controls::ElementDataGridRow>(lua_State* L, int metatable_index)
 {
     ExtraInit<Element>(L,metatable_index);
     LuaType<Element>::_regfunctions(L,metatable_index,metatable_index-1);
-    AddTypeToElementAsTable<Rocket::Controls::ElementDataGridRow>(L);
+    AddTypeToElementAsTable<Rml::Controls::ElementDataGridRow>(L);
 }
-using Rocket::Controls::ElementDataGridRow;
-LUACONTROLSTYPEDEFINE(ElementDataGridRow,true)
+using Rml::Controls::ElementDataGridRow;
+LUACONTROLSTYPEDEFINE(ElementDataGridRow)
 }
 }
 }

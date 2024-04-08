@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,25 +27,21 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/Property.h"
-#include "../../Include/Rocket/Core/PropertyDefinition.h"
+#include "../../Include/RmlUi/Core/Property.h"
+#include "../../Include/RmlUi/Core/PropertyDefinition.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 Property::Property() : unit(UNKNOWN), specificity(-1)
 {
-	definition = NULL;
+	definition = nullptr;
 	parser_index = -1;
-}
-
-Property::~Property()
-{
 }
 
 String Property::ToString() const
 {
-	if (definition == NULL)
+	if (definition == nullptr)
 		return value.Get< String >();
 
 	String string;

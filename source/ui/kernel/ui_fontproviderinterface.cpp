@@ -9,7 +9,7 @@
 namespace WSWUI
 {
 
-using namespace Rocket::Core;
+using namespace Rml::Core;
 
 static UI_FontProviderInterface *instance = nullptr;
 
@@ -26,66 +26,62 @@ UI_FontProviderInterface::~UI_FontProviderInterface()
 	}
 }
 
-FontHandle UI_FontProviderInterface::GetFontFaceHandle(const String& family, const String& charset, Font::Style style, Font::Weight weight, int size)
-{
+FontFaceHandle UI_FontProviderInterface::GetFontFaceHandle( const String& family, const String& charset, Style::FontStyle style, Style::FontWeight weight, int size ) {
 	int qstyle = QFONT_STYLE_NONE;
 
-	switch (style) {
-		case Font::STYLE_ITALIC:
+	switch( style ) {
+		case Style::FontStyle::Italic:
 			qstyle |= QFONT_STYLE_ITALIC;
 			break;
 		default:
 			break;
 	}
 
-	switch (weight) {
-		case Font::WEIGHT_BOLD:
+	switch( weight ) {
+		case Style::FontWeight::Bold:
 			qstyle |= QFONT_STYLE_BOLD;
 			break;
 		default:
 			break;
 	}
 
-	if (family.Empty())
-		return FontHandle(0);
-	return FontHandle(trap::SCR_RegisterFont(family.CString(), (qfontstyle_t)qstyle, (unsigned)size));
+	if( family.empty() ) {
+		return FontFaceHandle( 0 );
+	}
+	return FontFaceHandle( trap::SCR_RegisterFont( family.c_str(), (qfontstyle_t)qstyle, (unsigned)size ) );
 }
 
-int UI_FontProviderInterface::GetCharacterWidth(FontHandle handle) const 
-{
-	return trap::SCR_FontAdvance((qfontface_s *)(handle));
+int UI_FontProviderInterface::GetCharacterWidth( FontFaceHandle handle ) const {
+	return trap::SCR_FontAdvance( (qfontface_s *)( handle ) );
 }
 
-int UI_FontProviderInterface::GetSize(FontHandle handle) const
-{
-	return trap::SCR_FontSize((qfontface_s *)(handle));
+int UI_FontProviderInterface::GetSize( FontFaceHandle handle ) const {
+	return trap::SCR_FontSize( (qfontface_s *)( handle ) );
 }
 
-int UI_FontProviderInterface::GetXHeight(FontHandle handle) const
-{
-	return trap::SCR_FontXHeight((qfontface_s *)(handle));
+int UI_FontProviderInterface::GetXHeight( FontFaceHandle handle ) const {
+	return trap::SCR_FontXHeight( (qfontface_s *)( handle ) );
 }
 
-int UI_FontProviderInterface::GetLineHeight(FontHandle handle) const
-{
-	return trap::SCR_FontHeight((qfontface_s *)(handle));
+int UI_FontProviderInterface::GetLineHeight( FontFaceHandle handle ) const {
+	return trap::SCR_FontHeight( (qfontface_s *)( handle ) );
 }
 
-int UI_FontProviderInterface::GetBaseline(FontHandle handle) const
-{
-	return trap::SCR_FontHeight((qfontface_s *)(handle));
+int UI_FontProviderInterface::GetBaseline( FontFaceHandle handle ) const {
+	return trap::SCR_FontHeight( (qfontface_s *)( handle ) );
 }
 
-int UI_FontProviderInterface::GetUnderline(FontHandle handle, int *thickness) const
-{
-	return -trap::SCR_FontUnderline((qfontface_s *)(handle), thickness);
+float UI_FontProviderInterface::GetUnderline( FontFaceHandle handle, float *thickness ) const {
+	int ithickness;
+	float pos = -trap::SCR_FontUnderline( (qfontface_s *)( handle ), &ithickness );
+	if (thickness != nullptr)
+		*thickness = (float)ithickness;
+	return pos;
 }
 
-int UI_FontProviderInterface::GetStringWidth(FontHandle handle, const WString& string, word prior_character) 
-{
-	String utf8str("");
-	string.ToUTF8(utf8str);
-	return trap::SCR_strWidth(utf8str.CString(), (qfontface_s *)(handle), 0);
+int UI_FontProviderInterface::GetStringWidth( FontFaceHandle handle, const WString& string, word prior_character ) {
+	String utf8str = Rml::Core::StringUtilities::ToUTF8( string );
+	return trap::SCR_strWidth( utf8str.c_str(), (qfontface_s *)( handle ), 0 );
 }
 
 void UI_FontProviderInterface::DrawCharCallback( int x, int y, int w, int h, float s1, float t1, float s2, float t2, const vec4_t color, const struct shader_s *shader )
@@ -105,7 +101,7 @@ void UI_FontProviderInterface::DrawCharCallback( int x, int y, int w, int h, flo
 
 	if (shader != instance->capture_shader_last) {
 		Texture *t;
-		String key = String(64, "%p", shader);
+		std::string key = Rml::Core::CreateString( 64, "%p", shader );
 
 		auto it = instance->textures.find(key);
 		if (it != instance->textures.end()) {
@@ -163,8 +159,7 @@ void UI_FontProviderInterface::DrawCharCallback( int x, int y, int w, int h, flo
 	}
 }
 
-int UI_FontProviderInterface::GenerateString(FontHandle handle, GeometryList& geometry, const WString& string, const Vector2f& position, const Colourb& colour) const 
-{
+int UI_FontProviderInterface::GenerateString( FontFaceHandle handle, GeometryList& geometry, const WString& string, const Vector2f& position, const Colourb& colour, int layer_configuration ) const {
 	vec4_t colorf;
 
 	if (instance == nullptr) {
@@ -175,14 +170,13 @@ int UI_FontProviderInterface::GenerateString(FontHandle handle, GeometryList& ge
 		colorf[i] = colour[i] * (1.0/255.0);
 	}
 
-	String utf8str("");
-	string.ToUTF8(utf8str);
+	String utf8str = Rml::Core::StringUtilities::ToUTF8( string );
 
 	instance->capture_geometry = &geometry;
 
 	fdrawchar_t pop = trap::SCR_SetDrawCharIntercept((fdrawchar_t)&UI_FontProviderInterface::DrawCharCallback);
 
-	int string_width = trap::SCR_DrawString(position.x, position.y, 0, utf8str.CString(), (qfontface_s *)(handle), colorf);
+	int string_width = trap::SCR_DrawString( position.x, position.y, 0, utf8str.c_str(), (qfontface_s *)( handle ), colorf );
 
 	trap::SCR_SetDrawCharIntercept(pop);
 

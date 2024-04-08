@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,22 +27,33 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/Variant.h"
+#include "../../Include/RmlUi/Core/Variant.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 Variant::Variant() : type(NONE)
 {
 	// Make sure our object size assumptions fit inside the static buffer
-	ROCKET_STATIC_ASSERT(sizeof(Colourb) <= LOCAL_DATA_SIZE, LOCAL_DATA_TOO_SMALL_FOR_Colourb);
-	ROCKET_STATIC_ASSERT(sizeof(Colourf) <= LOCAL_DATA_SIZE, LOCAL_DATA_TOO_SMALL_FOR_Colourf);
-	ROCKET_STATIC_ASSERT(sizeof(String) <= LOCAL_DATA_SIZE, LOCAL_DATA_TOO_SMALL_FOR_String);
+	static_assert(sizeof(Colourb) <= LOCAL_DATA_SIZE, "Local data too small for Colourb");
+	static_assert(sizeof(Colourf) <= LOCAL_DATA_SIZE, "Local data too small for Colourf");
+	static_assert(sizeof(Vector4f) <= LOCAL_DATA_SIZE, "Local data too small for Vector4f");
+	static_assert(sizeof(String) <= LOCAL_DATA_SIZE, "Local data too small for String");
+	static_assert(sizeof(TransformPtr) <= LOCAL_DATA_SIZE, "Local data too small for TransformPtr");
+	static_assert(sizeof(TransitionList) <= LOCAL_DATA_SIZE, "Local data too small for TransitionList");
+	static_assert(sizeof(AnimationList) <= LOCAL_DATA_SIZE, "Local data too small for AnimationList");
+	static_assert(sizeof(DecoratorsPtr) <= LOCAL_DATA_SIZE, "Local data too small for DecoratorsPtr");
+	static_assert(sizeof(FontEffectsPtr) <= LOCAL_DATA_SIZE, "Local data too small for FontEffectsPtr");
 }
 
-Variant::Variant( const Variant& copy ) : type(NONE)
+Variant::Variant(const Variant& copy) : type(NONE)
 {
 	Set(copy);
+}
+
+Variant::Variant(Variant&& other) noexcept : type(NONE)
+{
+	Set(std::move(other));
 }
 
 Variant::~Variant() 
@@ -61,17 +73,46 @@ void Variant::Clear()
 			string->~String();
 		}
 		break;
-			
+		case TRANSFORMPTR:
+		{
+			// Clean up the transform.
+			TransformPtr* transform = (TransformPtr*)data;
+			transform->~TransformPtr();
+		}
+		break;
+		case TRANSITIONLIST:
+		{
+			// Clean up the transition list.
+			TransitionList* transition_list = (TransitionList*)data;
+			transition_list->~TransitionList();
+		}
+		break;
+		case ANIMATIONLIST:
+		{
+			// Clean up the transition list.
+			AnimationList* animation_list = (AnimationList*)data;
+			animation_list->~AnimationList();
+		}
+		break;
+		case DECORATORSPTR:
+		{
+			DecoratorsPtr* decorators = (DecoratorsPtr*)data;
+			decorators->~DecoratorsPtr();
+		}
+		break;
+		case FONTEFFECTSPTR:
+		{
+			FontEffectsPtr* font_effects = (FontEffectsPtr*)data;
+			font_effects->~shared_ptr();
+		}
+		break;
 		default:
 		break;
 	}
 	type = NONE;
 }
 
-Variant::Type Variant::GetType() const
-{
-	return type;
-}
+
 
 //////////////////////////////////////////////////
 // Set methods
@@ -83,19 +124,72 @@ void Variant::Set(const Variant& copy)
 {
 	switch (copy.type)
 	{
-		case STRING:
-		{
-			// Create the string
-			Set(*(String*)copy.data);
-		}
+	case STRING:
+		Set(*(String*)copy.data);
 		break;
-			
-		default:
-			Clear();
-			memcpy(data, copy.data, LOCAL_DATA_SIZE);
-		break;	
+
+	case TRANSFORMPTR:
+		Set(*(TransformPtr*)copy.data);
+		break;
+
+	case TRANSITIONLIST:
+		Set(*(TransitionList*)copy.data);
+		break;
+
+	case ANIMATIONLIST:
+		Set(*(AnimationList*)copy.data);
+		break;
+
+	case DECORATORSPTR:
+		Set(*(DecoratorsPtr*)copy.data);
+		break;
+
+	case FONTEFFECTSPTR:
+		Set(*(FontEffectsPtr*)copy.data);
+		break;
+
+	default:
+		memcpy(data, copy.data, LOCAL_DATA_SIZE);
+		type = copy.type;
+		break;
 	}
-	type = copy.type;
+	RMLUI_ASSERT(type == copy.type);
+}
+
+void Variant::Set(Variant&& other)
+{
+	switch (other.type)
+	{
+	case STRING:
+		Set(std::move(*(String*)other.data));
+		break;
+
+	case TRANSFORMPTR:
+		Set(std::move(*(TransformPtr*)other.data));
+		break;
+
+	case TRANSITIONLIST:
+		Set(std::move(*(TransitionList*)other.data));
+		break;
+
+	case ANIMATIONLIST:
+		Set(std::move(*(AnimationList*)other.data));
+		break;
+
+	case DECORATORSPTR:
+		Set(std::move(*(DecoratorsPtr*)other.data));
+		break;
+
+	case FONTEFFECTSPTR:
+		Set(std::move(*(FontEffectsPtr*)other.data));
+		break;
+
+	default:
+		memcpy(data, other.data, LOCAL_DATA_SIZE);
+		type = other.type;
+		break;
+	}
+	RMLUI_ASSERT(type == other.type);
 }
 
 void Variant::Set(const byte value)
@@ -121,24 +215,10 @@ void Variant::Set(const int value)
 	type = INT;
 	SET_VARIANT(int);
 }
-
-void Variant::Set(const String& value) 
-{
-	if (type == STRING)
-	{
-		((String*)data)->Assign(value);
-	}
-	else
-	{
-		type = STRING;
-		new(data) String(value);
-	}
-}
-
-void Variant::Set(const word value)
+void Variant::Set(const Character value)
 {
 	type = WORD;
-	SET_VARIANT(word);  
+	SET_VARIANT(Character);
 }
 
 void Variant::Set(const char* value) 
@@ -158,6 +238,18 @@ void Variant::Set(const Vector2f& value)
 	SET_VARIANT(Vector2f);
 }
 
+void Variant::Set(const Vector3f& value)
+{
+	type = VECTOR3;
+	SET_VARIANT(Vector3f);
+}
+
+void Variant::Set(const Vector4f& value)
+{
+	type = VECTOR4;
+	SET_VARIANT(Vector4f);
+}
+
 void Variant::Set(const Colourf& value)
 {
 	type = COLOURF;
@@ -170,16 +262,230 @@ void Variant::Set(const Colourb& value)
 	SET_VARIANT(Colourb);
 }
 
-void Variant::Set(ScriptInterface* value) 
+void Variant::Set(ScriptInterface* value)
 {
 	type = SCRIPTINTERFACE;
 	memcpy(data, &value, sizeof(ScriptInterface*));
 }
 
+
+void Variant::Set(const String& value)
+{
+	if (type == STRING)
+	{
+		(*(String*)data) = value;
+	}
+	else
+	{
+		type = STRING;
+		new(data) String(value);
+	}
+}
+void Variant::Set(String&& value)
+{
+	if (type == STRING)
+	{
+		(*(String*)data) = std::move(value);
+	}
+	else
+	{
+		type = STRING;
+		new(data) String(std::move(value));
+	}
+}
+
+
+void Variant::Set(const TransformPtr& value)
+{
+	if (type == TRANSFORMPTR)
+	{
+		SET_VARIANT(TransformPtr);
+	}
+	else
+	{
+		type = TRANSFORMPTR;
+		new(data) TransformPtr(value);
+	}
+}
+void Variant::Set(TransformPtr&& value)
+{
+	if (type == TRANSFORMPTR)
+	{
+		(*(TransformPtr*)data) = std::move(value);
+	}
+	else
+	{
+		type = TRANSFORMPTR;
+		new(data) TransformPtr(std::move(value));
+	}
+}
+
+void Variant::Set(const TransitionList& value)
+{
+	if (type == TRANSITIONLIST)
+	{
+		*(TransitionList*)data = value;
+	}
+	else
+	{
+		type = TRANSITIONLIST;
+		new(data) TransitionList(value);
+	}
+}
+void Variant::Set(TransitionList&& value)
+{
+	if (type == TRANSITIONLIST)
+	{
+		(*(TransitionList*)data) = std::move(value);
+	}
+	else
+	{
+		type = TRANSITIONLIST;
+		new(data) TransitionList(std::move(value));
+	}
+}
+
+void Variant::Set(const AnimationList& value)
+{
+	if (type == ANIMATIONLIST)
+	{
+		*(AnimationList*)data = value;
+	}
+	else
+	{
+		type = ANIMATIONLIST;
+		new(data) AnimationList(value);
+	}
+}
+void Variant::Set(AnimationList&& value)
+{
+	if (type == ANIMATIONLIST)
+	{
+		(*(AnimationList*)data) = std::move(value);
+	}
+	else
+	{
+		type = ANIMATIONLIST;
+		new(data) AnimationList(std::move(value));
+	}
+}
+
+void Variant::Set(const DecoratorsPtr& value)
+{
+	if (type == DECORATORSPTR)
+	{
+		*(DecoratorsPtr*)data = value;
+	}
+	else
+	{
+		type = DECORATORSPTR;
+		new(data) DecoratorsPtr(value);
+	}
+}
+void Variant::Set(DecoratorsPtr&& value)
+{
+	if (type == DECORATORSPTR)
+	{
+		(*(DecoratorsPtr*)data) = std::move(value);
+	}
+	else
+	{
+		type = DECORATORSPTR;
+		new(data) DecoratorsPtr(std::move(value));
+	}
+}
+void Variant::Set(const FontEffectsPtr& value)
+{
+	if (type == FONTEFFECTSPTR)
+	{
+		*(FontEffectsPtr*)data = value;
+	}
+	else
+	{
+		type = FONTEFFECTSPTR;
+		new(data) FontEffectsPtr(value);
+	}
+}
+void Variant::Set(FontEffectsPtr&& value)
+{
+	if (type == FONTEFFECTSPTR)
+	{
+		(*(FontEffectsPtr*)data) = std::move(value);
+	}
+	else
+	{
+		type = FONTEFFECTSPTR;
+		new(data) FontEffectsPtr(std::move(value));
+	}
+}
+
 Variant& Variant::operator=(const Variant& copy)
 {
+	if (copy.type != type)
+		Clear();
 	Set(copy);
 	return *this;
+}
+
+Variant& Variant::operator=(Variant&& other) noexcept
+{
+	if (other.type != type)
+		Clear();
+	Set(std::move(other));
+	return *this;
+}
+
+#define DEFAULT_VARIANT_COMPARE(TYPE) static_cast<TYPE>(*(TYPE*)data) == static_cast<TYPE>(*(TYPE*)other.data)
+
+bool Variant::operator==(const Variant & other) const
+{
+	if (type != other.type)
+		return false;
+
+	switch (type)
+	{
+	case BYTE:
+		return DEFAULT_VARIANT_COMPARE(byte);
+	case CHAR:
+		return DEFAULT_VARIANT_COMPARE(char);
+	case FLOAT:
+		return DEFAULT_VARIANT_COMPARE(float);
+	case INT:
+		return DEFAULT_VARIANT_COMPARE(int);
+	case STRING:
+		return DEFAULT_VARIANT_COMPARE(String);
+	case WORD:
+		return DEFAULT_VARIANT_COMPARE(Character);
+	case VECTOR2:
+		return DEFAULT_VARIANT_COMPARE(Vector2f);
+	case VECTOR3:
+		return DEFAULT_VARIANT_COMPARE(Vector3f);
+	case VECTOR4:
+		return DEFAULT_VARIANT_COMPARE(Vector4f);
+	case COLOURF:
+		return DEFAULT_VARIANT_COMPARE(Colourf);
+	case COLOURB:
+		return DEFAULT_VARIANT_COMPARE(Colourb);
+	case SCRIPTINTERFACE:
+		return DEFAULT_VARIANT_COMPARE(ScriptInterface*);
+	case VOIDPTR:
+		return DEFAULT_VARIANT_COMPARE(void*);
+	case TRANSFORMPTR:
+		return DEFAULT_VARIANT_COMPARE(TransformPtr);
+	case TRANSITIONLIST:
+		return DEFAULT_VARIANT_COMPARE(TransitionList);
+	case ANIMATIONLIST:
+		return DEFAULT_VARIANT_COMPARE(AnimationList);
+	case DECORATORSPTR:
+		return DEFAULT_VARIANT_COMPARE(DecoratorsPtr);
+	case FONTEFFECTSPTR:
+		return DEFAULT_VARIANT_COMPARE(FontEffectsPtr);
+	case NONE:
+		return true;
+		break;
+	}
+	RMLUI_ERRORMSG("Variant comparison not implemented for this type.");
+	return false;
 }
 
 }

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,17 +26,17 @@
  *
  */
 
-#include "../../Include/Rocket/Debugger/Debugger.h"
-#include "../../Include/Rocket/Core.h"
+#include "../../Include/RmlUi/Debugger/Debugger.h"
+#include "../../Include/RmlUi/Core.h"
 #include "Plugin.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Debugger {
 
 // Initialises the debug plugin. The debugger will be loaded into the given context.
 bool Initialise(Core::Context* context)
 {
-	if (Plugin::GetInstance() != NULL)
+	if (Plugin::GetInstance() != nullptr)
 	{
 		Core::Log::Message(Core::Log::LT_WARNING, "Unable to initialise debugger plugin, already initialised!");
 		return false;
@@ -60,7 +61,7 @@ bool Initialise(Core::Context* context)
 bool SetContext(Core::Context* context)
 {
 	Plugin* plugin = Plugin::GetInstance();
-	if (plugin == NULL)
+	if (plugin == nullptr)
 		return false;
 
 	plugin->SetContext(context);
@@ -72,7 +73,7 @@ bool SetContext(Core::Context* context)
 void SetVisible(bool visibility)
 {
 	Plugin* plugin = Plugin::GetInstance();
-	if (plugin != NULL)
+	if (plugin != nullptr)
 		plugin->SetVisible(visibility);
 }
 
@@ -80,7 +81,7 @@ void SetVisible(bool visibility)
 bool IsVisible()
 {
 	Plugin* plugin = Plugin::GetInstance();
-	if (plugin == NULL)
+	if (plugin == nullptr)
 		return false;
 
 	return plugin->IsVisible();

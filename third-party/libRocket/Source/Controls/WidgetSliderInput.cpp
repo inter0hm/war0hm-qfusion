@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,10 +27,10 @@
  */
 
 #include "WidgetSliderInput.h"
-#include "../../Include/Rocket/Core/Math.h"
-#include "../../Include/Rocket/Core/Element.h"
+#include "../../Include/RmlUi/Core/Math.h"
+#include "../../Include/RmlUi/Core/Element.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 WidgetSliderInput::WidgetSliderInput(ElementFormControl* parent) : WidgetSlider(parent)
@@ -44,15 +45,15 @@ WidgetSliderInput::~WidgetSliderInput()
 {
 }
 
-void WidgetSliderInput::SetValue(float new_value)
+void WidgetSliderInput::SetValue(float value)
 {
-	float num_steps = (new_value - min_value) / step;
-	float new_rounded_value = min_value + Rocket::Core::Math::Round(num_steps) * step;
+	float num_steps = (value - min_value) / step;
+	float new_value = min_value + Rml::Core::Math::RoundFloat(num_steps) * step;
 
-	SetBarPosition(SetValueInternal(new_rounded_value));
+	SetBarPosition(SetValueInternal(new_value));
 }
 
-float WidgetSliderInput::GetValue()
+float WidgetSliderInput::GetValue() const
 {
 	return value;
 }
@@ -82,15 +83,17 @@ void WidgetSliderInput::SetStep(float _step)
 // Formats the slider's elements.
 void WidgetSliderInput::FormatElements()
 {
-	Rocket::Core::Vector2f box = GetParent()->GetBox().GetSize();
+	RMLUI_ZoneScopedNC("RangeOnResize", 0x228044);
+
+	Rml::Core::Vector2f box = GetParent()->GetBox().GetSize();
 	WidgetSlider::FormatElements(box, GetOrientation() == VERTICAL ? box.y : box.x);
 }
 
 // Called when the slider's bar position is set or dragged.
-float WidgetSliderInput::OnBarChange(float new_bar_position)
+float WidgetSliderInput::OnBarChange(float bar_position)
 {
-	float new_value = min_value + new_bar_position * (max_value - min_value);
-	int num_steps = Rocket::Core::Math::Round((new_value - value) / step);
+	float new_value = min_value + bar_position * (max_value - min_value);
+	int num_steps = Rml::Core::Math::RoundToInteger((new_value - value) / step);
 
 	return SetValueInternal(value + num_steps * step);
 }
@@ -124,11 +127,11 @@ float WidgetSliderInput::SetValueInternal(float new_value)
 {
 	if (min_value < max_value)
 	{
-		value = Rocket::Core::Math::Clamp(new_value, min_value, max_value);
+		value = Rml::Core::Math::Clamp(new_value, min_value, max_value);
 	}
 	else if (min_value > max_value)
 	{
-		value = Rocket::Core::Math::Clamp(new_value, max_value, min_value);
+		value = Rml::Core::Math::Clamp(new_value, max_value, min_value);
 	}
 	else
 	{

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,22 +26,24 @@
  *
  */
 
-#include "../../Include/Rocket/Controls/ElementFormControlTextArea.h"
-#include "../../Include/Rocket/Core/Math.h"
-#include "../../Include/Rocket/Core/ElementUtilities.h"
-#include "../../Include/Rocket/Core/ElementText.h"
+#include "../../Include/RmlUi/Controls/ElementFormControlTextArea.h"
+#include "../../Include/RmlUi/Core/Math.h"
+#include "../../Include/RmlUi/Core/ElementUtilities.h"
+#include "../../Include/RmlUi/Core/ElementText.h"
+#include "../../Include/RmlUi/Core/PropertyIdSet.h"
 #include "WidgetTextInputMultiLine.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 // Constructs a new ElementFormControlTextArea.
-ElementFormControlTextArea::ElementFormControlTextArea(const Rocket::Core::String& tag) : ElementFormControl(tag)
+ElementFormControlTextArea::ElementFormControlTextArea(const Rml::Core::String& tag) : ElementFormControl(tag)
 {
 	widget = new WidgetTextInputMultiLine(this);
 
-	SetProperty("overflow", "auto");
-	SetProperty("white-space", "pre-wrap");
+	SetProperty(Core::PropertyId::OverflowX, Core::Property(Core::Style::Overflow::Auto));
+	SetProperty(Core::PropertyId::OverflowY, Core::Property(Core::Style::Overflow::Auto));
+	SetProperty(Core::PropertyId::WhiteSpace, Core::Property(Core::Style::WhiteSpace::Prewrap));
 }
 
 ElementFormControlTextArea::~ElementFormControlTextArea()
@@ -49,13 +52,13 @@ ElementFormControlTextArea::~ElementFormControlTextArea()
 }
 
 // Returns a string representation of the current value of the form control.
-Rocket::Core::String ElementFormControlTextArea::GetValue() const
+Rml::Core::String ElementFormControlTextArea::GetValue() const
 {
-	return GetAttribute< Rocket::Core::String >("value", "");
+	return GetAttribute< Rml::Core::String >("value", "");
 }
 
 // Sets the current value of the form control.
-void ElementFormControlTextArea::SetValue(const Rocket::Core::String& value)
+void ElementFormControlTextArea::SetValue(const Rml::Core::String& value)
 {
 	SetAttribute("value", value);
 }
@@ -64,7 +67,7 @@ void ElementFormControlTextArea::SetValue(const Rocket::Core::String& value)
 // fixed-width font.
 void ElementFormControlTextArea::SetNumColumns(int num_columns)
 {
-	SetAttribute< int >("cols", Rocket::Core::Math::Max(1, num_columns));
+	SetAttribute< int >("cols", Rml::Core::Math::Max(1, num_columns));
 }
 
 // Returns the approximate number of characters visible at once.
@@ -76,7 +79,7 @@ int ElementFormControlTextArea::GetNumColumns() const
 // Sets the number of visible lines of text in the text area.
 void ElementFormControlTextArea::SetNumRows(int num_rows)
 {
-	SetAttribute< int >("rows", Rocket::Core::Math::Max(1, num_rows));
+	SetAttribute< int >("rows", Rml::Core::Math::Max(1, num_rows));
 }
 
 // Returns the number of visible lines of text in the text area.
@@ -112,15 +115,15 @@ void ElementFormControlTextArea::SetWordWrap(bool word_wrap)
 // Returns the state of word-wrapping in the text area.
 bool ElementFormControlTextArea::GetWordWrap()
 {
-	Rocket::Core::String attribute = GetAttribute< Rocket::Core::String >("wrap", "");
+	Rml::Core::String attribute = GetAttribute< Rml::Core::String >("wrap", "");
 	return attribute != "nowrap";
 }
 
 // Returns the control's inherent size, based on the length of the input field and the current font size.
-bool ElementFormControlTextArea::GetIntrinsicDimensions(Rocket::Core::Vector2f& dimensions)
+bool ElementFormControlTextArea::GetIntrinsicDimensions(Rml::Core::Vector2f& dimensions)
 {
 	dimensions.x = (float) (GetNumColumns() * Core::ElementUtilities::GetStringWidth(this, "m"));
-	dimensions.y = (float) (GetNumRows() * Core::ElementUtilities::GetLineHeight(this));
+	dimensions.y = (float)GetNumRows() * GetLineHeight();
 
 	return true;
 }
@@ -138,22 +141,28 @@ void ElementFormControlTextArea::OnRender()
 }
 
 // Formats the element.
+void ElementFormControlTextArea::OnResize()
+{
+	widget->OnResize();
+}
+
+// Formats the element.
 void ElementFormControlTextArea::OnLayout()
 {
 	widget->OnLayout();
 }
 
 // Called when attributes on the element are changed.
-void ElementFormControlTextArea::OnAttributeChange(const Core::AttributeNameList& changed_attributes)
+void ElementFormControlTextArea::OnAttributeChange(const Core::ElementAttributes& changed_attributes)
 {
 	ElementFormControl::OnAttributeChange(changed_attributes);
 
 	if (changed_attributes.find("wrap") != changed_attributes.end())
 	{
 		if (GetWordWrap())
-			SetProperty("white-space", "pre-wrap");
+			SetProperty(Core::PropertyId::WhiteSpace, Core::Property(Core::Style::WhiteSpace::Prewrap));
 		else
-			SetProperty("white-space", "pre");
+			SetProperty(Core::PropertyId::WhiteSpace, Core::Property(Core::Style::WhiteSpace::Pre));
 	}
 
 	if (changed_attributes.find("rows") != changed_attributes.end() ||
@@ -168,17 +177,17 @@ void ElementFormControlTextArea::OnAttributeChange(const Core::AttributeNameList
 }
 
 // Called when properties on the control are changed.
-void ElementFormControlTextArea::OnPropertyChange(const Core::PropertyNameList& changed_properties)
+void ElementFormControlTextArea::OnPropertyChange(const Core::PropertyIdSet& changed_properties)
 {
 	ElementFormControl::OnPropertyChange(changed_properties);
 
-	if (changed_properties.find("color") != changed_properties.end() ||
-		changed_properties.find("background-color") != changed_properties.end())
+	if (changed_properties.Contains(Core::PropertyId::Color) ||
+		changed_properties.Contains(Core::PropertyId::BackgroundColor))
 		widget->UpdateSelectionColours();
 }
 
 // Returns the text content of the element.
-void ElementFormControlTextArea::GetInnerRML(Rocket::Core::String& content) const
+void ElementFormControlTextArea::GetInnerRML(Rml::Core::String& content) const
 {
 	content = GetValue();
 }

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,17 +26,17 @@
  *
  */
 
-#ifndef ROCKETDEBUGGERPLUGIN_H
-#define ROCKETDEBUGGERPLUGIN_H
+#ifndef RMLUIDEBUGGERPLUGIN_H
+#define RMLUIDEBUGGERPLUGIN_H
 
-#include "../../Include/Rocket/Core/EventListener.h"
-#include "../../Include/Rocket/Core/Plugin.h"
-#include <set>
+#include "../../Include/RmlUi/Core/EventListener.h"
+#include "../../Include/RmlUi/Core/Plugin.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 class ElementDocument;
+class SystemInterface;
 
 }
 
@@ -47,7 +48,7 @@ class ElementContextHook;
 class SystemInterface;
 
 /**
-	Rocket plugin interface for the debugger.
+	RmlUi plugin interface for the debugger.
 
 	@author Robert Curry
  */
@@ -56,7 +57,7 @@ class Plugin : public Core::Plugin, public Core::EventListener
 {
 public:
 	Plugin();
-	virtual ~Plugin();
+	~Plugin();
 
 	/// Initialises the debugging tools into the given context.
 	/// @param[in] context The context to load the tools into.
@@ -78,26 +79,23 @@ public:
 	/// Renders any debug elements in the debug context.
 	void Render();
 
-	/// Called when Rocket shuts down.
-	virtual void OnShutdown();
+	/// Called when RmlUi shuts down.
+	void OnShutdown() override;
 
-	/// Called whenever a Rocket context is destroyed.
+	/// Called whenever a RmlUi context is destroyed.
 	/// @param[in] context The destroyed context.
-	virtual void OnContextDestroy(Core::Context* context);
+	void OnContextDestroy(Core::Context* context) override;
 
-	/// Called whenever an element is created.
-	/// @param[in] element The created element.
-	virtual void OnElementCreate(Core::Element* element);
 	/// Called whenever an element is destroyed.
 	/// @param[in] element The destroyed element.
-	virtual void OnElementDestroy(Core::Element* element);
+	void OnElementDestroy(Core::Element* element) override;
 
 	/// Event handler for events from the debugger elements.
 	/// @param[in] event The event to process.
-	virtual void ProcessEvent(Core::Event& event);
+	void ProcessEvent(Core::Event& event) override;
 
 	/// Access the singleton instance of the debugger
-	/// @return NULL or an instance of the plugin
+	/// @return nullptr or an instance of the plugin
 	static Plugin* GetInstance();
 
 private:
@@ -105,7 +103,6 @@ private:
 	bool LoadMenuElement();
 	bool LoadInfoElement();
 	bool LoadLogElement();
-	bool LoadHookElement();
 
 	// Release all loaded elements
 	void ReleaseElements();
@@ -120,13 +117,13 @@ private:
 	ElementInfo* info_element;
 	ElementLog* log_element;
 	ElementContextHook* hook_element;
-	SystemInterface* log_hook;
+
+	Core::SystemInterface* application_interface;
+	std::unique_ptr<SystemInterface> log_interface;
+
+	std::unique_ptr<Core::ElementInstancer> hook_element_instancer, info_element_instancer, log_element_instancer;
 
 	bool render_outlines;
-
-	// Keep track of instanced elements for leak tracking.
-	typedef std::set< Core::Element* > ElementInstanceMap;
-	ElementInstanceMap elements;
 
 	// Singleton instance
 	static Plugin* instance;

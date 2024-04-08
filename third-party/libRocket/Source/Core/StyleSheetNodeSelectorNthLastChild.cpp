@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +28,9 @@
 
 #include "precompiled.h"
 #include "StyleSheetNodeSelectorNthLastChild.h"
-#include "../../Include/Rocket/Core/ElementText.h"
-#include "../../Include/Rocket/Core/StyleSheetKeywords.h"
+#include "../../Include/RmlUi/Core/ElementText.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 StyleSheetNodeSelectorNthLastChild::StyleSheetNodeSelectorNthLastChild()
@@ -45,7 +45,7 @@ StyleSheetNodeSelectorNthLastChild::~StyleSheetNodeSelectorNthLastChild()
 bool StyleSheetNodeSelectorNthLastChild::IsApplicable(const Element* element, int a, int b)
 {
 	Element* parent = element->GetParentNode();
-	if (parent == NULL)
+	if (parent == nullptr)
 		return false;
 
 	// Start counting elements until we find this one.
@@ -55,14 +55,14 @@ bool StyleSheetNodeSelectorNthLastChild::IsApplicable(const Element* element, in
 		Element* child = parent->GetChild(i);
 
 		// Skip text nodes.
-		if (dynamic_cast< ElementText* >(child) != NULL)
+		if (dynamic_cast< ElementText* >(child) != nullptr)
 			continue;
 
 		// If we've found our element, then break; the current index is our element's index.
 		if (child == element)
 			break;
 
-		if (child->GetDisplay() == DISPLAY_NONE)
+		if (child->GetDisplay() == Style::Display::None)
 			continue;
 
 		element_index++;

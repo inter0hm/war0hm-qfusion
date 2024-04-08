@@ -24,7 +24,7 @@
 
 namespace WSWUI
 {
-	using namespace Rocket::Core;
+using namespace Rml::Core;
 
 	class NinePatchDecorator : public Decorator
 	{
@@ -41,22 +41,12 @@ namespace WSWUI
 			if( texture_index < 0 )
 				return false;
 
-			property = properties.GetProperty( "coords-left" );
-			coords[0].x = Math::Max( 0.0f, property->Get< float >() );
-			coords_absolute[0][0] = ( property->unit == Property::PX );
-			property = properties.GetProperty( "coords-top" );
-			coords[0].y = Math::Max( 0.0f, property->Get< float >() );
-			coords_absolute[0][1] = ( property->unit == Property::PX );
-			property = properties.GetProperty( "coords-right" );
-			coords[1].x = Math::Max( 0.0f, property->Get< float >() );
-			coords_absolute[1][0] = ( property->unit == Property::PX );
-			property = properties.GetProperty( "coords-bottom" );
-			coords[1].y = Math::Max( 0.0f, property->Get< float >() );
-			coords_absolute[1][1] = ( property->unit == Property::PX );
-
-			this->properties = properties;
-
-			return true;
+	static float ResolveProperty( const PropertyDictionary &properties, const std::string &name, float base_value ) {
+#if 0
+		const Property *property = properties.GetProperty( name );
+		if( property == NULL ) {
+			ROCKET_ERROR;
+			return 0;
 		}
 
 		virtual DecoratorDataHandle GenerateElementData( Element *element )
@@ -66,8 +56,10 @@ namespace WSWUI
 
 			Vector2f padded_size = element->GetBox().GetSize( Box::PADDING );
 
-			RenderInterface *render_interface = element->GetRenderInterface();
-			Vector2i texture_dimensions = texture->GetDimensions( render_interface );
+		// Values based on pixels-per-inch.
+		if( property->unit & Property::PPI_UNIT ) {
+			Rml::Core::RenderInterface *renderInterface = GetRenderInterface();
+			float inch = property->value.Get<float>() * renderInterface->GetPixelsPerInch();
 
 			Vector2f tex_coords[2];
 			tex_coords[0] = coords[0];
@@ -81,40 +73,154 @@ namespace WSWUI
 			if( coords_absolute[1][1] )
 				tex_coords[1].y /= texture_dimensions.y;
 
-			Vector2f dimensions[2];
-			if( properties.GetProperty( "size-left" )->unit == Property::KEYWORD )
-				dimensions[0].x = ( float )texture_dimensions.x * tex_coords[0].x;
-			else
-				dimensions[0].x = ResolveProperty( properties, "size-left", padded_size.x );
-			if( properties.GetProperty( "size-top" )->unit == Property::KEYWORD )
-				dimensions[0].y = ( float )texture_dimensions.y * tex_coords[0].y;
-			else
-				dimensions[0].y = ResolveProperty( properties, "size-top", padded_size.y );
-			if( properties.GetProperty( "size-right" )->unit == Property::KEYWORD )
-				dimensions[1].x = ( float )texture_dimensions.x * tex_coords[1].x;
-			else
-				dimensions[1].x = ResolveProperty( properties, "size-right", padded_size.x );
-			if( properties.GetProperty( "size-bottom" )->unit == Property::KEYWORD )
-				dimensions[1].y = ( float )texture_dimensions.y * tex_coords[1].y;
-			else
-				dimensions[1].y = ResolveProperty( properties, "size-bottom", padded_size.y );
+		ROCKET_ERROR;
+#endif
+		return 0;
+	}
 
-			// Negative sizes make the dimensions be calculated from the centre, not the edges.
-			if( dimensions[0].x < 0.0f )
-				dimensions[0].x = Math::Max( 0.0f, padded_size.x * 0.5f + dimensions[0].x );
-			if( dimensions[0].y < 0.0f )
-				dimensions[0].y = Math::Max( 0.0f, padded_size.y * 0.5f + dimensions[0].y );
-			if( dimensions[1].x < 0.0f )
-				dimensions[1].x = Math::Max( 0.0f, padded_size.x * 0.5f + dimensions[1].x );
-			if( dimensions[1].y < 0.0f )
-				dimensions[1].y = Math::Max( 0.0f, padded_size.y * 0.5f + dimensions[1].y );
+	bool Initialise( const PropertyDictionary &_properties ) {
+#if 0
+		const Property *property = _properties.GetProperty(  "src" );
+		texture_index = LoadTexture( property->Get< std::string >(), property->source );
+		if( texture_index < 0 ) {
+			return false;
+		}
 
-			// Shrink the sizes if necessary.
-			Vector2f total_dimensions = dimensions[0] + dimensions[1];
-			if( padded_size.x < total_dimensions.x )
-			{
-				dimensions[0].x = padded_size.x * ( dimensions[0].x / total_dimensions.x );
-				dimensions[1].x = padded_size.x * ( dimensions[1].x / total_dimensions.x );
+		properties = _properties;
+
+		property = properties.GetProperty( "coords-left" );
+		coords[0].x = Math::Max( 0.0f, property->Get< float >() );
+		coords_absolute[0][0] = ( property->unit == Property::PX );
+		property = properties.GetProperty( "coords-top" );
+		coords[0].y = Math::Max( 0.0f, property->Get< float >() );
+		coords_absolute[0][1] = ( property->unit == Property::PX );
+		property = properties.GetProperty( "coords-right" );
+		coords[1].x = Math::Max( 0.0f, property->Get< float >() );
+		coords_absolute[1][0] = ( property->unit == Property::PX );
+		property = properties.GetProperty( "coords-bottom" );
+		coords[1].y = Math::Max( 0.0f, property->Get< float >() );
+		coords_absolute[1][1] = ( property->unit == Property::PX );
+
+		property = properties.GetProperty( "size-left" );
+		size_auto[0][0] = property->unit == Property::KEYWORD;
+		property = properties.GetProperty( "size-top" );
+		size_auto[0][1] = property->unit == Property::KEYWORD;
+		property = properties.GetProperty( "size-right" );
+		size_auto[1][0] = property->unit == Property::KEYWORD;
+		property = properties.GetProperty( "size-bottom" );
+		size_auto[1][1] = property->unit == Property::KEYWORD;
+#endif
+		return true;
+	}
+
+	virtual DecoratorDataHandle GenerateElementData( Element *element ) const override {
+		int i, j;
+		const Texture *texture = GetTexture( texture_index );
+
+		Vector2f padded_size = element->GetBox().GetSize( Box::PADDING );
+
+		RenderInterface *render_interface = element->GetRenderInterface();
+		Vector2i texture_dimensions = texture->GetDimensions( render_interface );
+
+		Vector2f tex_coords[2];
+		tex_coords[0] = coords[0];
+		tex_coords[1] = coords[1];
+		if( coords_absolute[0][0] ) {
+			tex_coords[0].x /= texture_dimensions.x;
+		}
+		if( coords_absolute[0][1] ) {
+			tex_coords[0].y /= texture_dimensions.y;
+		}
+		if( coords_absolute[1][0] ) {
+			tex_coords[1].x /= texture_dimensions.x;
+		}
+		if( coords_absolute[1][1] ) {
+			tex_coords[1].y /= texture_dimensions.y;
+		}
+
+		Vector2f dimensions[2];
+		if( size_auto[0][0] ) {
+			dimensions[0].x = ( float )texture_dimensions.x * tex_coords[0].x;
+		} else {
+			dimensions[0].x = ResolveProperty( properties, "size-left", padded_size.x );
+		}
+		if( size_auto[0][1] ) {
+			dimensions[0].y = ( float )texture_dimensions.y * tex_coords[0].y;
+		} else {
+			dimensions[0].y = ResolveProperty( properties, "size-top", padded_size.y );
+		}
+		if( size_auto[1][0] ) {
+			dimensions[1].x = ( float )texture_dimensions.x * tex_coords[1].x;
+		} else {
+			dimensions[1].x = ResolveProperty( properties, "size-right", padded_size.x );
+		}
+		if( size_auto[1][1] ) {
+			dimensions[1].y = ( float )texture_dimensions.y * tex_coords[1].y;
+		} else {
+			dimensions[1].y = ResolveProperty( properties, "size-bottom", padded_size.y );
+		}
+
+		// Negative sizes make the dimensions be calculated from the centre, not the edges.
+		if( dimensions[0].x < 0.0f ) {
+			dimensions[0].x = Math::Max( 0.0f, padded_size.x * 0.5f + dimensions[0].x );
+		}
+		if( dimensions[0].y < 0.0f ) {
+			dimensions[0].y = Math::Max( 0.0f, padded_size.y * 0.5f + dimensions[0].y );
+		}
+		if( dimensions[1].x < 0.0f ) {
+			dimensions[1].x = Math::Max( 0.0f, padded_size.x * 0.5f + dimensions[1].x );
+		}
+		if( dimensions[1].y < 0.0f ) {
+			dimensions[1].y = Math::Max( 0.0f, padded_size.y * 0.5f + dimensions[1].y );
+		}
+
+		// Shrink the sizes if necessary.
+		Vector2f total_dimensions = dimensions[0] + dimensions[1];
+		if( padded_size.x < total_dimensions.x ) {
+			dimensions[0].x = padded_size.x * ( dimensions[0].x / total_dimensions.x );
+			dimensions[1].x = padded_size.x * ( dimensions[1].x / total_dimensions.x );
+		}
+		if( padded_size.y < total_dimensions.y ) {
+			dimensions[0].y = padded_size.y * ( dimensions[0].y / total_dimensions.y );
+			dimensions[1].y = padded_size.y * ( dimensions[1].y / total_dimensions.y );
+		}
+
+		Vector2f centre_dimensions = padded_size - dimensions[0] - dimensions[1];
+
+		// Generate the vertices.
+		Vertex vertices[16];
+		int num_vertices = 4;
+		int indices[54];
+		int num_indices = 0;
+
+		int edge_indices[8] = { 0, 0, 1, 1, 2, 2, 3, 3 };     // Indices of the vertices on edges.
+		int centre_indices[4] = { 0, 1, 2, 3 };     // Indices of the edges of the centre.
+
+		Colourb colour( 255, 255, 255 );
+
+		// Generate the corners.
+		vertices[0].position = Vector2f( 0.0f, 0.0f );
+		vertices[0].tex_coord = tex_coords[0];
+		vertices[1].position = Vector2f( padded_size.x, 0.0f );
+		vertices[1].tex_coord = Vector2f( 1.0f - tex_coords[1].x, tex_coords[0].y );
+		vertices[2].position = Vector2f( 0.0f, padded_size.y );
+		vertices[2].tex_coord = Vector2f( tex_coords[0].x, 1.0f - tex_coords[1].y );
+		vertices[3].position = Vector2f( padded_size.x, padded_size.y );
+		vertices[3].tex_coord = Vector2f( 1.0f - tex_coords[1].x, 1.0f - tex_coords[1].y );
+
+		// Generate the edge vertices.
+		for( i = 0; i < 2; i++ ) {
+			Vector2f position = ( i ? ( padded_size - dimensions[1] ) : dimensions[0] );
+			Vector2f tex_coord = ( i ? ( Vector2f( 1.0f, 1.0f ) - tex_coords[1] ) : tex_coords[0] );
+			if( dimensions[i].x > 0.0f ) {
+				for( j = 0; j < 2; j++ )
+					vertices[j * 2 + i].tex_coord.x = ( float )i;
+				vertices[num_vertices].position = Vector2f( position.x, 0.0f );
+				vertices[num_vertices].tex_coord = Vector2f( tex_coord.x, 0.0f );
+				edge_indices[i * 2] = centre_indices[i] = num_vertices++;
+				vertices[num_vertices].position = Vector2f( position.x, padded_size.y );
+				vertices[num_vertices].tex_coord = Vector2f( tex_coord.x, 1.0f );
+				edge_indices[i * 2 + 4] = centre_indices[i + 2] = num_vertices++;
 			}
 			if( padded_size.y < total_dimensions.y )
 			{
@@ -313,24 +419,55 @@ namespace WSWUI
 			if( decorator->Initialise( properties ) )
 				return decorator;
 
-			decorator->RemoveReference();
-			ReleaseDecorator( decorator );
-			return NULL;
+		return reinterpret_cast< DecoratorDataHandle >( data );
+	}
+
+	virtual void ReleaseElementData( DecoratorDataHandle element_data ) const override {
+		__delete__( reinterpret_cast< Geometry * >( element_data ) );
+	}
+
+	virtual void RenderElement( Element *element, DecoratorDataHandle element_data ) const override {
+		reinterpret_cast< Geometry * >( element_data )->Render( element->GetAbsoluteOffset( Box::PADDING ) );
+	}
+};
+
+//=======================================================
+
+class NinePatchDecoratorInstancer : public DecoratorInstancer
+{
+public:
+	NinePatchDecoratorInstancer( void ) {
+#if 0
+		RegisterProperty( "src", "" ).AddParser( "string" );
+
+		RegisterProperty( "coords-top", "0" ).AddParser( "number" );
+		RegisterProperty( "coords-left", "0" ).AddParser( "number" );
+		RegisterProperty( "coords-bottom", "0" ).AddParser( "number" );
+		RegisterProperty( "coords-right", "0" ).AddParser( "number" );
+		RegisterShorthand( "coords", "coords-top, coords-right, coords-bottom, coords-left" );
+
+		RegisterProperty( "size-top", "auto" )
+		.AddParser( "keyword", "auto" )
+		.AddParser( "number" );
+		RegisterProperty( "size-left", "auto" )
+		.AddParser( "keyword", "auto" )
+		.AddParser( "number" );
+		RegisterProperty( "size-bottom", "auto" )
+		.AddParser( "keyword", "auto" )
+		.AddParser( "number" );
+		RegisterProperty( "size-right", "auto" )
+		.AddParser( "keyword", "auto" )
+		.AddParser( "number" );
+		RegisterShorthand( "size", "size-top, size-right, size-bottom, size-left" );
+#endif
+	}
+
+	std::shared_ptr<Rml::Core::Decorator> InstanceDecorator( const String &name, const PropertyDictionary &_properties, const Rml::Core::DecoratorInstancerInterface& interface ) {
+		auto decorator = std::make_shared<NinePatchDecorator>();
+		if( decorator->Initialise( _properties ) ) {
+			return decorator;
 		}
 
-		virtual void ReleaseDecorator( Decorator *decorator )
-		{
-			__delete__( decorator );
-		}
-
-		virtual void Release( void )
-		{
-			__delete__( this );
-		}
-	};
-
-	DecoratorInstancer *GetNinePatchDecoratorInstancer( void )
-	{
-		return __new__( NinePatchDecoratorInstancer );
+		return nullptr;
 	}
 }

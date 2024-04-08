@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,17 +28,15 @@
 
 #include "precompiled.h"
 #include "TextureLayoutTexture.h"
-#include "../../Include/Rocket/Core/Core.h"
+#include "../../Include/RmlUi/Core/Core.h"
 #include "TextureDatabase.h"
 #include "TextureLayout.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
-TextureLayoutTexture::TextureLayoutTexture(int samples) : 
-	dimensions(0, 0), texture_data(NULL), samples(samples)
-{
-}
+TextureLayoutTexture::TextureLayoutTexture() : dimensions(0, 0)
+{}
 
 TextureLayoutTexture::~TextureLayoutTexture()
 {
@@ -65,12 +64,16 @@ int TextureLayoutTexture::Generate(TextureLayout& layout, int maximum_dimensions
 
 		if (!rectangle.IsPlaced())
 		{
-			square_pixels += (rectangle.GetDimensions().x + 1) * (rectangle.GetDimensions().y + 1);
+			int x = rectangle.GetDimensions().x + 1;
+			int y = rectangle.GetDimensions().y + 1;
+
+			square_pixels += x*y;
 			++unplaced_rectangles;
 		}
 	}
 
 	int texture_width = Math::RealToInteger(Math::SquareRoot((float) square_pixels));
+
 	dimensions.y = Math::ToPowerOfTwo(texture_width);
 	dimensions.x = dimensions.y >> 1;
 
@@ -136,28 +139,22 @@ int TextureLayoutTexture::Generate(TextureLayout& layout, int maximum_dimensions
 }
 
 // Allocates the texture.
-byte* TextureLayoutTexture::AllocateTexture()
+UniquePtr<byte[]> TextureLayoutTexture::AllocateTexture()
 {
 	// Note: this object does not free this texture data. It is freed in the font texture loader.
+	UniquePtr<byte[]> texture_data;
 
 	if (dimensions.x > 0 &&
 		dimensions.y > 0)
 	{
-		texture_data = new byte[dimensions.x * dimensions.y * samples];
+		texture_data.reset(new byte[dimensions.x * dimensions.y * 4]);
 
 		// Set the texture to transparent white.
-		switch (samples) {
-			case 4:
-				for (int i = 0; i < dimensions.x * dimensions.y; i++)
-					((unsigned int*)(texture_data))[i] = 0x00ffffff;
-				break;
-			default:
-				memset(texture_data, 255, dimensions.x * dimensions.y * samples);
-				break;
-		}
+		for (int i = 0; i < dimensions.x * dimensions.y; i++)
+			((unsigned int*)(texture_data.get()))[i] = 0x00ffffff;
 
 		for (size_t i = 0; i < rows.size(); ++i)
-			rows[i].Allocate(texture_data, dimensions.x * samples, samples);
+			rows[i].Allocate(texture_data.get(), dimensions.x * 4);
 	}
 
 	return texture_data;

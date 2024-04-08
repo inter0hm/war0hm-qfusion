@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,26 +27,18 @@
  */
 
 #include "InputTypeButton.h"
-#include "../../Include/Rocket/Controls/ElementForm.h"
-#include "../../Include/Rocket/Controls/ElementFormControlInput.h"
+#include "../../Include/RmlUi/Controls/ElementForm.h"
+#include "../../Include/RmlUi/Controls/ElementFormControlInput.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 InputTypeButton::InputTypeButton(ElementFormControlInput* element) : InputType(element)
 {
-	document = NULL;
-
-	// Call OnChildAdd() immediately; if the input element is already part of a document, this will
-	// attach our listeners to the document so the events can be intercepted.
-	OnChildAdd();
 }
 
 InputTypeButton::~InputTypeButton()
 {
-	// Call OnChildRemove(); in case our element is still attached to a document, this will detach
-	// our listeners.
-	OnChildRemove();
 }
 
 // Buttons are never submitted.
@@ -54,46 +47,16 @@ bool InputTypeButton::IsSubmitted()
 	return false;
 }
 
-// Checks for necessary functional changes in the control as a result of the event.
-void InputTypeButton::ProcessEvent(Core::Event& event)
+void InputTypeButton::ProcessDefaultAction(Core::Event& event)
 {
-	// Stop a click event from proceeding any further if this button is disabled.
-	if (event.GetTargetElement() == element &&
-		element->IsDisabled() &&
-		(event == "click" || event == "dblclick"))
-	{
-		event.StopPropagation();
-	}
 }
 
 // Sizes the dimensions to the element's inherent size.
-bool InputTypeButton::GetIntrinsicDimensions(Rocket::Core::Vector2f& ROCKET_UNUSED_PARAMETER(dimensions))
+bool InputTypeButton::GetIntrinsicDimensions(Rml::Core::Vector2f& RMLUI_UNUSED_PARAMETER(dimensions))
 {
-	ROCKET_UNUSED(dimensions);
+	RMLUI_UNUSED(dimensions);
 
 	return false;
-}
-
-// Called when the element is added into a hierarchy.
-void InputTypeButton::OnChildAdd()
-{
-	document = element->GetOwnerDocument();
-	if (document == NULL)
-		return;
-
-	document->AddEventListener("click", this, true);
-	document->AddEventListener("dblclick", this, true);
-}
-
-// Called when the element is removed from a hierarchy.
-void InputTypeButton::OnChildRemove()
-{
-	if (document != NULL)
-	{
-		document->RemoveEventListener("click", this, true);
-		document->RemoveEventListener("dblclick", this, true);
-		document = NULL;
-	}
 }
 
 }

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,25 +26,24 @@
  *
  */
 
-#ifndef ROCKETCONTROLSINPUTTYPEBUTTON_H
-#define ROCKETCONTROLSINPUTTYPEBUTTON_H
+#ifndef RMLUICONTROLSINPUTTYPEBUTTON_H
+#define RMLUICONTROLSINPUTTYPEBUTTON_H
 
-#include "../../Include/Rocket/Core/EventListener.h"
-#include "../../Include/Rocket/Core/ElementDocument.h"
+#include "../../Include/RmlUi/Core/EventListener.h"
+#include "../../Include/RmlUi/Core/ElementDocument.h"
 #include "InputType.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 /**
-	A button input type handler. The only functionality a button provides over a normal element is
-	the ability to be disabled to prevent 'click' events from being propagated any further than the
-	element's document.
+	A button input type handler. The only functionality a button provides over a normal element is the ability
+	to be disabled. This prevents 'click' events on this element and the ability to receive focus.
 
 	@author Peter Curry
  */
 
-class InputTypeButton : public InputType, public Core::EventListener
+class InputTypeButton : public InputType
 {
 public:
 	InputTypeButton(ElementFormControlInput* element);
@@ -51,23 +51,15 @@ public:
 
 	/// Returns if this value should be submitted with the form.
 	/// @return True if the form control is to be submitted, false otherwise.
-	virtual bool IsSubmitted();
+	bool IsSubmitted() override;
 
 	/// Checks for necessary functional changes in the control as a result of the event.
 	/// @param[in] event The event to process.
-	virtual void ProcessEvent(Core::Event& event);
+	void ProcessDefaultAction(Core::Event& event) override;
 
 	/// Sizes the dimensions to the element's inherent size.
-	/// @return True.
-	virtual bool GetIntrinsicDimensions(Rocket::Core::Vector2f& dimensions);
-
-	// Called when the element is added into a hierarchy.
-	virtual void OnChildAdd();
-	/// Called when the element is removed from a hierarchy.
-	virtual void OnChildRemove();
-
-private:
-	Core::ElementDocument* document;
+	/// @return False.
+	bool GetIntrinsicDimensions(Rml::Core::Vector2f& dimensions) override;
 };
 
 }

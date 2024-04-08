@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +26,15 @@
  *
  */
 
-#ifndef ROCKETCOREDOCUMENTHEADER_H
-#define ROCKETCOREDOCUMENTHEADER_H
+#ifndef RMLUICOREDOCUMENTHEADER_H
+#define RMLUICOREDOCUMENTHEADER_H
 
-#include "../../Include/Rocket/Core/String.h"
+#include "../../Include/RmlUi/Core/Types.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
+
+using LineNumberList = std::vector<int>;
 
 /**
 	The document header struct contains the
@@ -52,6 +55,7 @@ public:
 
 	/// Inline RCSS definitions
 	StringList rcss_inline;
+	LineNumberList rcss_inline_line_numbers;
 	/// External RCSS definitions that should be loaded
 	StringList rcss_external;
 

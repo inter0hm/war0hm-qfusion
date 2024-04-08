@@ -31,8 +31,7 @@ namespace WSWUI
 {
 
 HudsDataSource::HudsDataSource( void ) :
-	Rocket::Controls::DataSource( HUDS_SOURCE )
-{
+	Rml::Controls::DataSource( HUDS_SOURCE ) {
 	UpdateHudsList();
 }
 
@@ -71,9 +70,8 @@ void HudsDataSource::UpdateHudsList( void )
 		NotifyRowAdd( TABLE_NAME, i, 1 );
 }
 
-void HudsDataSource::GetRow( StringList &row, const String &table, int row_index, const StringList &columns )
-{
-	if( row_index < 0 || (size_t)row_index >= hudsList.size() )
+void HudsDataSource::GetRow( Rml::Core::StringList &row, const std::string &table, int row_index, const Rml::Core::StringList &columns ) {
+	if( row_index < 0 || (size_t)row_index >= hudsList.size() ) {
 		return;
 
 	if( table == TABLE_NAME )
@@ -87,8 +85,7 @@ void HudsDataSource::GetRow( StringList &row, const String &table, int row_index
 	}
 }
 
-int HudsDataSource::GetNumRows( const String &table )
-{
+int HudsDataSource::GetNumRows( const std::string &table ) {
 	return hudsList.size();
 }
 }

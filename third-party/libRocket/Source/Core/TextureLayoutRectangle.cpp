@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +29,7 @@
 #include "precompiled.h"
 #include "TextureLayoutRectangle.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 TextureLayoutRectangle::TextureLayoutRectangle(int _id, const Vector2i& dimensions) : dimensions(dimensions), texture_position(0, 0)
@@ -36,7 +37,7 @@ TextureLayoutRectangle::TextureLayoutRectangle(int _id, const Vector2i& dimensio
 	id = _id;
 	texture_index = -1;
 
-	texture_data = NULL;
+	texture_data = nullptr;
 	texture_stride = 0;
 }
 
@@ -82,11 +83,10 @@ bool TextureLayoutRectangle::IsPlaced() const
 }
 
 // Sets the rectangle's texture data and stride.
-void TextureLayoutRectangle::Allocate(byte* _texture_data, int _texture_stride, int _texture_samples)
+void TextureLayoutRectangle::Allocate(byte* _texture_data, int _texture_stride)
 {
-	texture_data = _texture_data + ((texture_position.y * _texture_stride) + texture_position.x * _texture_samples);
+	texture_data = _texture_data + ((texture_position.y * _texture_stride) + texture_position.x * 4);
 	texture_stride = _texture_stride;
-	texture_samples = _texture_samples;
 }
 
 // Returns the index of the texture this rectangle is placed on.

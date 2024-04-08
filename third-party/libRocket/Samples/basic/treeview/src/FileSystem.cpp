@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +27,7 @@
  */
 
 #include "FileSystem.h"
+#include <RmlUi/Core/StringUtilities.h>
 #include <cstdlib>
 #include <cstdio>
 
@@ -37,9 +39,9 @@
 
 struct FileSystemNode;
 
-typedef std::map< Rocket::Core::String, FileSystemNode* > NodeMap;
+typedef Rml::Core::UnorderedMap< Rml::Core::String, FileSystemNode* > NodeMap;
 
-FileSystemNode* file_system_root = NULL;
+FileSystemNode* file_system_root = nullptr;
 NodeMap node_map;
 
 
@@ -50,9 +52,9 @@ NodeMap node_map;
 
 struct FileSystemNode
 {
-	FileSystemNode(const Rocket::Core::String _name, bool _directory, int _depth = -1) : name(_name)
+	FileSystemNode(const Rml::Core::String _name, bool _directory, int _depth = -1) : name(_name)
 	{
-		id = Rocket::Core::String(16, "%x", this);
+		id = Rml::Core::CreateString(16, "%x", this);
 
 		directory = _directory;
 		depth = _depth;
@@ -67,11 +69,11 @@ struct FileSystemNode
 	}
 
 	// Build the list of files and directories within this directory.
-	void BuildTree(const Rocket::Core::String& root = "")
+	void BuildTree(const Rml::Core::String& root = "")
 	{
 #ifdef WIN32
 		_finddata_t find_data;
-		intptr_t find_handle = _findfirst((root + name + "/*.*").CString(), &find_data);
+		intptr_t find_handle = _findfirst((root + name + "/*.*").c_str(), &find_data);
 		if (find_handle != -1)
 		{
 			do
@@ -87,9 +89,9 @@ struct FileSystemNode
 			_findclose(find_handle);
 		}
 #else
-			struct dirent** file_list = NULL;
+			struct dirent** file_list = nullptr;
 			int file_count = -1;
-			file_count = scandir((root + name).CString(), &file_list, 0, alphasort);
+			file_count = scandir((root + name).c_str(), &file_list, 0, alphasort);
 			if (file_count == -1)
 				return;
 
@@ -116,8 +118,8 @@ struct FileSystemNode
 
 	typedef std::vector< FileSystemNode* > NodeList;
 
-	Rocket::Core::String id;
-	Rocket::Core::String name;
+	Rml::Core::String id;
+	Rml::Core::String name;
 	bool directory;
 	int depth;
 
@@ -125,9 +127,9 @@ struct FileSystemNode
 };
 
 
-FileSystem::FileSystem(const Rocket::Core::String& root) : Rocket::Controls::DataSource("file")
+FileSystem::FileSystem(const Rml::Core::String& root) : Rml::Controls::DataSource("file")
 {
-	// Generate the file system nodes starting at the libRocket's root directory.
+	// Generate the file system nodes starting at the RmlUi's root directory.
 	file_system_root = new FileSystemNode(".", true);
 	file_system_root->BuildTree(root);
 }
@@ -135,15 +137,15 @@ FileSystem::FileSystem(const Rocket::Core::String& root) : Rocket::Controls::Dat
 FileSystem::~FileSystem()
 {
 	delete file_system_root;
-	file_system_root = NULL;
+	file_system_root = nullptr;
 }
 
-void FileSystem::GetRow(Rocket::Core::StringList& row, const Rocket::Core::String& table, int row_index, const Rocket::Core::StringList& columns)
+void FileSystem::GetRow(Rml::Core::StringList& row, const Rml::Core::String& table, int row_index, const Rml::Core::StringList& columns)
 {
 	// Get the node that data is being queried from; one of its children (as indexed by row_index)
 	// is the actual node the data will be read from.
 	FileSystemNode* node = GetNode(table);
-	if (node == NULL)
+	if (node == nullptr)
 		return;
 
 	for (size_t i = 0; i < columns.size(); i++)
@@ -156,9 +158,9 @@ void FileSystem::GetRow(Rocket::Core::StringList& row, const Rocket::Core::Strin
 		else if (columns[i] == "depth")
 		{
 			// Returns the depth of the node (ie, how far down the directory structure it is).
-			row.push_back(Rocket::Core::String(8, "%d", node->child_nodes[row_index]->depth));
+			row.push_back(Rml::Core::CreateString(8, "%d", node->child_nodes[row_index]->depth));
 		}
-		else if (columns[i] == Rocket::Controls::DataSource::CHILD_SOURCE)
+		else if (columns[i] == Rml::Controls::DataSource::CHILD_SOURCE)
 		{
 			// Returns the name of the data source that this node's children can be queried from.
 			row.push_back("file." + node->child_nodes[row_index]->id);
@@ -166,17 +168,17 @@ void FileSystem::GetRow(Rocket::Core::StringList& row, const Rocket::Core::Strin
 	}
 }
 
-int FileSystem::GetNumRows(const Rocket::Core::String& table)
+int FileSystem::GetNumRows(const Rml::Core::String& table)
 {
 	FileSystemNode* node = GetNode(table);
 
-	if (node != NULL)
+	if (node != nullptr)
 		return (int) node->child_nodes.size();
 
 	return 0;
 }
 
-FileSystemNode* FileSystem::GetNode(const Rocket::Core::String& table)
+FileSystemNode* FileSystem::GetNode(const Rml::Core::String& table)
 {
 	// Determine which node the row is being requested from.
 	if (table == "root")
@@ -188,5 +190,5 @@ FileSystemNode* FileSystem::GetNode(const Rocket::Core::String& table)
 			return i->second;
 	}
 
-	return NULL;
+	return nullptr;
 }

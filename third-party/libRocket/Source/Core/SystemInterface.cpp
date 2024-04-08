@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,17 +27,19 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/SystemInterface.h"
-#include "../../Include/Rocket/Core/Log.h"
+#include "../../Include/RmlUi/Core/SystemInterface.h"
+#include "../../Include/RmlUi/Core/Log.h"
 
-#ifdef ROCKET_PLATFORM_WIN32
+#ifdef RMLUI_PLATFORM_WIN32
 #include <windows.h>
 #endif
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
-SystemInterface::SystemInterface() : ReferenceCountable(0)
+static String clipboard_text;
+
+SystemInterface::SystemInterface()
 {
 }
 
@@ -44,33 +47,48 @@ SystemInterface::~SystemInterface()
 {
 }
 
-#ifdef ROCKET_PLATFORM_WIN32
+#ifdef RMLUI_PLATFORM_WIN32
 bool SystemInterface::LogMessage(Log::Type logtype, const String& message)
 {
 	// By default we just send a platform message
 	if (logtype == Log::LT_ASSERT)
 	{
-		Core::String message_(1024, "%s\nWould you like to interrupt execution?", message.CString());
+		String message_user = CreateString(1024, "%s\nWould you like to interrupt execution?", message.c_str());	
 
 		// Return TRUE if the user presses NO (continue execution)
-		return (IDNO == MessageBoxA(NULL, message_.CString(), "Assertion Failure", MB_YESNO | MB_ICONSTOP | MB_DEFBUTTON2 | MB_TASKMODAL));
+		return (IDNO == MessageBoxA(nullptr, message_user.c_str(), "Assertion Failure", MB_YESNO | MB_ICONSTOP | MB_DEFBUTTON2 | MB_TASKMODAL));
 	}
 	else
 	{
-		OutputDebugStringA(message.CString());
+		OutputDebugStringA(message.c_str());
 		OutputDebugStringA("\r\n");
 	}
 	return true;
 }
 #else
-bool SystemInterface::LogMessage(Log::Type ROCKET_UNUSED_PARAMETER(logtype), const String& message)
+bool SystemInterface::LogMessage(Log::Type RMLUI_UNUSED_PARAMETER(logtype), const String& message)
 {
-	ROCKET_UNUSED(logtype);
+	RMLUI_UNUSED(logtype);
 
-	fprintf(stderr,"%s\n", message.CString());
+	fprintf(stderr,"%s\n", message.c_str());
 	return true;
 }
 #endif	
+
+void SystemInterface::SetMouseCursor(const String& cursor_name)
+{
+}
+
+void SystemInterface::SetClipboardText(const String& text)
+{
+	// The default implementation will only copy and paste within the application
+	clipboard_text = text;
+}
+
+void SystemInterface::GetClipboardText(String& text)
+{
+	text = clipboard_text;
+}
 
 int SystemInterface::TranslateString(String& translated, const String& input)
 {
@@ -82,15 +100,15 @@ int SystemInterface::TranslateString(String& translated, const String& input)
 void SystemInterface::JoinPath(String& translated_path, const String& document_path, const String& path)
 {
 	// If the path is absolute, strip the leading / and return it.
-	if (path.Substring(0, 1) == "/")
+	if (path.size() > 0 && path[0] == '/')
 	{
-		translated_path = path.Substring(1);
+		translated_path = path.substr(1);
 		return;
 	}
 
 	// If the path is a Windows-style absolute path, return it directly.
-	size_t drive_pos = path.Find(":");
-	size_t slash_pos = Math::Min(path.Find("/"), path.Find("\\"));
+	size_t drive_pos = path.find(':');
+	size_t slash_pos = Math::Min(path.find('/'), path.find('\\'));
 	if (drive_pos != String::npos &&
 		drive_pos < slash_pos)
 	{
@@ -98,18 +116,20 @@ void SystemInterface::JoinPath(String& translated_path, const String& document_p
 		return;
 	}
 
+	using StringUtilities::Replace;
+
 	// Strip off the referencing document name.
 	translated_path = document_path;
-	translated_path = translated_path.Replace("\\", "/");
-	size_t file_start = translated_path.RFind("/");
+	translated_path = Replace(translated_path, '\\', '/');
+	size_t file_start = translated_path.rfind('/');
 	if (file_start != String::npos)
-		translated_path.Resize(file_start + 1);
+		translated_path.resize(file_start + 1);
 	else
-		translated_path.Clear();
+		translated_path.clear();
 
 	// Append the paths and send through URL to removing any '..'.
-	URL url(translated_path.Replace(":", "|") + path.Replace("\\", "/"));
-	translated_path = url.GetPathedFileName().Replace("|", ":");
+	URL url(Replace(translated_path, ':', '|') + Replace(path, '\\', '/'));
+	translated_path = Replace(url.GetPathedFileName(), '|', ':');
 }
 	
 // Activate keyboard (for touchscreen devices)
@@ -120,27 +140,6 @@ void SystemInterface::ActivateKeyboard()
 // Deactivate keyboard (for touchscreen devices)
 void SystemInterface::DeactivateKeyboard() 
 {
-}
-
-// Called when this system interface is released.
-void SystemInterface::Release()
-{
-}
-
-void SystemInterface::OnReferenceDeactivate()
-{
-	Release();
-}
-
-
-void SystemInterface::GetClipboardText(Rocket::Core::WString & ROCKET_UNUSED_PARAMETER(text))
-{
-	ROCKET_UNUSED(text);
-}
-
-void SystemInterface::SetClipboardText(const Rocket::Core::WString & ROCKET_UNUSED_PARAMETER(text))
-{
-	ROCKET_UNUSED(text);
 }
 
 }

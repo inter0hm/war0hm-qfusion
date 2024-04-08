@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +28,10 @@
  
 #include "precompiled.h"
 #include "SelectOptionsProxy.h"
-#include <Rocket/Core/Element.h>
+#include <RmlUi/Core/Element.h>
 
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 namespace Lua {
 
@@ -43,13 +44,13 @@ int SelectOptionsProxy__index(lua_State* L)
     {
         SelectOptionsProxy* proxy = LuaType<SelectOptionsProxy>::check(L,1);
         LUACHECKOBJ(proxy);
-        int index = luaL_checkint(L,2);
-        Rocket::Controls::SelectOption* opt = proxy->owner->GetOption(index);
+        int index = (int)luaL_checkinteger(L,2);
+        Rml::Controls::SelectOption* opt = proxy->owner->GetOption(index);
         LUACHECKOBJ(opt);
         lua_newtable(L);
-        LuaType<Rocket::Core::Element>::push(L,opt->GetElement(),false);
+        LuaType<Rml::Core::Element>::push(L,opt->GetElement(),false);
         lua_setfield(L,-2,"element");
-        lua_pushstring(L,opt->GetValue().CString());
+        lua_pushstring(L,opt->GetValue().c_str());
         lua_setfield(L,-2,"value");
         return 1;
     }
@@ -71,15 +72,15 @@ int SelectOptionsProxy__ipairs(lua_State* L)
     int* pindex = (int*)lua_touserdata(L,3);
     if((*pindex) == -1)
         *pindex = 0;
-    SelectOption* opt = NULL;
+    SelectOption* opt = nullptr;
     while((*pindex) < proxy->owner->GetNumOptions())
     {
         opt = proxy->owner->GetOption((*pindex)++);
-        if(opt != NULL) 
+        if(opt != nullptr) 
             break;
     }
     //we got to the end without finding an option
-    if(opt == NULL)
+    if(opt == nullptr)
     {
         lua_pushnil(L);
         lua_pushnil(L);
@@ -89,48 +90,48 @@ int SelectOptionsProxy__ipairs(lua_State* L)
         lua_pushinteger(L,(*pindex)-1); //key
         lua_newtable(L); //value
         //fill the value
-        LuaType<Rocket::Core::Element>::push(L,opt->GetElement());
+        LuaType<Rml::Core::Element>::push(L,opt->GetElement());
         lua_setfield(L,-2,"element");
-        lua_pushstring(L,opt->GetValue().CString());
+        lua_pushstring(L,opt->GetValue().c_str());
         lua_setfield(L,-2,"value");
     }
     return 2;
 }
 
-Rocket::Core::Lua::RegType<SelectOptionsProxy> SelectOptionsProxyMethods[] =
+Rml::Core::Lua::RegType<SelectOptionsProxy> SelectOptionsProxyMethods[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg SelectOptionsProxyGetters[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg SelectOptionsProxySetters[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 
 }
 }
 }
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
-template<> void ExtraInit<Rocket::Controls::Lua::SelectOptionsProxy>(lua_State* L, int metatable_index)
+template<> void ExtraInit<Rml::Controls::Lua::SelectOptionsProxy>(lua_State* L, int metatable_index)
 {
-    lua_pushcfunction(L,Rocket::Controls::Lua::SelectOptionsProxy__index);
+    lua_pushcfunction(L,Rml::Controls::Lua::SelectOptionsProxy__index);
     lua_setfield(L,metatable_index,"__index");
-    lua_pushcfunction(L,Rocket::Controls::Lua::SelectOptionsProxy__pairs);
+    lua_pushcfunction(L,Rml::Controls::Lua::SelectOptionsProxy__pairs);
     lua_setfield(L,metatable_index,"__pairs");
-    lua_pushcfunction(L,Rocket::Controls::Lua::SelectOptionsProxy__ipairs);
+    lua_pushcfunction(L,Rml::Controls::Lua::SelectOptionsProxy__ipairs);
     lua_setfield(L,metatable_index,"__ipairs");
 }
 
-using Rocket::Controls::Lua::SelectOptionsProxy;
-LUACONTROLSTYPEDEFINE(SelectOptionsProxy,false);
+using Rml::Controls::Lua::SelectOptionsProxy;
+LUACONTROLSTYPEDEFINE(SelectOptionsProxy);
 }
 }
 }

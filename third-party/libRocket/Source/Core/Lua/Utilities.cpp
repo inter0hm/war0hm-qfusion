@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,15 +27,15 @@
  */
  
 #include "precompiled.h"
-#include <Rocket/Core/Lua/Utilities.h>
+#include <RmlUi/Core/Lua/Utilities.h>
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 
-void PushVariant(lua_State* L, Variant* var)
+void PushVariant(lua_State* L, const Variant* var)
 {
-    if(var == NULL)
+    if(var == nullptr)
     {
         lua_pushnil(L);
         return;
@@ -57,7 +58,7 @@ void PushVariant(lua_State* L, Variant* var)
         LuaType<Colourf>::push(L,new Colourf(var->Get<Colourf>()),true);
         break;
     case Variant::STRING:
-        lua_pushstring(L,var->Get<String>().CString());
+        lua_pushstring(L,var->Get<String>().c_str());
         break;
     case Variant::VECTOR2:
         //according to Variant.inl, it is going to be a Vector2f
@@ -73,7 +74,7 @@ void PushVariant(lua_State* L, Variant* var)
 }
 
 
-void Report(lua_State* L, const Rocket::Core::String& place)
+void Report(lua_State* L, const Rml::Core::String& place)
 {
     const char * msg= lua_tostring(L,-1);
     String strmsg;
@@ -83,8 +84,8 @@ void Report(lua_State* L, const Rocket::Core::String& place)
         if(place == "")
             strmsg = msg;
         else
-            strmsg = String(place).Append(" ").Append(msg);
-        Log::Message(Log::LT_WARNING, strmsg.CString());
+            strmsg = String(place).append(" ").append(msg);
+        Log::Message(Log::LT_WARNING, strmsg.c_str());
         msg=lua_tostring(L,-1);
     }
 }

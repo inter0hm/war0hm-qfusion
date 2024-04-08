@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "kernel/ui_utils.h"
 #include "kernel/ui_common.h"
 
-namespace Rocket
+namespace Rml
 {
 namespace Controls
 {
@@ -34,20 +34,20 @@ namespace Controls
 
 namespace WSWUI
 {
-	// this element does nothing but formatting its "value" with specified "formatter"
-	// and the emitting the output as text
-	class ElementField : public Rocket::Core::Element
-	{
-	public:
-		ElementField(const Rocket::Core::String& tag);
-		virtual ~ElementField(){}
+// this element does nothing but formatting its "value" with specified "formatter"
+// and the emitting the output as text
+class ElementField : public Rml::Core::Element
+{
+public:
+	ElementField( const Rml::Core::String& tag );
+	virtual ~ElementField() {}
 
-		/// Checks for changes to source address.
-		virtual void OnAttributeChange(const Rocket::Core::AttributeNameList&);
+	/// Checks for changes to source address.
+	virtual void OnAttributeChange( const Rml::Core::ElementAttributes& );
 
-	private:
-		Rocket::Controls::DataFormatter *data_formatter;
-	};
+private:
+	Rml::Controls::DataFormatter *data_formatter;
+};
 }
 
 #endif // __UI_FIELD_H__

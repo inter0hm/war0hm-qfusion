@@ -11,16 +11,63 @@
 namespace WSWUI
 {
 
-	// some useful shortcuts
-	typedef Rocket::Core::Vector2i Vector2i;
-	typedef Rocket::Core::String String;
-	typedef Rocket::Core::StringList StringList;
+// some useful shortcuts
+typedef Rml::Core::Vector2i Vector2i;
 
-	// Rocket string -> std::string conversions (better would be to just consistently use
-	// one of them.. in that case it'd be std::string)
-	// TODO: versions for __stl_string (too)
-	inline bool operator==( const std::string &lhs, const String &rhs ) {
-		return ( lhs == rhs.CString() );
+//==================================================================
+
+// forward definitions
+class UI_Main;
+class ASInterface;
+
+//==================================================================
+
+// TODO: move to STL area
+inline bool nullary_true( void ) { return true; }
+
+template<typename T>
+inline bool unary_true( T t ) { return true; }
+
+template<typename T>
+inline bool binary_true( T t1, T t2 ) { return true; }
+
+template<typename C, typename Function>
+inline Function for_each( C &container, Function f ) {
+	return std::for_each( container.begin(), container.end(), f );
+}
+
+template<typename C, typename T>
+inline typename C::iterator find( C &container, const T& value ) {
+	return std::find( container.begin(), container.end(), value );
+}
+
+template<typename C, typename Predicate>
+inline typename C::iterator find_if( C &container, Predicate pred ) {
+	return std::find_if( container.begin(), container.end(), pred );
+}
+
+template<typename C, typename T>
+inline typename C::iterator lower_bound( C &container, const T &value ) {
+	return std::lower_bound( container.begin(), container.end(), value );
+}
+
+template<typename C, typename T, typename Comp>
+inline typename C::iterator lower_bound( C &container, const T &value, Comp comp ) {
+	return std::lower_bound( container.begin(), container.end(), value, comp );
+}
+
+//==================================================================
+
+// TODO: move these to memory.h or smth
+
+// TODO: change all new/delete in warsow ui to use the special macros below
+// __new__ and __delete__ (and __deletea for arrays)
+
+// Global allocation functions
+inline void *__operator_new__( size_t size ) {
+	void *ptr = trap::Mem_Alloc( size, __FILE__, __LINE__ );
+	if( !ptr ) {
+		throw std::bad_alloc();
 	}
 
 	inline bool operator==( const String &lhs, const std::string &rhs ) {

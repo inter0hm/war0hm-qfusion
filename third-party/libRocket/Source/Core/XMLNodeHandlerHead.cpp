@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,9 +30,9 @@
 #include "XMLNodeHandlerHead.h"
 #include "DocumentHeader.h"
 #include "TemplateCache.h"
-#include "../../Include/Rocket/Core.h"
+#include "../../Include/RmlUi/Core.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 XMLNodeHandlerHead::XMLNodeHandlerHead()
@@ -54,10 +55,10 @@ Element* XMLNodeHandlerHead::ElementStart(XMLParser* parser, const String& name,
 	else if (name == "link")
 	{
 		// Lookup the type and href
-		String type = attributes.Get<String>("type", "").ToLower();
-		String href = attributes.Get<String>("href", "");
+		String type = StringUtilities::ToLower(Get<String>(attributes, "type", ""));
+		String href = Get<String>(attributes, "href", "");
 
-		if (!type.Empty() && !href.Empty())
+		if (!type.empty() && !href.empty())
 		{
 			// If its RCSS (... or CSS!), add to the RCSS fields.
 			if (type == "text/rcss" ||
@@ -74,7 +75,7 @@ Element* XMLNodeHandlerHead::ElementStart(XMLParser* parser, const String& name,
 
 			else
 			{
-				Log::ParseError(parser->GetSourceURL().GetURL(), parser->GetLineNumber(), "Invalid link type '%s'", type.CString());
+				Log::ParseError(parser->GetSourceURL().GetURL(), parser->GetLineNumber(), "Invalid link type '%s'", type.c_str());
 			}
 		}
 		else
@@ -87,15 +88,15 @@ Element* XMLNodeHandlerHead::ElementStart(XMLParser* parser, const String& name,
 	else if (name == "script")
 	{
 		// Check if its an external string
-		String src = attributes.Get<String>("src", "");
-		if (src.Length() > 0)
+		String src = Get<String>(attributes, "src", "");
+		if (src.size() > 0)
 		{
 			parser->GetDocumentHeader()->scripts_external.push_back(src);
 		}
 	}
 
 	// No elements constructed
-	return NULL;
+	return nullptr;
 }
 
 bool XMLNodeHandlerHead::ElementEnd(XMLParser* parser, const String& name)
@@ -122,24 +123,22 @@ bool XMLNodeHandlerHead::ElementData(XMLParser* parser, const String& data)
 	if (tag == "title")
 	{
 		SystemInterface* system_interface = GetSystemInterface();
-		if (system_interface != NULL)
+		if (system_interface != nullptr)
 			system_interface->TranslateString(parser->GetDocumentHeader()->title, data);
 	}
 
 	// Store an inline script
-	if (tag == "script" && data.Length() > 0)
+	if (tag == "script" && data.size() > 0)
 		parser->GetDocumentHeader()->scripts_inline.push_back(data);
 
 	// Store an inline style
-	if (tag == "style" && data.Length() > 0)
+	if (tag == "style" && data.size() > 0)
+	{
 		parser->GetDocumentHeader()->rcss_inline.push_back(data);
+		parser->GetDocumentHeader()->rcss_inline_line_numbers.push_back(parser->GetLineNumberOpenTag());
+	}
 
 	return true;
-}
-
-void XMLNodeHandlerHead::Release()
-{
-	delete this;
 }
 
 }

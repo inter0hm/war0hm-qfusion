@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +26,10 @@
  *
  */
 
+ 
 #include "precompiled.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 const String MARGIN_TOP = "margin-top";
@@ -54,6 +56,7 @@ const String BORDER_TOP = "border-top";
 const String BORDER_RIGHT = "border-right";
 const String BORDER_BOTTOM = "border-bottom";
 const String BORDER_LEFT = "border-left";
+const String BORDER = "border";
 const String DISPLAY = "display";
 const String POSITION = "position";
 const String TOP = "top";
@@ -78,8 +81,8 @@ const String VISIBILITY = "visibility";
 const String BACKGROUND_COLOR = "background-color";
 const String BACKGROUND = "background";
 const String COLOR = "color";
+const String IMAGE_COLOR = "image-color";
 const String FONT_FAMILY = "font-family";
-const String FONT_CHARSET = "font-charset";
 const String FONT_STYLE = "font-style";
 const String FONT_WEIGHT = "font-weight";
 const String FONT_SIZE = "font-size";
@@ -92,7 +95,21 @@ const String CURSOR = "cursor";
 const String DRAG = "drag";
 const String TAB_INDEX = "tab-index";
 const String SCROLLBAR_MARGIN = "scrollbar-margin";
-
+const String PERSPECTIVE = "perspective";
+const String PERSPECTIVE_ORIGIN = "perspective-origin";
+const String PERSPECTIVE_ORIGIN_X = "perspective-origin-x";
+const String PERSPECTIVE_ORIGIN_Y = "perspective-origin-y";
+const String TRANSFORM = "transform";
+const String TRANSFORM_ORIGIN = "transform-origin";
+const String TRANSFORM_ORIGIN_X = "transform-origin-x";
+const String TRANSFORM_ORIGIN_Y = "transform-origin-y";
+const String TRANSFORM_ORIGIN_Z = "transform-origin-z";
+const String NONE = "none";
+const String TRANSITION = "transition";
+const String ANIMATION = "animation";
+const String KEYFRAMES = "keyframes";
+const String OPACITY = "opacity";
+const String POINTER_EVENTS = "pointer-events";
 const String MOUSEDOWN = "mousedown";
 const String MOUSESCROLL = "mousescroll";
 const String MOUSEOVER = "mouseover";
@@ -115,6 +132,8 @@ const String DRAGDROP = "dragdrop";
 const String DRAGOUT = "dragout";
 const String DRAGEND = "dragend";
 const String RESIZE = "resize";
+const String ANIMATIONEND = "animationend";
+const String TRANSITIONEND = "transitionend";
 
 }
 }

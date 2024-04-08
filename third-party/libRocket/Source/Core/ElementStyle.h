@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,16 +26,17 @@
  *
  */
 
-#ifndef ROCKETCOREELEMENTSTYLE_H
-#define ROCKETCOREELEMENTSTYLE_H
+#ifndef RMLUICOREELEMENTSTYLE_H
+#define RMLUICOREELEMENTSTYLE_H
 
-#include "ElementDefinition.h"
-#include "../../Include/Rocket/Core/Types.h"
+#include "../../Include/RmlUi/Core/Types.h"
+#include "../../Include/RmlUi/Core/PropertyIdSet.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
-class ElementStyleCache;
+class ElementDefinition;
+class PropertiesIterator;
 
 /**
 	Manages an element's style and property information.
@@ -47,10 +49,9 @@ public:
 	/// Constructor
 	/// @param[in] element The element this structure belongs to.
 	ElementStyle(Element* element);
-	~ElementStyle();
 
-	/// Returns the element's definition, updating if necessary.
-	const ElementDefinition* GetDefinition();
+	/// Returns the element's definition.
+	const ElementDefinition* GetDefinition() const;
 	
 	/// Update this definition if required
 	void UpdateDefinition();
@@ -81,104 +82,69 @@ public:
 	/// @return A string containing all the classes on the element, separated by spaces.
 	String GetClassNames() const;
 
-	/// Sets a local property override on the element.
-	/// @param[in] name The name of the new property.
-	/// @param[in] property The new property to set.
-	bool SetProperty(const String& name, const String& value);
 	/// Sets a local property override on the element to a pre-parsed value.
 	/// @param[in] name The name of the new property.
 	/// @param[in] property The parsed property to set.
-	bool SetProperty(const String& name, const Property& property);
+	bool SetProperty(PropertyId id, const Property& property);
 	/// Removes a local property override on the element; its value will revert to that defined in
 	/// the style sheet.
 	/// @param[in] name The name of the local property definition to remove.
-	void RemoveProperty(const String& name);
+	void RemoveProperty(PropertyId id);
 	/// Returns one of this element's properties. If this element is not defined this property, or a parent cannot
 	/// be found that we can inherit the property from, the default value will be returned.
 	/// @param[in] name The name of the property to fetch the value for.
-	/// @return The value of this property for this element, or NULL if no property exists with the given name.
-	const Property* GetProperty(const String& name);
-	/// Returns one of this element's properties. If this element is not defined this property, NULL will be
+	/// @return The value of this property for this element, or nullptr if no property exists with the given name.
+	const Property* GetProperty(PropertyId id) const;
+	/// Returns one of this element's properties. If this element is not defined this property, nullptr will be
 	/// returned.
 	/// @param[in] name The name of the property to fetch the value for.
-	/// @return The value of this property for this element, or NULL if this property has not been explicitly defined for this element.
-	const Property* GetLocalProperty(const String& name);
-	/// Resolves one of this element's properties. If the value is a number or px, this is returned. If it's a 
-	/// percentage then it is resolved based on the second argument (the base value).
-	/// @param[in] property Property to resolve the value for.
-	/// @param[in] base_value The value that is scaled by the percentage value, if it is a percentage.
-	/// @return The value of this property for this element.
-	float ResolveProperty(const Property *property, float base_value);
-	/// Resolves one of this element's properties. If the value is a number or px, this is returned. If it's a 
-	/// percentage then it is resolved based on the second argument (the base value).
-	/// @param[in] name The name of the property to resolve the value for.
-	/// @param[in] base_value The value that is scaled by the percentage value, if it is a percentage.
-	/// @return The value of this property for this element.
-	float ResolveProperty(const String& name, float base_value);
+	/// @return The value of this property for this element, or nullptr if this property has not been explicitly defined for this element.
+	const Property* GetLocalProperty(PropertyId id) const;
+	/// Returns the local style properties, excluding any properties from local class.
+	const PropertyMap& GetLocalStyleProperties() const;
 
-	/// Iterates over the properties defined on the element.
-	/// @param[inout] index Index of the property to fetch. This is incremented to the next valid index after the fetch. Indices are not necessarily incremental.
-	/// @param[out] pseudo_classes The pseudo-classes the property is defined by.
-	/// @param[out] name The name of the property at the specified index.
-	/// @param[out] property The property at the specified index.
-	/// @return True if a property was successfully fetched.
-	bool IterateProperties(int& index, PseudoClassList& pseudo_classes, String& name, const Property*& property);
+	/// Resolves a property with units of number, percentage, length, or angle to their canonical unit (unit-less, 'px', or 'rad').
+	/// @param[in] property The property to resolve the value for.
+	/// @param[in] base_value The value that is scaled by the number or percentage value, if applicable.
+	/// @return The resolved value in their canonical unit, or zero if it could not be resolved.
+	float ResolveNumericProperty(const Property* property, float base_value) const;
+	/// Resolves a property with units of number, length, or percentage to a length in 'px' units.
+	/// Numbers and percentages are resolved by scaling the size of the specified target.
+	float ResolveLength(const Property* property, RelativeTarget relative_target) const;
 
-	/// Returns the active style sheet for this element. This may be NULL.
-	StyleSheet* GetStyleSheet() const;
-
-	/// Mark definition and all children dirty
+	/// Mark definition and all children dirty.
 	void DirtyDefinition();
-	/// Dirty all child definitions
-	void DirtyChildDefinitions();
 
-	// Dirties every property.
-	void DirtyProperties();
-	// Dirties em-relative properties.
-	void DirtyEmProperties();
-	// Dirties font-size on child elements if appropriate.
-	void DirtyInheritedEmProperties();
-	// Dirties rem properties.
-	void DirtyRemProperties();
+	/// Mark inherited properties dirty.
+	/// Inherited properties will automatically be set when parent inherited properties are changed. However,
+	/// some operations may require to dirty these manually, such as when moving an element into another.
+	void DirtyInheritedProperties();
 
-	/// Returns 'border-width' properties from element's style or local cache.
-	void GetBorderWidthProperties(const Property **border_top_width, const Property **border_bottom_width, const Property **border_left_width, const Property **border_right_width);
-	/// Returns 'margin' properties from element's style or local cache.
-	void GetMarginProperties(const Property **margin_top, const Property **margin_bottom, const Property **margin_left, const Property **margin_right);
-	/// Returns 'padding' properties from element's style or local cache.
-	void GetPaddingProperties(const Property **padding_top, const Property **padding_bottom, const Property **padding_left, const Property **padding_right);
-	/// Returns 'width' and 'height' properties from element's style or local cache.
-	void GetDimensionProperties(const Property **width, const Property **height);
-	/// Returns local 'width' and 'height' properties from element's style or local cache,
-	/// ignoring default values.
-	void GetLocalDimensionProperties(const Property **width, const Property **height);
-	/// Returns 'overflow' properties' values from element's style or local cache.
-	void GetOverflow(int *overflow_x, int *overflow_y);
-	/// Returns 'position' property value from element's style or local cache.
-	int GetPosition();
-	/// Returns 'float' property value from element's style or local cache.
-	int GetFloat();
-	/// Returns 'display' property value from element's style or local cache.
-	int GetDisplay();
-	/// Returns 'white-space' property value from element's style or local cache.
-	int GetWhitespace();
+	/// Dirties all properties with a given unit on the current element and recursively on all children.
+	void DirtyPropertiesWithUnitRecursive(Property::Unit unit);
 
-	/// Returns 'line-height' property value from element's style or local cache.
-	const Property *GetLineHeightProperty();
-	/// Returns 'text-align' property value from element's style or local cache.
-	int GetTextAlign();
-	/// Returns 'text-transform' property value from element's style or local cache.
-	int GetTextTransform();
-	/// Returns 'vertical-align' property value from element's style or local cache.
-	const Property *GetVerticalAlignProperty();
+	/// Returns true if any properties are dirty such that computed values need to be recomputed
+	bool AnyPropertiesDirty() const;
+
+	/// Turns the local and inherited properties into computed values for this element. These values can in turn be used during the layout procedure.
+	/// Must be called in correct order, always parent before its children.
+	PropertyIdSet ComputeValues(Style::ComputedValues& values, const Style::ComputedValues* parent_values, const Style::ComputedValues* document_values, bool values_are_default_initialized, float dp_ratio);
+
+	/// Returns an iterator for iterating the local properties of this element.
+	/// Note: Modifying the element's style invalidates its iterator.
+	PropertiesIterator Iterate() const;
 
 private:
+	// Dirty all child definitions
+	void DirtyChildDefinitions();
 	// Sets a single property as dirty.
-	void DirtyProperty(const String& property);
+	void DirtyProperty(PropertyId id);
 	// Sets a list of properties as dirty.
-	void DirtyProperties(const PropertyNameList& properties, bool clear_em_properties = true);
-	// Sets a list of our potentially inherited properties as dirtied by an ancestor.
-	void DirtyInheritedProperties(const PropertyNameList& properties);
+	void DirtyProperties(const PropertyIdSet& properties);
+
+	static const Property* GetLocalProperty(PropertyId id, const PropertyDictionary & inline_properties, const ElementDefinition * definition);
+	static const Property* GetProperty(PropertyId id, const Element * element, const PropertyDictionary & inline_properties, const ElementDefinition * definition);
+	static void TransitionPropertyChanges(Element * element, PropertyIdSet & properties, const PropertyDictionary & inline_properties, const ElementDefinition * old_definition, const ElementDefinition * new_definition);
 
 	// Element these properties belong to
 	Element* element;
@@ -189,17 +155,13 @@ private:
 	PseudoClassList pseudo_classes;
 
 	// Any properties that have been overridden in this element.
-	PropertyDictionary* local_properties;
-	// All properties (including inherited) that are EM-relative.
-	PropertyNameList* em_properties;
-	// The definition of this element; if this is NULL one will be fetched from the element's style.
-	ElementDefinition* definition;
+	PropertyDictionary inline_properties;
+	// The definition of this element, provides applicable properties from the stylesheet.
+	SharedPtr<ElementDefinition> definition;
 	// Set if a new element definition should be fetched from the style.
 	bool definition_dirty;
-	// Set if a child element has a dirty style definition
-	bool child_definition_dirty;
-	// cached non-inherited properties
-	ElementStyleCache *cache;
+
+	PropertyIdSet dirty_properties;
 };
 
 }

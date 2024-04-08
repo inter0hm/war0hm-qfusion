@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,28 +26,31 @@
  *
  */
 
-#ifndef ROCKETCOREPOOL_H
-#define ROCKETCOREPOOL_H
+#ifndef RMLUICOREPOOL_H
+#define RMLUICOREPOOL_H
 
-#include "../../Include/Rocket/Core/Header.h"
-#include "../../Include/Rocket/Core/Debug.h"
+#include "../../Include/RmlUi/Core/Header.h"
+#include "../../Include/RmlUi/Core/Debug.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 template < typename PoolType >
 class Pool
 {
 private:
-	class PoolNode
+	static constexpr size_t N = sizeof(PoolType);
+	static constexpr size_t A = alignof(PoolType);
+
+	class PoolNode : public NonCopyMoveable
 	{
 	public:
-		PoolType object;
+		alignas(A) unsigned char object[N];
 		PoolNode* previous;
 		PoolNode* next;
 	};
 
-	class PoolChunk
+	class PoolChunk : public NonCopyMoveable
 	{
 	public:
 		PoolNode* chunk;
@@ -68,27 +72,27 @@ public:
 		/// node this iterator references is invalid.
 		inline void operator++()
 		{
-			ROCKET_ASSERT(node != NULL);
+			RMLUI_ASSERT(node != nullptr);
 			node = node->next;
 		}
 		/// Returns true if it is OK to deference or increment this
 		/// iterator.
 		inline operator bool()
 		{
-			return (node != NULL);
+			return (node != nullptr);
 		}
 
 		/// Returns the object referenced by the iterator's current
 		/// node.
 		inline PoolType& operator*()
 		{
-			return node->object;
+			return *reinterpret_cast<PoolType*>(node->object);
 		}
 		/// Returns a pointer to the object referenced by the
 		/// iterator's current node.
 		inline PoolType* operator->()
 		{
-			return &node->object;
+			return reinterpret_cast<PoolType*>(node->object);
 		}
 
 	private:
@@ -110,16 +114,16 @@ public:
 	/// Returns the head of the linked list of allocated objects.
 	inline Iterator Begin();
 
-	/// Attempts to allocate a deallocated object in the memory pool. If
-	/// the process is successful, the newly allocated object is returned.
-	/// If the process fails (due to no free objects being available), NULL
-	/// is returned.
-	inline PoolType* AllocateObject();
+	/// Attempts to allocate an object into a free slot in the memory pool and construct it using the given arguments.
+	/// If the process is successful, the newly constructed object is returned. Otherwise, if the process fails due to
+	/// no free objects being available, nullptr is returned.
+	template<typename... Args>
+	inline PoolType* AllocateAndConstruct(Args&&... args);
 
 	/// Deallocates the object pointed to by the given iterator.
-	inline void DeallocateObject(Iterator& iterator);
+	inline void DestroyAndDeallocate(Iterator& iterator);
 	/// Deallocates the given object.
-	inline void DeallocateObject(PoolType* object);
+	inline void DestroyAndDeallocate(PoolType* object);
 
 	/// Returns the number of objects in the pool.
 	inline int GetSize() const;
@@ -144,9 +148,9 @@ private:
 	int num_allocated_objects;
 };
 
-#include "Pool.inl"
+}
+}
 
-}
-}
+#include "Pool.inl"
 
 #endif

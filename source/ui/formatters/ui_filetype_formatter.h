@@ -21,37 +21,33 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef __UI_FILETYPE_FORMATTER_H__
 #define __UI_FILETYPE_FORMATTER_H__
 
-#include <Rocket/Controls/DataFormatter.h>
+#include <RmlUi/Controls/DataFormatter.h>
 
 namespace WSWUI
 {
 
-class FiletypeFormatter : public Rocket::Controls::DataFormatter
+class FiletypeFormatter : public Rml::Controls::DataFormatter
 {
 public:
-	FiletypeFormatter() : Rocket::Controls::DataFormatter("filetype") {}
+	FiletypeFormatter() : Rml::Controls::DataFormatter( "filetype" ) {}
 
 	// Encloses filename into a <filetype> tag and sets its class to file extension (e.g. "mp3") .
 	// Directories have their own tag <dirtype> with the only possible class "back" for ".." directories.
-	void FormatData( Rocket::Core::String& formatted_data, const Rocket::Core::StringList& raw_data )
-	{
-		const Rocket::Core::String &name = raw_data[0];
-		if( name == ".." ) {
+	void FormatData( std::string& formatted_data, const Rml::Core::StringList& raw_data ) {
+		const std::string &fname = raw_data[0];
+		if( fname == ".." ) {
 			formatted_data = "<dirtype class=\"back\">..</dirtype>";
-		}
-		else {
-			Rocket::Core::String::size_type nameLength = name.Length();
-			Rocket::Core::String::size_type delimPos = name.RFind( "/" );
-			if ( delimPos != name.npos && delimPos + 1 == nameLength ) {
-				formatted_data = String("<dirtype>") + name.Substring( 0, nameLength - 1 ) + "</dirtype>";
-			}
-			else {
-				delimPos = name.RFind( "." );
-				if( delimPos != name.npos ) {
-					formatted_data = String("<filetype class=\"") + name.Substring( delimPos + 1 ) + "\">" + name + "</filetype>";
-				}
-				else {
-					formatted_data = String("<filetype>") + name + "</filetype>";
+		} else {
+			Rml::Core::String::size_type nameLength = fname.size();
+			Rml::Core::String::size_type delimPos = fname.rfind( "/" );
+			if( delimPos != fname.npos && delimPos + 1 == nameLength ) {
+				formatted_data = std::string( "<dirtype>" ) + fname.substr( 0, nameLength - 1 ) + "</dirtype>";
+			} else {
+				delimPos = fname.rfind( '.' );
+				if( delimPos != fname.npos ) {
+					formatted_data = std::string( "<filetype class=\"" ) + fname.substr( delimPos + 1 ) + "\">" + fname + "</filetype>";
+				} else {
+					formatted_data = std::string( "<filetype>" ) + fname + "</filetype>";
 				}
 			}
 		}

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +28,10 @@
 
 #include "precompiled.h"
 #include "StreamFile.h"
-#include "../../Include/Rocket/Core/FileInterface.h"
-#include "../../Include/Rocket/Core.h"
+#include "../../Include/RmlUi/Core/FileInterface.h"
+#include "../../Include/RmlUi/Core.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 StreamFile::StreamFile()
@@ -48,18 +49,18 @@ StreamFile::~StreamFile()
 /// Attempts to open the stream pointing at a given URL.
 bool StreamFile::Open(const String& path)
 {
-	String url_safe_path = path.Replace(":", "|");
+	String url_safe_path = StringUtilities::Replace(path, ':', '|');
 	SetStreamDetails(URL(url_safe_path), Stream::MODE_READ);
 
 	if (file_handle)
 		Close();
 
 	// Fix the path if a leading colon has been replaced with a pipe.
-	String fixed_path = path.Replace("|", ":");
+	String fixed_path = StringUtilities::Replace(path, '|', ':');
 	file_handle = GetFileInterface()->Open(fixed_path);
 	if (!file_handle)
 	{
-		Log::Message(Log::LT_WARNING, "Unable to open file %s.", fixed_path.CString());
+		Log::Message(Log::LT_WARNING, "Unable to open file %s.", fixed_path.c_str());
 		return false;
 	}
 
@@ -105,21 +106,21 @@ size_t StreamFile::Read(void* buffer, size_t bytes) const
 }
 
 // Write to the stream at the current position.
-size_t StreamFile::Write(const void* ROCKET_UNUSED_PARAMETER(buffer), size_t ROCKET_UNUSED_PARAMETER(bytes))
+size_t StreamFile::Write(const void* RMLUI_UNUSED_PARAMETER(buffer), size_t RMLUI_UNUSED_PARAMETER(bytes))
 {
-	ROCKET_UNUSED(buffer);
-	ROCKET_UNUSED(bytes);
+	RMLUI_UNUSED(buffer);
+	RMLUI_UNUSED(bytes);
 
-	ROCKET_ERROR;
+	RMLUI_ERROR;
 	return 0;
 }
 
 // Truncate the stream to the specified length.
-size_t StreamFile::Truncate(size_t ROCKET_UNUSED_PARAMETER(bytes))
+size_t StreamFile::Truncate(size_t RMLUI_UNUSED_PARAMETER(bytes))
 {
-	ROCKET_UNUSED(bytes);
+	RMLUI_UNUSED(bytes);
 
-	ROCKET_ERROR;
+	RMLUI_ERROR;
 	return 0;
 }
 

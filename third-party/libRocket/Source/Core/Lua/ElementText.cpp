@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,9 +29,9 @@
 #include "precompiled.h"
 #include "ElementText.h"
 #include "Element.h"
-#include <Rocket/Core/Lua/Utilities.h>
+#include <RmlUi/Core/Lua/Utilities.h>
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 template<> void ExtraInit<ElementText>(lua_State* L, int metatable_index)
@@ -45,8 +46,7 @@ int ElementTextGetAttrtext(lua_State* L)
 {
     ElementText* obj = LuaType<ElementText>::check(L, 1);
     LUACHECKOBJ(obj);
-    String temp;
-    lua_pushstring(L,obj->GetText().ToUTF8(temp).CString());
+    lua_pushstring(L, obj->GetText().c_str());
     return 1;
 }
 
@@ -61,22 +61,22 @@ int ElementTextSetAttrtext(lua_State* L)
 
 RegType<ElementText> ElementTextMethods[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementTextGetters[] =
 {
     LUAGETTER(ElementText,text)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementTextSetters[] =
 {
     LUASETTER(ElementText,text)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
-LUACORETYPEDEFINE(ElementText,true)
+LUACORETYPEDEFINE(ElementText)
 }
 }
 }

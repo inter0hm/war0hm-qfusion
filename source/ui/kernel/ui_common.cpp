@@ -12,14 +12,10 @@ namespace WSWUI
 // predicate looks like bool(Element*) and should return true if it wants
 // the element given as parameter to be included on the list
 template<typename T, typename Function>
-void collectChildren( Rocket::Core::Element *elem, T &container, Function predicate )
-{
-	Rocket::Core::Element *child = elem->GetFirstChild();
-	while( child )
-	{
-		if( predicate( child ) )
-		{
-			child->AddReference();
+void collectChildren( Rml::Core::Element *elem, T &container, Function predicate ) {
+	Rml::Core::Element *child = elem->GetFirstChild();
+	while( child ) {
+		if( predicate( child ) ) {
 			container.push_back( child );
 		}
 		// recurse
@@ -29,11 +25,4 @@ void collectChildren( Rocket::Core::Element *elem, T &container, Function predic
 	}
 }
 
-// and function to release the references from collected children
-template<typename T>
-void releaseCollectedChildren( T &container )
-{
-	std::for_each( container.begin(), container.end(), std::mem_fun( &Rocket::Core::Element::RemoveReference ) );
-	container.clear();
-}
 }

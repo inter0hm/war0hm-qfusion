@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +26,13 @@
  *
  */
 
-#ifndef ROCKETCOREPROPERTYPARSERCOLOUR_H
-#define ROCKETCOREPROPERTYPARSERCOLOUR_H
+#ifndef RMLUICOREPROPERTYPARSERCOLOUR_H
+#define RMLUICOREPROPERTYPARSERCOLOUR_H
 
-#include "../../Include/Rocket/Core/PropertyParser.h"
-#include <map>
+#include "../../Include/RmlUi/Core/PropertyParser.h"
+#include <unordered_map>
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
@@ -51,13 +52,10 @@ public:
 	/// @param[in] value The raw value defined for this property.
 	/// @param[in] parameters The parameters defined for this property; not used for this parser.
 	/// @return True if the value was parsed successfully, false otherwise.
-	virtual bool ParseValue(Property& property, const String& value, const ParameterMap& parameters) const;
-
-	/// Destroys the parser.
-	virtual void Release();
+	bool ParseValue(Property& property, const String& value, const ParameterMap& parameters) const override;
 
 private:
-	typedef std::map< String, Colourb, StringUtilities::StringComparei > ColourMap;
+	typedef UnorderedMap< String, Colourb> ColourMap;
 	ColourMap html_colours;
 };
 

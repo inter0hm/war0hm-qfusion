@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +26,13 @@
  *
  */
 
-#ifndef ROCKETCORETEXTURERESOURCE_H
-#define ROCKETCORETEXTURERESOURCE_H
+#ifndef RMLUICORETEXTURERESOURCE_H
+#define RMLUICORETEXTURERESOURCE_H
 
-#include "../../Include/Rocket/Core/ReferenceCountable.h"
-#include "../../Include/Rocket/Core/Texture.h"
+#include "../../Include/RmlUi/Core/Traits.h"
+#include "../../Include/RmlUi/Core/Texture.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
@@ -41,44 +42,43 @@ namespace Core {
 	@author Peter Curry
  */
 
-class TextureResource : public ReferenceCountable
+class TextureResource : public NonCopyMoveable
 {
-friend class TextureDatabase;
-
 public:
-	virtual ~TextureResource();
+	TextureResource();
+	~TextureResource();
 
-	/// Attempts to load a texture from the application into the resource. Note that this always
-	/// succeeds now; as texture loading is now delayed until the texture is accessed by a specific
-	/// render interface, all this does is store the source.
-	bool Load(const String& source);
+	/// Clear any existing data and set the source path. Texture loading is delayed until the texture is
+	/// accessed by a specific render interface.
+	void Set(const String& source);
+
+	/// Clear any existing data and set a callback function for loading the data. Texture loading is
+	/// delayed until the texture is accessed by a specific render interface.
+	void Set(const String& name, const TextureCallback& callback);
 
 	/// Returns the resource's underlying texture handle.
-	TextureHandle GetHandle(RenderInterface* render_interface) const;
+	TextureHandle GetHandle(RenderInterface* render_interface);
 	/// Returns the dimensions of the resource's texture.
-	const Vector2i& GetDimensions(RenderInterface* render_interface) const;
+	const Vector2i& GetDimensions(RenderInterface* render_interface);
 
 	/// Returns the resource's source.
 	const String& GetSource() const;
 
 	/// Releases the texture's handle.
-	void Release(RenderInterface* render_interface = NULL);
+	void Release(RenderInterface* render_interface = nullptr);
 
 protected:
-	/// Attempts to load the texture from the source.
-	bool Load(RenderInterface* render_interface) const;
-
-	/// Releases the texture and destroys the resource.
-	virtual void OnReferenceDeactivate();
+	/// Attempts to load the texture from the source, or the callback function if set.
+	bool Load(RenderInterface* render_interface);
 
 private:
-	TextureResource();
-
 	String source;
 
 	typedef std::pair< TextureHandle, Vector2i > TextureData;
-	typedef std::map< RenderInterface*, TextureData > TextureDataMap;
-	mutable TextureDataMap texture_data;
+	typedef SmallUnorderedMap< RenderInterface*, TextureData > TextureDataMap;
+	TextureDataMap texture_data;
+
+	UniquePtr<TextureCallback> texture_callback;
 };
 
 }

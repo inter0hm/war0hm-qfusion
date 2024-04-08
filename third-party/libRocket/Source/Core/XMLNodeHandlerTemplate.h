@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,12 @@
  *
  */
 
-#ifndef ROCKETCOREXMLNODEHANDLERTEMPLATE_H
-#define ROCKETCOREXMLNODEHANDLERTEMPLATE_H
+#ifndef RMLUICOREXMLNODEHANDLERTEMPLATE_H
+#define RMLUICOREXMLNODEHANDLERTEMPLATE_H
 
-#include "../../Include/Rocket/Core/XMLNodeHandler.h"
+#include "../../Include/RmlUi/Core/XMLNodeHandler.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
@@ -43,16 +44,14 @@ class XMLNodeHandlerTemplate : public XMLNodeHandler
 {
 public:
 	XMLNodeHandlerTemplate();
-	virtual ~XMLNodeHandlerTemplate();
+	~XMLNodeHandlerTemplate();
 
 	/// Called when a new element start is opened
-	virtual Element* ElementStart(XMLParser* parser, const String& name, const XMLAttributes& attributes);
+	Element* ElementStart(XMLParser* parser, const String& name, const XMLAttributes& attributes) override;
 	/// Called when an element is closed
-	virtual bool ElementEnd(XMLParser* parser, const String& name);
+	bool ElementEnd(XMLParser* parser, const String& name) override;
 	/// Called for element data
-	virtual bool ElementData(XMLParser* parser, const String& data);
-
-	virtual void Release();
+	bool ElementData(XMLParser* parser, const String& data) override;
 };
 
 }

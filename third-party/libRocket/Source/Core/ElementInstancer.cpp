@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,19 +27,56 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/ElementInstancer.h"
+#include "../../Include/RmlUi/Core/ElementInstancer.h"
 #include "XMLParseTools.h"
+#include "Pool.h"
+#include "ElementTextDefault.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 ElementInstancer::~ElementInstancer()
 {
 }
 
-void ElementInstancer::OnReferenceDeactivate()
+static Pool< Element > pool_element(200, true);
+static Pool< ElementTextDefault > pool_text_default(200, true);
+
+
+ElementPtr ElementInstancerElement::InstanceElement(Element* /*parent*/, const String& tag, const XMLAttributes& /*attributes*/)
 {
-	Release();
+	Element* ptr = pool_element.AllocateAndConstruct(tag);
+	return ElementPtr(ptr);
+}
+
+void ElementInstancerElement::ReleaseElement(Element* element)
+{
+	pool_element.DestroyAndDeallocate(element);
+}
+
+ElementInstancerElement::~ElementInstancerElement()
+{
+	int num_elements = pool_element.GetNumAllocatedObjects();
+	if (num_elements > 0)
+	{
+		Log::Message(Log::LT_WARNING, "--- Found %d leaked element(s) ---", num_elements);
+
+		for (auto it = pool_element.Begin(); it; ++it)
+			Log::Message(Log::LT_WARNING, "    %s", it->GetAddress().c_str());
+
+		Log::Message(Log::LT_WARNING, "------");
+	}
+}
+
+ElementPtr ElementInstancerTextDefault::InstanceElement(Element* /*parent*/, const String& tag, const XMLAttributes& /*attributes*/)
+{
+	ElementTextDefault* ptr = pool_text_default.AllocateAndConstruct(tag);
+	return ElementPtr(static_cast<Element*>(ptr));
+}
+
+void ElementInstancerTextDefault::ReleaseElement(Element* element)
+{
+	pool_text_default.DestroyAndDeallocate(static_cast<ElementTextDefault*>(element));
 }
 
 }

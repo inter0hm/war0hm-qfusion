@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,10 +28,9 @@
 
 #include "precompiled.h"
 #include "StyleSheetNodeSelectorLastChild.h"
-#include "../../Include/Rocket/Core/ElementText.h"
-#include "../../Include/Rocket/Core/StyleSheetKeywords.h"
+#include "../../Include/RmlUi/Core/ElementText.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 StyleSheetNodeSelectorLastChild::StyleSheetNodeSelectorLastChild()
@@ -42,13 +42,13 @@ StyleSheetNodeSelectorLastChild::~StyleSheetNodeSelectorLastChild()
 }
 
 // Returns true if the element is the last DOM child in its parent.
-bool StyleSheetNodeSelectorLastChild::IsApplicable(const Element* element, int ROCKET_UNUSED_PARAMETER(a), int ROCKET_UNUSED_PARAMETER(b))
+bool StyleSheetNodeSelectorLastChild::IsApplicable(const Element* element, int RMLUI_UNUSED_PARAMETER(a), int RMLUI_UNUSED_PARAMETER(b))
 {
-	ROCKET_UNUSED(a);
-	ROCKET_UNUSED(b);
+	RMLUI_UNUSED(a);
+	RMLUI_UNUSED(b);
 
 	Element* parent = element->GetParentNode();
-	if (parent == NULL)
+	if (parent == nullptr)
 		return false;
 
 	int child_index = parent->GetNumChildren() - 1;
@@ -60,8 +60,8 @@ bool StyleSheetNodeSelectorLastChild::IsApplicable(const Element* element, int R
 			return true;
 
 		// If this child is not a text element, then the selector fails; this element is non-trivial.
-		if (dynamic_cast< ElementText* >(child) == NULL &&
-			child->GetDisplay() != DISPLAY_NONE)
+		if (dynamic_cast< ElementText* >(child) == nullptr &&
+			child->GetDisplay() != Style::Display::None)
 			return false;
 
 		// Otherwise, skip over the text element to find the last non-trivial element.

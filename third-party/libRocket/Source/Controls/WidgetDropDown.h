@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,15 +26,14 @@
  *
  */
 
-#ifndef ROCKETCONTROLSWIDGETDROPDOWN_H
-#define ROCKETCONTROLSWIDGETDROPDOWN_H
+#ifndef RMLUICONTROLSWIDGETDROPDOWN_H
+#define RMLUICONTROLSWIDGETDROPDOWN_H
 
-#include "../../Include/Rocket/Core/String.h"
-#include "../../Include/Rocket/Core/EventListener.h"
-#include "../../Include/Rocket/Controls/SelectOption.h"
+#include "../../Include/RmlUi/Core/EventListener.h"
+#include "../../Include/RmlUi/Controls/SelectOption.h"
 #include <vector>
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 class ElementFormControl;
@@ -56,10 +56,10 @@ public:
 
 	/// Sets the value of the widget.
 	/// @param[in] value The new value to set.
-	void SetValue(const Rocket::Core::String& value);
+	void SetValue(const Rml::Core::String& value);
 	/// Returns the current value of the widget.
 	/// @return The current value of the widget.
-	const Rocket::Core::String& GetValue() const;
+	const Rml::Core::String& GetValue() const;
 
 	/// Sets the index of the selection. If the new index lies outside of the bounds, the selection index will be set to -1.
 	/// @param[in] selection The new selection index.
@@ -76,7 +76,15 @@ public:
 	/// @param[in] select True to select the new option.
 	/// @param[in] selectable If true this option can be selected. If false, this option is not selectable.
 	/// @return The index of the new option.
-	int AddOption(const Rocket::Core::String& rml, const Rocket::Core::String& value, int before, bool select, bool selectable = true);
+	int AddOption(const Rml::Core::String& rml, const Rml::Core::String& value, int before, bool select, bool selectable = true);
+	/// Moves an option element to the select control.
+	/// @param[in] element Element to move.
+	/// @param[in] value The value of the option.
+	/// @param[in] before The index of the element to insert the new option before.
+	/// @param[in] select True to select the new option.
+	/// @param[in] selectable If true this option can be selected. If false, this option is not selectable.
+	/// @return The index of the new option, or -1 if invalid.
+	int AddOption(Rml::Core::ElementPtr element, const Rml::Core::String& value, int before, bool select, bool selectable);
 	/// Removes an option from the select control.
 	/// @param[in] index The index of the option to remove.
 	void RemoveOption(int index);
@@ -85,14 +93,14 @@ public:
 
 	/// Returns on of the widget's options.
 	/// @param[in] The index of the desired option.
-	/// @return The option. This may be NULL if the index was out of bounds.
+	/// @return The option. This may be nullptr if the index was out of bounds.
 	SelectOption* GetOption(int index);
 	/// Returns the number of options in the widget.
 	/// @return The number of options.
 	int GetNumOptions() const;
 
 	/// Processes the incoming event.
-	virtual void ProcessEvent(Core::Event& event);
+	void ProcessEvent(Core::Event& event) override;
 
 private:
 	typedef std::vector< SelectOption > OptionList;
@@ -113,10 +121,11 @@ private:
 	int selected_option;
 
 	// The current value of the widget.
-	Rocket::Core::String value;
+	Rml::Core::String value;
 
 	bool box_layout_dirty;
 	bool value_layout_dirty;
+	bool box_visible;
 };
 
 }

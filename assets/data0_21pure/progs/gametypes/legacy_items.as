@@ -21,14 +21,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ** HEALTH_ITEMS
 */
 
-// item_health is a shared classname, so handle it a bit differently
-void item_health( Entity @ent )
-{
-	Cvar cmMapHeader( "cm_mapHeader", "", 0 );
-	Cvar cmMapVersion( "cm_mapVersion", "0", 0 );
+#include "kernel/ui_utils.h"
+#include "kernel/ui_common.h"
+#include <RmlUi/Core/Element.h>
 
-	if( cmMapHeader.string.empty() )
-		Q1_item_health( @ent );
-	else
-		Q3_item_health( @ent );
+namespace WSWUI
+{
+class ElementBlur : public Rml::Core::Element
+{
+public:
+	ElementBlur( const Rml::Core::String& tag );
+	virtual ~ElementBlur() {}
+	virtual void OnRender();
+};
 }

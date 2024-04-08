@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,22 @@
 #include <Shell.h>
 
 // Get the number of seconds elapsed since the start of the application
-float ShellSystemInterface::GetElapsedTime()
+double ShellSystemInterface::GetElapsedTime()
 {
 	return Shell::GetElapsedTime();
+}
+
+void ShellSystemInterface::SetMouseCursor(const Rml::Core::String& cursor_name)
+{
+	Shell::SetMouseCursor(cursor_name);
+}
+
+void ShellSystemInterface::SetClipboardText(const Rml::Core::String& text)
+{
+	Shell::SetClipboardText(text);
+}
+
+void ShellSystemInterface::GetClipboardText(Rml::Core::String& text)
+{
+	Shell::GetClipboardText(text);
 }

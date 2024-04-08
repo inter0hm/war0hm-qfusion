@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,8 +26,8 @@
  *
  */
 
-#include "../../Include/Rocket/Controls/ElementFormControlInput.h"
-#include "../../Include/Rocket/Core/Event.h"
+#include "../../Include/RmlUi/Controls/ElementFormControlInput.h"
+#include "../../Include/RmlUi/Core/Event.h"
 #include "InputTypeButton.h"
 #include "InputTypeCheckbox.h"
 #include "InputTypeRadio.h"
@@ -34,16 +35,16 @@
 #include "InputTypeSubmit.h"
 #include "InputTypeText.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 // Constructs a new ElementFormControlInput.
-ElementFormControlInput::ElementFormControlInput(const Rocket::Core::String& tag) : ElementFormControl(tag)
+ElementFormControlInput::ElementFormControlInput(const Rml::Core::String& tag) : ElementFormControl(tag)
 {
-	type = NULL;
-	type = new InputTypeText(this);
-	type_name = "text";
-	SetClass(type_name, true);
+	// OnAttributeChange will be called right after this, possible with a non-default type. Thus,
+	// creating the default InputTypeText here may result in it being destroyed in just a few moments.
+	// Instead, we create the InputTypeText in OnAttributeChange in the case where the type attribute has not been set.
+	type = nullptr;
 }
 
 ElementFormControlInput::~ElementFormControlInput()
@@ -52,13 +53,14 @@ ElementFormControlInput::~ElementFormControlInput()
 }
 
 // Returns a string representation of the current value of the form control.
-Rocket::Core::String ElementFormControlInput::GetValue() const
+Rml::Core::String ElementFormControlInput::GetValue() const
 {
+	RMLUI_ASSERT(type);
 	return type->GetValue();
 }
 
 // Sets the current value of the form control.
-void ElementFormControlInput::SetValue(const Rocket::Core::String& value)
+void ElementFormControlInput::SetValue(const Rml::Core::String& value)
 {
 	SetAttribute("value", value);
 }
@@ -66,59 +68,78 @@ void ElementFormControlInput::SetValue(const Rocket::Core::String& value)
 // Returns if this value should be submitted with the form.
 bool ElementFormControlInput::IsSubmitted()
 {
+	RMLUI_ASSERT(type);
 	return type->IsSubmitted();
 }
 
 // Updates the element's underlying type.
 void ElementFormControlInput::OnUpdate()
 {
+	RMLUI_ASSERT(type);
 	type->OnUpdate();
 }
 
 // Renders the element's underlying type.
 void ElementFormControlInput::OnRender()
 {
+	RMLUI_ASSERT(type);
 	type->OnRender();
 }
 
+void ElementFormControlInput::OnResize()
+{
+	RMLUI_ASSERT(type);
+	type->OnResize();
+}
+
 // Checks for necessary functional changes in the control as a result of changed attributes.
-void ElementFormControlInput::OnAttributeChange(const Core::AttributeNameList& changed_attributes)
+void ElementFormControlInput::OnAttributeChange(const Core::ElementAttributes& changed_attributes)
 {
 	ElementFormControl::OnAttributeChange(changed_attributes);
 
-	if (changed_attributes.find("type") != changed_attributes.end())
+	Rml::Core::String new_type_name;
+
+	auto it_type = changed_attributes.find("type");
+	if (it_type != changed_attributes.end())
 	{
-		Rocket::Core::String new_type_name = GetAttribute< Rocket::Core::String >("type", "text");
-		if (new_type_name != type_name)
+		new_type_name = it_type->second.Get<Core::String>("text");
+	}
+	else if (!type)
+	{
+		// Ref. comment in constructor.
+		new_type_name = "text";
+	}
+
+	if (!new_type_name.empty() && new_type_name != type_name)
+	{
+		InputType* new_type = nullptr;
+
+		if (new_type_name == "password")
+			new_type = new InputTypeText(this, Rml::Controls::InputTypeText::OBSCURED);
+		else if (new_type_name == "radio")
+			new_type = new InputTypeRadio(this);
+		else if (new_type_name == "checkbox")
+			new_type = new InputTypeCheckbox(this);
+		else if (new_type_name == "range")
+			new_type = new InputTypeRange(this);
+		else if (new_type_name == "submit")
+			new_type = new InputTypeSubmit(this);
+		else if (new_type_name == "button")
+			new_type = new InputTypeButton(this);
+		else if (new_type_name == "text")
+			new_type = new InputTypeText(this);
+
+		if (new_type)
 		{
-			InputType* new_type = NULL;
+			delete type;
+			type = new_type;
 
-			if (new_type_name == "password")
-				new_type = new InputTypeText(this, Rocket::Controls::InputTypeText::OBSCURED);
-			else if (new_type_name == "radio")
-				new_type = new InputTypeRadio(this);
-			else if (new_type_name == "checkbox")
-				new_type = new InputTypeCheckbox(this);
-			else if (new_type_name == "range")
-				new_type = new InputTypeRange(this);
-			else if (new_type_name == "submit")
-				new_type = new InputTypeSubmit(this);
-			else if (new_type_name == "button")
-				new_type = new InputTypeButton(this);
-			else if (type_name == "text")
-				new_type = new InputTypeText(this);
-
-			if (new_type != NULL)
-			{
-				delete type;
-				type = new_type;
-
+			if(!type_name.empty())
 				SetClass(type_name, false);
-				SetClass(new_type_name, true);
-				type_name = new_type_name;
+			SetClass(new_type_name, true);
+			type_name = new_type_name;
 
-				DirtyLayout();
-			}
+			DirtyLayout();
 		}
 	}
 
@@ -127,37 +148,40 @@ void ElementFormControlInput::OnAttributeChange(const Core::AttributeNameList& c
 }
 
 // Called when properties on the element are changed.
-void ElementFormControlInput::OnPropertyChange(const Core::PropertyNameList& changed_properties)
+void ElementFormControlInput::OnPropertyChange(const Core::PropertyIdSet& changed_properties)
 {
 	ElementFormControl::OnPropertyChange(changed_properties);
 
-	if (type != NULL)
+	if (type != nullptr)
 		type->OnPropertyChange(changed_properties);
 }
 
 // If we are the added element, this will pass the call onto our type handler.
-void ElementFormControlInput::OnChildAdd(Rocket::Core::Element* child)
+void ElementFormControlInput::OnChildAdd(Rml::Core::Element* child)
 {
-	if (child == this)
+	if (child == this && type != nullptr)
 		type->OnChildAdd();
 }
 
 // If we are the removed element, this will pass the call onto our type handler.
-void ElementFormControlInput::OnChildRemove(Rocket::Core::Element* child)
+void ElementFormControlInput::OnChildRemove(Rml::Core::Element* child)
 {
-	if (child == this)
+	if (child == this && type != nullptr)
 		type->OnChildRemove();
 }
 
 // Handles the "click" event to toggle the control's checked status.
-void ElementFormControlInput::ProcessEvent(Core::Event& event)
+void ElementFormControlInput::ProcessDefaultAction(Core::Event& event)
 {
-	ElementFormControl::ProcessEvent(event);
-	type->ProcessEvent(event);
+	ElementFormControl::ProcessDefaultAction(event);
+	if(type != nullptr)
+		type->ProcessDefaultAction(event);
 }
 
-bool ElementFormControlInput::GetIntrinsicDimensions(Rocket::Core::Vector2f& dimensions)
+bool ElementFormControlInput::GetIntrinsicDimensions(Rml::Core::Vector2f& dimensions)
 {
+	if (!type)
+		return false;
 	return type->GetIntrinsicDimensions(dimensions);
 }
 

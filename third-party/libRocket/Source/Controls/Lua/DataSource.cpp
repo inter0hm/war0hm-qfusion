@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,11 +28,11 @@
  
 #include "precompiled.h"
 #include "DataSource.h"
-#include <Rocket/Core/Log.h>
+#include <RmlUi/Core/Log.h>
 
-using Rocket::Core::Log;
+using Rml::Core::Log;
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 namespace Lua {
 typedef LuaDataSource DataSource;
@@ -48,8 +49,8 @@ int DataSourceNotifyRowAdd(lua_State* L, DataSource* obj)
 {
     LUACHECKOBJ(obj);
     const char* table_name = luaL_checkstring(L,1);
-    int first_row_added = luaL_checkint(L,2);
-    int num_rows_added = luaL_checkint(L,3);
+    int first_row_added = (int)luaL_checkinteger(L,2);
+    int num_rows_added = (int)luaL_checkinteger(L,3);
     obj->NotifyRowAdd(table_name,first_row_added,num_rows_added);
     return 0;
 }
@@ -58,8 +59,8 @@ int DataSourceNotifyRowRemove(lua_State* L, DataSource* obj)
 {
     LUACHECKOBJ(obj);
     const char* table_name = luaL_checkstring(L,1);
-    int first_row_removed = luaL_checkint(L,2);
-    int num_rows_removed = luaL_checkint(L,3);
+    int first_row_removed = (int)luaL_checkinteger(L,2);
+    int num_rows_removed = (int)luaL_checkinteger(L,3);
     obj->NotifyRowRemove(table_name,first_row_removed,num_rows_removed);
     return 0;
 }
@@ -74,8 +75,8 @@ int DataSourceNotifyRowChange(lua_State* L, DataSource* obj)
     }
     else
     {
-        int first_row_changed = luaL_checkint(L,2);
-        int num_rows_changed = luaL_checkint(L,3);
+        int first_row_changed = (int)luaL_checkinteger(L,2);
+        int num_rows_changed = (int)luaL_checkinteger(L,3);
         obj->NotifyRowChange(table_name,first_row_changed,num_rows_changed);
     }
     return 0;
@@ -110,24 +111,24 @@ int DataSourceSetAttrGetRow(lua_State* L)
 }
 
 
-Rocket::Core::Lua::RegType<DataSource> DataSourceMethods[] =
+Rml::Core::Lua::RegType<DataSource> DataSourceMethods[] =
 {
     LUAMETHOD(DataSource,NotifyRowAdd)
     LUAMETHOD(DataSource,NotifyRowRemove)
     LUAMETHOD(DataSource,NotifyRowChange)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg DataSourceGetters[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg DataSourceSetters[] =
 {
     LUASETTER(DataSource,GetNumRows)
     LUASETTER(DataSource,GetRow)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 
@@ -135,17 +136,17 @@ luaL_Reg DataSourceSetters[] =
 }
 }
 }
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
-template<> void ExtraInit<Rocket::Controls::Lua::LuaDataSource>(lua_State* L, int metatable_index) 
+template<> void ExtraInit<Rml::Controls::Lua::LuaDataSource>(lua_State* L, int metatable_index) 
 { 
-    lua_pushcfunction(L,Rocket::Controls::Lua::DataSourcenew);
+    lua_pushcfunction(L,Rml::Controls::Lua::DataSourcenew);
     lua_setfield(L,metatable_index-1,"new");
     return;
 }
-using Rocket::Controls::Lua::DataSource;
-LUACONTROLSTYPEDEFINE(DataSource,false)
+using Rml::Controls::Lua::DataSource;
+LUACONTROLSTYPEDEFINE(DataSource)
 }
 }
 }

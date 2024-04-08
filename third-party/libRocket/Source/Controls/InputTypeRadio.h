@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,12 @@
  *
  */
 
-#ifndef ROCKETCONTROLSINPUTTYPERADIO_H
-#define ROCKETCONTROLSINPUTTYPERADIO_H
+#ifndef RMLUICONTROLSINPUTTYPERADIO_H
+#define RMLUICONTROLSINPUTTYPERADIO_H
 
 #include "InputType.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 /**
@@ -47,23 +48,23 @@ public:
 
 	/// Returns if this value should be submitted with the form.
 	/// @return True if the form control is to be submitted, false otherwise.
-	virtual bool IsSubmitted();
+	bool IsSubmitted() override;
 
 	/// Checks for necessary functional changes in the control as a result of changed attributes.
 	/// @param[in] changed_attributes The list of changed attributes.
 	/// @return True if no layout is required, false if the layout needs to be dirtied.
-	virtual bool OnAttributeChange(const Core::AttributeNameList& changed_attributes);
+	bool OnAttributeChange(const Core::ElementAttributes& changed_attributes) override;
 
 	/// Pops the element's radio set if we are checked.
-	virtual void OnChildAdd();
+	void OnChildAdd() override;
 
 	/// Checks for necessary functional changes in the control as a result of the event.
 	/// @param[in] event The event to process.
-	virtual void ProcessEvent(Core::Event& event);
+	void ProcessDefaultAction(Core::Event& event) override;
 
 	/// Sizes the dimensions to the element's inherent size.
 	/// @return True.
-	virtual bool GetIntrinsicDimensions(Rocket::Core::Vector2f& dimensions);
+	bool GetIntrinsicDimensions(Rml::Core::Vector2f& dimensions) override;
 
 private:
 	/// Pops all other radio buttons in our form that share our name.

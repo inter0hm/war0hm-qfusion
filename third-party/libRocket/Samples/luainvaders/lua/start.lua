@@ -15,7 +15,7 @@ formatter.FormatData = function(raw_data)
     
     if (raw_data[1] == "1") then
         --because we know that it is only used in the high_score.rml file, use that namespace for the OnKeyDown function
-        formatted_data = "<input id=\"player_input\" type=\"text\" name=\"name\" onkeydown=\"HighScore.OnKeyDown(event)\" />"
+        formatted_data = "<input id=\"player_input\" type=\"text\" name=\"name\" onkeydown=\"HighScore.OnKeyDown(event)\" autofocus/>"
     else
         formatted_data = raw_data[0]
     end
@@ -32,9 +32,9 @@ Formatters["ship"] = DataFormatter.new("ship",SecondFormatData)
 
 
 function Startup()
-	maincontext = rocket.contexts["main"]
-	maincontext:LoadDocument("data/background.rml"):Show()
-	maincontext:LoadDocument("data/main_menu.rml"):Show()
+	maincontext = rmlui.contexts["main"]
+	maincontext:LoadDocument("luainvaders/data/background.rml"):Show()
+	maincontext:LoadDocument("luainvaders/data/main_menu.rml"):Show()
 end
 
 Startup()

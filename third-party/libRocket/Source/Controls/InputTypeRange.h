@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,12 @@
  *
  */
 
-#ifndef ROCKETCONTROLSINPUTTYPERANGE_H
-#define ROCKETCONTROLSINPUTTYPERANGE_H
+#ifndef RMLUICONTROLSINPUTTYPERANGE_H
+#define RMLUICONTROLSINPUTTYPERANGE_H
 
 #include "InputType.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 class WidgetSliderInput;
@@ -49,23 +50,26 @@ public:
 
 	/// Returns a string representation of the current value of the form control.
 	/// @return The value of the form control.
-	virtual Rocket::Core::String GetValue() const;
+	Rml::Core::String GetValue() const override;
 
 	/// Called every update from the host element.
-	virtual void OnUpdate();
+	void OnUpdate() override;
+
+	/// Called every time the host element's size changes.
+	void OnResize() override;
 
 	/// Checks for necessary functional changes in the control as a result of changed attributes.
 	/// @param[in] changed_attributes The list of changed attributes.
 	/// @return True if no layout is required, false if the layout needs to be dirtied.
-	virtual bool OnAttributeChange(const Core::AttributeNameList& changed_attributes);
+	bool OnAttributeChange(const Core::ElementAttributes& changed_attributes) override;
 
 	/// Checks for necessary functional changes in the control as a result of the event.
 	/// @param[in] event The event to process.
-	virtual void ProcessEvent(Core::Event& event);
+	void ProcessDefaultAction(Core::Event& event) override;
 
 	/// Sizes the dimensions to the element's inherent size.
 	/// @return True.
-	virtual bool GetIntrinsicDimensions(Rocket::Core::Vector2f& dimensions);
+	bool GetIntrinsicDimensions(Rml::Core::Vector2f& dimensions) override;
 
 private:
 	WidgetSliderInput* widget;

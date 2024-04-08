@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,22 +27,21 @@
  */
 
 #include "EventManager.h"
-#include <Rocket/Core/Context.h>
-#include <Rocket/Core/ElementDocument.h>
-#include <Rocket/Core/ElementUtilities.h>
+#include <RmlUi/Core/Context.h>
+#include <RmlUi/Core/ElementDocument.h>
+#include <RmlUi/Core/ElementUtilities.h>
 #include <Shell.h>
 #include "EventHandler.h"
 #include "GameDetails.h"
-#include <map>
 
 // The game's element context (declared in main.cpp).
-extern Rocket::Core::Context* context;
+extern Rml::Core::Context* context;
 
-// The event handler for the current screen. This may be NULL if the current screen has no specific functionality.
-static EventHandler* event_handler = NULL;
+// The event handler for the current screen. This may be nullptr if the current screen has no specific functionality.
+static EventHandler* event_handler = nullptr;
 
 // The event handlers registered with the manager.
-typedef std::map< Rocket::Core::String, EventHandler* > EventHandlerMap;
+typedef Rml::Core::SmallUnorderedMap< Rml::Core::String, EventHandler* > EventHandlerMap;
 EventHandlerMap event_handlers;
 
 EventManager::EventManager()
@@ -59,11 +59,11 @@ void EventManager::Shutdown()
 		delete (*i).second;
 
 	event_handlers.clear();
-	event_handler = NULL;
+	event_handler = nullptr;
 }
 
 // Registers a new event handler with the manager.
-void EventManager::RegisterEventHandler(const Rocket::Core::String& handler_name, EventHandler* handler)
+void EventManager::RegisterEventHandler(const Rml::Core::String& handler_name, EventHandler* handler)
 {
 	// Release any handler bound under the same name.
 	EventHandlerMap::iterator iterator = event_handlers.find(handler_name);
@@ -73,16 +73,16 @@ void EventManager::RegisterEventHandler(const Rocket::Core::String& handler_name
 	event_handlers[handler_name] = handler;
 }
 
-// Processes an event coming through from Rocket.
-void EventManager::ProcessEvent(Rocket::Core::Event& event, const Rocket::Core::String& value)
+// Processes an event coming through from RmlUi.
+void EventManager::ProcessEvent(Rml::Core::Event& event, const Rml::Core::String& value)
 {
-	Rocket::Core::StringList commands;
-	Rocket::Core::StringUtilities::ExpandString(commands, value, ';');
+	Rml::Core::StringList commands;
+	Rml::Core::StringUtilities::ExpandString(commands, value, ';');
 	for (size_t i = 0; i < commands.size(); ++i)
 	{
 		// Check for a generic 'load' or 'exit' command.
-		Rocket::Core::StringList values;
-		Rocket::Core::StringUtilities::ExpandString(values, commands[i], ' ');
+		Rml::Core::StringList values;
+		Rml::Core::StringUtilities::ExpandString(values, commands[i], ' ');
 
 		if (values.empty())
 			return;
@@ -102,14 +102,14 @@ void EventManager::ProcessEvent(Rocket::Core::Event& event, const Rocket::Core::
 		}
 		else if (values[0] == "close")
 		{
-			Rocket::Core::ElementDocument* target_document = NULL;
+			Rml::Core::ElementDocument* target_document = nullptr;
 
 			if (values.size() > 1)
-				target_document = context->GetDocument(values[1].CString());
+				target_document = context->GetDocument(values[1].c_str());
 			else
 				target_document = event.GetTargetElement()->GetOwnerDocument();
 
-			if (target_document != NULL)
+			if (target_document != nullptr)
 				target_document->Close();
 		}
 		else if (values[0] == "exit")
@@ -126,14 +126,14 @@ void EventManager::ProcessEvent(Rocket::Core::Event& event, const Rocket::Core::
 		}
 		else
 		{
-			if (event_handler != NULL)
+			if (event_handler != nullptr)
 				event_handler->ProcessEvent(event, commands[i]);
 		}
 	}
 }
 
 // Loads a window and binds the event handler for it.
-bool EventManager::LoadWindow(const Rocket::Core::String& window_name)
+Rml::Core::ElementDocument* EventManager::LoadWindow(const Rml::Core::String& window_name)
 {
 	// Set the event handler for the new screen, if one has been registered.
 	EventHandler* old_event_handler = event_handler;
@@ -141,27 +141,23 @@ bool EventManager::LoadWindow(const Rocket::Core::String& window_name)
 	if (iterator != event_handlers.end())
 		event_handler = (*iterator).second;
 	else
-		event_handler = NULL;
+		event_handler = nullptr;
 
 	// Attempt to load the referenced RML document.
-	Rocket::Core::String document_path = Rocket::Core::String("data/") + window_name + Rocket::Core::String(".rml");
-	Rocket::Core::ElementDocument* document = context->LoadDocument(document_path.CString());
-	if (document == NULL)
+	Rml::Core::String document_path = Rml::Core::String("invaders/data/") + window_name + Rml::Core::String(".rml");
+	Rml::Core::ElementDocument* document = context->LoadDocument(document_path.c_str());
+	if (document == nullptr)
 	{
 		event_handler = old_event_handler;
-		return false;
+		return nullptr;
 	}
 
 	// Set the element's title on the title; IDd 'title' in the RML.
-	Rocket::Core::Element* title = document->GetElementById("title");
-	if (title != NULL)
+	Rml::Core::Element* title = document->GetElementById("title");
+	if (title != nullptr)
 		title->SetInnerRML(document->GetTitle());
 
-	document->Focus();
 	document->Show();
 
-	// Remove the caller's reference.
-	document->RemoveReference();
-
-	return true;
+	return document;
 }

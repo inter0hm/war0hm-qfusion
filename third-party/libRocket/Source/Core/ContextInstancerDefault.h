@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,12 @@
  *
  */
 
-#ifndef ROCKETCORECONTEXTINSTANCERDEFAULT_H
-#define ROCKETCORECONTEXTINSTANCERDEFAULT_H
+#ifndef RMLUICORECONTEXTINSTANCERDEFAULT_H
+#define RMLUICORECONTEXTINSTANCERDEFAULT_H
 
-#include "../../Include/Rocket/Core/ContextInstancer.h"
+#include "../../Include/RmlUi/Core/ContextInstancer.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
@@ -48,14 +49,14 @@ public:
 	/// Instances a context.
 	/// @param[in] name Name of this context.
 	/// @return The instanced context.
-	virtual Context* InstanceContext(const String& name);
+	ContextPtr InstanceContext(const String& name) override;
 
 	/// Releases a context previously created by this context.
 	/// @param[in] context The context to release.
-	virtual void ReleaseContext(Context* context);
+	void ReleaseContext(Context* context) override;
 
 	/// Releases this context instancer.
-	virtual void Release();
+	void Release() override;
 };
 
 }

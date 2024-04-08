@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,37 +27,35 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/PropertyDictionary.h"
+#include "../../Include/RmlUi/Core/PropertyDictionary.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 PropertyDictionary::PropertyDictionary()
 {
 }
 
-PropertyDictionary::~PropertyDictionary()
-{
-}
-
 // Sets a property on the dictionary. Any existing property with a similar name will be overwritten.
-void PropertyDictionary::SetProperty(const String& name, const Property& property)
+void PropertyDictionary::SetProperty(PropertyId id, const Property& property)
 {
-	properties[name] = property;
+	RMLUI_ASSERT(id != PropertyId::Invalid);
+	properties[id] = property;
 }
 
 // Removes a property from the dictionary, if it exists.
-void PropertyDictionary::RemoveProperty(const String& name)
+void PropertyDictionary::RemoveProperty(PropertyId id)
 {
-	properties.erase(name);
+	RMLUI_ASSERT(id != PropertyId::Invalid);
+	properties.erase(id);
 }
 
 // Returns the value of the property with the requested name, if one exists.
-const Property* PropertyDictionary::GetProperty(const String& name) const
+const Property* PropertyDictionary::GetProperty(PropertyId id) const
 {
-	PropertyMap::const_iterator iterator = properties.find(name);
+	PropertyMap::const_iterator iterator = properties.find(id);
 	if (iterator == properties.end())
-		return NULL;
+		return nullptr;
 
 	return &(*iterator).second;
 }
@@ -93,15 +92,21 @@ void PropertyDictionary::Merge(const PropertyDictionary& property_dictionary, in
 	}
 }
 
-// Sets a property on the dictionary and its specificity.
-void PropertyDictionary::SetProperty(const String& name, const Rocket::Core::Property& property, int specificity)
+void PropertyDictionary::SetSourceOfAllProperties(const SharedPtr<const PropertySource>& property_source)
 {
-	PropertyMap::iterator iterator = properties.find(name);
+	for (auto& p : properties)
+		p.second.source = property_source;
+}
+
+// Sets a property on the dictionary and its specificity.
+void PropertyDictionary::SetProperty(PropertyId id, const Rml::Core::Property& property, int specificity)
+{
+	PropertyMap::iterator iterator = properties.find(id);
 	if (iterator != properties.end() &&
 		iterator->second.specificity > specificity)
 		return;
 
-	Property& new_property = (properties[name] = property);
+	Property& new_property = (properties[id] = property);
 	new_property.specificity = specificity;
 }
 

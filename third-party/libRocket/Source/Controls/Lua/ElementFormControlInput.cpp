@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,11 +28,11 @@
  
 #include "precompiled.h"
 #include "ElementFormControlInput.h"
-#include <Rocket/Controls/ElementFormControl.h>
+#include <RmlUi/Controls/ElementFormControl.h>
 #include "ElementFormControl.h"
-#include <Rocket/Core/Lua/Utilities.h>
+#include <RmlUi/Core/Lua/Utilities.h>
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 namespace Lua {
 
@@ -103,7 +104,7 @@ int ElementFormControlInputSetAttrmaxlength(lua_State* L)
 {
     ElementFormControlInput* obj = LuaType<ElementFormControlInput>::check(L,1);
     LUACHECKOBJ(obj);
-    int maxlength = luaL_checkint(L,2);
+    int maxlength = (int)luaL_checkinteger(L,2);
     obj->SetAttribute("maxlength",maxlength);
     return 0;
 }
@@ -112,7 +113,7 @@ int ElementFormControlInputSetAttrsize(lua_State* L)
 {
     ElementFormControlInput* obj = LuaType<ElementFormControlInput>::check(L,1);
     LUACHECKOBJ(obj);
-    int size = luaL_checkint(L,2);
+    int size = (int)luaL_checkinteger(L,2);
     obj->SetAttribute("size",size);
     return 0;
 }
@@ -121,7 +122,7 @@ int ElementFormControlInputSetAttrmax(lua_State* L)
 {
     ElementFormControlInput* obj = LuaType<ElementFormControlInput>::check(L,1);
     LUACHECKOBJ(obj);
-    int max = luaL_checkint(L,2);
+    int max = (int)luaL_checkinteger(L,2);
     obj->SetAttribute("max",max);
     return 0;
 }
@@ -130,7 +131,7 @@ int ElementFormControlInputSetAttrmin(lua_State* L)
 {
     ElementFormControlInput* obj = LuaType<ElementFormControlInput>::check(L,1);
     LUACHECKOBJ(obj);
-    int min = luaL_checkint(L,2);
+    int min = (int)luaL_checkinteger(L,2);
     obj->SetAttribute("min",min);
     return 0;
 }
@@ -139,15 +140,15 @@ int ElementFormControlInputSetAttrstep(lua_State* L)
 {
     ElementFormControlInput* obj = LuaType<ElementFormControlInput>::check(L,1);
     LUACHECKOBJ(obj);
-    int step = luaL_checkint(L,2);
+    int step = (int)luaL_checkinteger(L,2);
     obj->SetAttribute("step",step);
     return 0;
 }
 
 
-Rocket::Core::Lua::RegType<ElementFormControlInput> ElementFormControlInputMethods[] = 
+Rml::Core::Lua::RegType<ElementFormControlInput> ElementFormControlInputMethods[] = 
 {
-    {NULL,NULL},
+    {nullptr,nullptr},
 };
 
 luaL_Reg ElementFormControlInputGetters[] = 
@@ -158,7 +159,7 @@ luaL_Reg ElementFormControlInputGetters[] =
     LUAGETTER(ElementFormControlInput,max)
     LUAGETTER(ElementFormControlInput,min)
     LUAGETTER(ElementFormControlInput,step)
-    {NULL,NULL},
+    {nullptr,nullptr},
 };
 
 luaL_Reg ElementFormControlInputSetters[] = 
@@ -169,23 +170,23 @@ luaL_Reg ElementFormControlInputSetters[] =
     LUASETTER(ElementFormControlInput,max)
     LUASETTER(ElementFormControlInput,min)
     LUASETTER(ElementFormControlInput,step)
-    {NULL,NULL},
+    {nullptr,nullptr},
 };
 
 }
 }
 }
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
-template<> void ExtraInit<Rocket::Controls::ElementFormControlInput>(lua_State* L, int metatable_index)
+template<> void ExtraInit<Rml::Controls::ElementFormControlInput>(lua_State* L, int metatable_index)
 {
-    ExtraInit<Rocket::Controls::ElementFormControl>(L,metatable_index);
-    LuaType<Rocket::Controls::ElementFormControl>::_regfunctions(L,metatable_index,metatable_index-1);
-    AddTypeToElementAsTable<Rocket::Controls::ElementFormControlInput>(L);
+    ExtraInit<Rml::Controls::ElementFormControl>(L,metatable_index);
+    LuaType<Rml::Controls::ElementFormControl>::_regfunctions(L,metatable_index,metatable_index-1);
+    AddTypeToElementAsTable<Rml::Controls::ElementFormControlInput>(L);
 }
-using Rocket::Controls::ElementFormControlInput;
-LUACONTROLSTYPEDEFINE(ElementFormControlInput,true)
+using Rml::Controls::ElementFormControlInput;
+LUACONTROLSTYPEDEFINE(ElementFormControlInput)
 }
 }
 }

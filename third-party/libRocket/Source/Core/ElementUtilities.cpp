@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,19 +27,46 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/ElementUtilities.h"
+#include "../../Include/RmlUi/Core.h"
+#include "../../Include/RmlUi/Core/TransformState.h"
+#include "../../Include/RmlUi/Core/ElementUtilities.h"
 #include <queue>
-#include <Rocket/Core/FontFaceHandle.h>
+#include <limits>
 #include "LayoutEngine.h"
-#include "../../Include/Rocket/Core.h"
+#include "ElementStyle.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 // Builds and sets the box for an element.
-static void SetBox(Element* element);
+static void SetBox(Element* element)
+{
+	Element* parent = element->GetParentNode();
+	RMLUI_ASSERT(parent != nullptr);
+
+	Vector2f containing_block = parent->GetBox().GetSize();
+	containing_block.x -= parent->GetElementScroll()->GetScrollbarSize(ElementScroll::VERTICAL);
+	containing_block.y -= parent->GetElementScroll()->GetScrollbarSize(ElementScroll::HORIZONTAL);
+
+	Box box;
+	LayoutEngine::BuildBox(box, containing_block, element);
+
+	if (element->GetComputedValues().height.type != Style::Height::Auto)
+		box.SetContent(Vector2f(box.GetSize().x, containing_block.y));
+
+	element->SetBox(box);
+}
+
 // Positions an element relative to an offset parent.
-static void SetElementOffset(Element* element, const Vector2f& offset);
+static void SetElementOffset(Element* element, const Vector2f& offset)
+{
+	Vector2f relative_offset = element->GetParentNode()->GetBox().GetPosition(Box::CONTENT);
+	relative_offset += offset;
+	relative_offset.x += element->GetBox().GetEdge(Box::MARGIN, Box::LEFT);
+	relative_offset.y += element->GetBox().GetEdge(Box::MARGIN, Box::TOP);
+
+	element->SetOffset(relative_offset, element->GetParentNode());
+}
 
 Element* ElementUtilities::GetElementById(Element* root_element, const String& id)
 {
@@ -62,7 +90,7 @@ Element* ElementUtilities::GetElementById(Element* root_element, const String& i
 			search_queue.push(element->GetChild(i));
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void ElementUtilities::GetElementsByTagName(ElementList& elements, Element* root_element, const String& tag)
@@ -109,104 +137,35 @@ void ElementUtilities::GetElementsByClassName(ElementList& elements, Element* ro
 	}
 }
 
-// Returns the element's font face.
-FontFaceHandle* ElementUtilities::GetFontFaceHandle(Element* element)
+float ElementUtilities::GetDensityIndependentPixelRatio(Element * element)
 {
-	// Fetch the new font face.
-	String font_family = element->GetProperty(FONT_FAMILY)->value.Get< String >();
-	String font_charset = element->GetProperty(FONT_CHARSET)->value.Get< String >();
-	Font::Style font_style = (Font::Style) element->GetProperty(FONT_STYLE)->value.Get< int >();
-	Font::Weight font_weight = (Font::Weight) element->GetProperty(FONT_WEIGHT)->value.Get< int >();
-	int font_size = Math::RealToInteger(element->ResolveProperty(FONT_SIZE, 0));
+	Context* context = element->GetContext();
+	if (context == nullptr)
+		return 1.0f;
 
-	FontFaceHandle* font = FontDatabase::GetFontFaceHandle(font_family, font_charset, font_style, font_weight, font_size);
-	return font;
-}
-
-// Returns an element's font size, if it has a font defined.
-int ElementUtilities::GetFontSize(Element* element)
-{
-	FontFaceHandle* font_face_handle = element->GetFontFaceHandle();
-	if (font_face_handle == NULL)
-		return 0;
-	
-	return font_face_handle->GetSize();
-}
-
-// Returns an element's line height, if it has a font defined.
-int ElementUtilities::GetLineHeight(Element* element)
-{
-	FontFaceHandle* font_face_handle = element->GetFontFaceHandle();
-	if (font_face_handle == NULL)
-		return 0;
-
-	int line_height = font_face_handle->GetLineHeight();
-	Rocket::Core::RenderInterface* renderInterface = element->GetRenderInterface();
-	float inch = renderInterface->GetPixelsPerInch();
-	const Property* line_height_property = element->GetLineHeightProperty();
-
-	switch (line_height_property->unit)
-	{
-	ROCKET_UNUSED_SWITCH_ENUM(Property::UNKNOWN);
-	ROCKET_UNUSED_SWITCH_ENUM(Property::KEYWORD);
-	ROCKET_UNUSED_SWITCH_ENUM(Property::STRING);
-	ROCKET_UNUSED_SWITCH_ENUM(Property::COLOUR);
-	ROCKET_UNUSED_SWITCH_ENUM(Property::ABSOLUTE_UNIT);
-	ROCKET_UNUSED_SWITCH_ENUM(Property::PPI_UNIT);
-	ROCKET_UNUSED_SWITCH_ENUM(Property::RELATIVE_UNIT);
-	ROCKET_UNUSED_SWITCH_ENUM(Property::REM);
-	case Property::NUMBER:
-	case Property::EM:
-		// If the property is a straight number or an em measurement, then it scales the line height.
-		return Math::Round(line_height_property->value.Get< float >() * line_height);
-	case Property::PERCENT:
-		// If the property is a percentage, then it scales the line height.
-		return Math::Round(line_height_property->value.Get< float >() * line_height * 0.01f);
-	case Property::PX:
-		// A px measurement.
-		return Math::Round(line_height_property->value.Get< float >());
-	case Property::INCH:
-		// Values based on pixels-per-inch.
-		return Math::Round(line_height_property->value.Get< float >() * inch);
-	case Property::CM:
-		return Math::Round(line_height_property->value.Get< float >() * inch * (1.0f / 2.54f));
-	case Property::MM:
-		return Math::Round(line_height_property->value.Get< float >() * inch * (1.0f / 25.4f));
-	case Property::PT:
-		return Math::Round(line_height_property->value.Get< float >() * inch * (1.0f / 72.0f));
-	case Property::PC:
-		return Math::Round(line_height_property->value.Get< float >() * inch * (1.0f / 6.0f));
-	case Property::DP:
-		return Math::RoundUp(line_height_property->value.Get< float >() * inch / renderInterface->GetBasePixelsPerInch());
-	}
-
-	return 0;
+	return context->GetDensityIndependentPixelRatio();
 }
 
 // Returns the width of a string rendered within the context of the given element.
-int ElementUtilities::GetStringWidth(Element* element, const WString& string)
+int ElementUtilities::GetStringWidth(Element* element, const String& string)
 {
-	FontFaceHandle* font_face_handle = element->GetFontFaceHandle();
-	if (font_face_handle == NULL)
+	FontFaceHandle font_face_handle = element->GetFontFaceHandle();
+	if (font_face_handle == 0)
 		return 0;
 
-	return font_face_handle->GetStringWidth(string);
+	return GetFontEngineInterface()->GetStringWidth(font_face_handle, string);
 }
 
 void ElementUtilities::BindEventAttributes(Element* element)
 {
-	int index = 0;
-	String name;
-	String value;
-
 	// Check for and instance the on* events
-	while(element->IterateAttributes(index, name, value))
+	for (const auto& pair: element->GetAttributes())
 	{
-		if (name.Substring(0, 2) == "on")
+		if (pair.first.size() > 2 && pair.first[0] == 'o' && pair.first[1] == 'n')
 		{
-			EventListener* listener = Factory::InstanceEventListener(value, element);
+			EventListener* listener = Factory::InstanceEventListener(pair.second.Get<String>(), element);
 			if (listener)
-				element->AddEventListener(&name[2], listener, false);
+				element->AddEventListener(pair.first.substr(2), listener, false);
 		}
 	}
 }
@@ -226,7 +185,7 @@ bool ElementUtilities::GetClippingRegion(Vector2i& clip_origin, Vector2i& clip_d
 	// complete clipping region for the element.
 	Element* clipping_element = element->GetParentNode();
 
-	while (clipping_element != NULL)
+	while (clipping_element != nullptr)
 	{
 		// Merge the existing clip region with the current clip region if we aren't ignoring clip regions.
 		if (num_ignored_clips == 0 && clipping_element->IsClippingEnabled())
@@ -286,7 +245,7 @@ bool ElementUtilities::GetClippingRegion(Vector2i& clip_origin, Vector2i& clip_d
 // Sets the clipping region from an element and its ancestors.
 bool ElementUtilities::SetClippingRegion(Element* element, Context* context)
 {	
-	Rocket::Core::RenderInterface* render_interface = NULL;
+	Rml::Core::RenderInterface* render_interface = nullptr;
 	if (element)
 	{
 		render_interface = element->GetRenderInterface();
@@ -303,11 +262,12 @@ bool ElementUtilities::SetClippingRegion(Element* element, Context* context)
 	if (!render_interface || !context)
 		return false;
 	
-	Vector2i clip_origin, clip_dimensions;
+	Vector2i clip_origin = { -1, -1 };
+	Vector2i clip_dimensions = { -1, -1 };
 	bool clip = element && GetClippingRegion(clip_origin, clip_dimensions, element);
 	
-	Vector2i current_origin;
-	Vector2i current_dimensions;
+	Vector2i current_origin = { -1, -1 };
+	Vector2i current_dimensions = { -1, -1 };
 	bool current_clip = context->GetActiveClipRegion(current_origin, current_dimensions);
 	if (current_clip != clip || (clip && (clip_origin != current_origin || clip_dimensions != current_dimensions)))
 	{
@@ -320,7 +280,7 @@ bool ElementUtilities::SetClippingRegion(Element* element, Context* context)
 
 void ElementUtilities::ApplyActiveClipRegion(Context* context, RenderInterface* render_interface)
 {
-	if (render_interface == NULL)
+	if (render_interface == nullptr)
 		return;
 	
 	Vector2i origin;
@@ -347,24 +307,11 @@ void ElementUtilities::BuildBox(Box& box, const Vector2f& containing_block, Elem
 	LayoutEngine::BuildBox(box, containing_block, element, inline_element);
 }
 
-// Sizes and positions an element within its parent.
-bool ElementUtilities::PositionElement(Element* element, const Vector2f& offset)
-{
-	Element* parent = element->GetParentNode();
-	if (parent == NULL)
-		return false;
-
-	SetBox(element);
-	SetElementOffset(element, offset);
-
-	return true;
-}
-
 // Sizes an element, and positions it within its parent offset from the borders of its content area.
 bool ElementUtilities::PositionElement(Element* element, const Vector2f& offset, PositionAnchor anchor)
 {
 	Element* parent = element->GetParentNode();
-	if (parent == NULL)
+	if (parent == nullptr)
 		return false;
 
 	SetBox(element);
@@ -385,36 +332,48 @@ bool ElementUtilities::PositionElement(Element* element, const Vector2f& offset,
 	return true;
 }
 
-// Builds and sets the box for an element.
-static void SetBox(Element* element)
+bool ElementUtilities::ApplyTransform(Element &element)
 {
-	Element* parent = element->GetParentNode();
-	ROCKET_ASSERT(parent != NULL);
+	RenderInterface *render_interface = element.GetRenderInterface();
+	if (!render_interface)
+		return false;
 
-	Vector2f containing_block = parent->GetBox().GetSize();
-	containing_block.x -= parent->GetElementScroll()->GetScrollbarSize(ElementScroll::VERTICAL);
-	containing_block.y -= parent->GetElementScroll()->GetScrollbarSize(ElementScroll::HORIZONTAL);
+	struct PreviousMatrix {
+		const Matrix4f* pointer; // This may be expired, dereferencing not allowed!
+		Matrix4f value;
+	};
+	static SmallUnorderedMap<RenderInterface*, PreviousMatrix> previous_matrix;
 
-	Box box;
-	LayoutEngine::BuildBox(box, containing_block, element);
+	auto it = previous_matrix.find(render_interface);
+	if (it == previous_matrix.end())
+		it = previous_matrix.emplace(render_interface, PreviousMatrix{ nullptr, Matrix4f::Identity() }).first;
 
-	const Property *local_height;
-	element->GetLocalDimensionProperties(NULL, &local_height);
-	if (local_height == NULL)
-		box.SetContent(Vector2f(box.GetSize().x, containing_block.y));
+	RMLUI_ASSERT(it != previous_matrix.end());
 
-	element->SetBox(box);
-}
+	const Matrix4f*& old_transform = it->second.pointer;
+	const Matrix4f* new_transform = nullptr;
 
-// Positions an element relative to an offset parent.
-static void SetElementOffset(Element* element, const Vector2f& offset)
-{
-	Vector2f relative_offset = element->GetParentNode()->GetBox().GetPosition(Box::CONTENT);
-	relative_offset += offset;
-	relative_offset.x += element->GetBox().GetEdge(Box::MARGIN, Box::LEFT);
-	relative_offset.y += element->GetBox().GetEdge(Box::MARGIN, Box::TOP);
+	if (const TransformState* state = element.GetTransformState())
+		new_transform = state->GetTransform();
 
-	element->SetOffset(relative_offset, element->GetParentNode());
+	// Only changed transforms are submitted.
+	if (old_transform != new_transform)
+	{
+		Matrix4f& old_transform_value = it->second.value;
+
+		// Do a deep comparison as well to avoid submitting a new transform which is equal.
+		if(!old_transform || !new_transform || (old_transform_value != *new_transform))
+		{
+			render_interface->SetTransform(new_transform);
+
+			if(new_transform)
+				old_transform_value = *new_transform;
+		}
+
+		old_transform = new_transform;
+	}
+
+	return true;
 }
 
 }

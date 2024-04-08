@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +31,7 @@
 #include "ElementInstancer.h"
 
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 template<> void ExtraInit<ElementInstancer>(lua_State* L, int metatable_index)
@@ -44,7 +45,6 @@ int ElementInstancernew(lua_State* L)
 {
     LuaElementInstancer* lei = new LuaElementInstancer(L);
     LuaType<ElementInstancer>::push(L,lei,true);
-    lei->RemoveReference();
     return 1;
 }
 
@@ -68,21 +68,21 @@ int ElementInstancerSetAttrInstanceElement(lua_State* L)
 
 RegType<ElementInstancer> ElementInstancerMethods[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementInstancerGetters[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ElementInstancerSetters[] =
 {
     LUASETTER(ElementInstancer,InstanceElement)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
-LUACORETYPEDEFINE(ElementInstancer,true)
+LUACORETYPEDEFINE(ElementInstancer)
 }
 }
 }

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,13 @@
  *
  */
 
-#ifndef ROCKETCORESTRINGCACHE_H
-#define ROCKETCORESTRINGCACHE_H
+ 
+#ifndef RMLUICORESTRINGCACHE_H
+#define RMLUICORESTRINGCACHE_H
 
-#include "../../Include/Rocket/Core/String.h"
+#include "../../Include/RmlUi/Core/Types.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 extern const String MARGIN_TOP;
@@ -57,6 +59,7 @@ extern const String BORDER_TOP;
 extern const String BORDER_RIGHT;
 extern const String BORDER_BOTTOM;
 extern const String BORDER_LEFT;
+extern const String BORDER;
 extern const String DISPLAY;
 extern const String POSITION;
 extern const String TOP;
@@ -81,6 +84,7 @@ extern const String VISIBILITY;
 extern const String BACKGROUND_COLOR;
 extern const String BACKGROUND;
 extern const String COLOR;
+extern const String IMAGE_COLOR;
 extern const String FONT_FAMILY;
 extern const String FONT_CHARSET;
 extern const String FONT_STYLE;
@@ -95,6 +99,24 @@ extern const String CURSOR;
 extern const String DRAG;
 extern const String TAB_INDEX;
 extern const String SCROLLBAR_MARGIN;
+
+extern const String PERSPECTIVE;
+extern const String PERSPECTIVE_ORIGIN;
+extern const String PERSPECTIVE_ORIGIN_X;
+extern const String PERSPECTIVE_ORIGIN_Y;
+extern const String TRANSFORM;
+extern const String TRANSFORM_ORIGIN;
+extern const String TRANSFORM_ORIGIN_X;
+extern const String TRANSFORM_ORIGIN_Y;
+extern const String TRANSFORM_ORIGIN_Z;
+extern const String NONE;
+
+extern const String TRANSITION;
+extern const String ANIMATION;
+extern const String KEYFRAMES;
+
+extern const String OPACITY;
+extern const String POINTER_EVENTS;
 
 extern const String MOUSEDOWN;
 extern const String MOUSESCROLL;
@@ -118,6 +140,8 @@ extern const String DRAGOUT;
 extern const String DRAGEND;
 extern const String DRAGOVER;
 extern const String RESIZE;
+extern const String ANIMATIONEND;
+extern const String TRANSITIONEND;
 
 }
 }

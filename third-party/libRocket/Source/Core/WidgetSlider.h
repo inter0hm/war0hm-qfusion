@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,12 @@
  *
  */
 
-#ifndef ROCKETCOREWIDGETSLIDER_H
-#define ROCKETCOREWIDGETSLIDER_H
+#ifndef RMLUICOREWIDGETSLIDER_H
+#define RMLUICOREWIDGETSLIDER_H
 
-#include "../../Include/Rocket/Core/EventListener.h"
+#include "../../Include/RmlUi/Core/EventListener.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 class Element;
@@ -90,7 +91,7 @@ protected:
 	Element* GetParent() const;
 
 	/// Handles events coming through from the slider's components.
-	virtual void ProcessEvent(Event& event);
+	void ProcessEvent(Event& event) override;
 
 	/// Called when the slider's bar position is set or dragged.
 	/// @param[in] bar_position The new position of the bar (0 representing the start of the track, 1 representing the end).
@@ -136,7 +137,7 @@ private:
 
 	// Set to the auto-repeat timer if either of the arrow buttons have been pressed, -1 if they haven't.
 	float arrow_timers[2];
-	float last_update_time;
+	double last_update_time;
 };
 
 }

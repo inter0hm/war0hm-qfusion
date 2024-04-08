@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,17 +28,15 @@
 
 #include "precompiled.h"
 #include "ElementImage.h"
-#include "../../Include/Rocket/Core.h"
+#include "../../Include/RmlUi/Core.h"
 #include "TextureDatabase.h"
-#include "TextureResource.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 // Constructs a new ElementImage.
-ElementImage::ElementImage(const String& tag) : Element(tag), dimensions(-1, -1), geometry(this)
+ElementImage::ElementImage(const String& tag) : Element(tag), dimensions(-1, -1), coords_source(CoordsSource::None), geometry(this)
 {
-	ResetCoords();
 	geometry_dirty = false;
 	texture_dirty = true;
 }
@@ -56,16 +55,16 @@ bool ElementImage::GetIntrinsicDimensions(Vector2f& _dimensions)
 	// Calculate the x dimension.
 	if (HasAttribute("width"))
 		dimensions.x = GetAttribute< float >("width", -1);
-	else if (using_coords)
-		dimensions.x = (float) (coords[2] - coords[0]);
+	else if (coords_source != CoordsSource::None)
+		dimensions.x = coords.width;
 	else
 		dimensions.x = (float) texture.GetDimensions(GetRenderInterface()).x;
 
 	// Calculate the y dimension.
 	if (HasAttribute("height"))
 		dimensions.y = GetAttribute< float >("height", -1);
-	else if (using_coords)
-		dimensions.y = (float) (coords[3] - coords[1]);
+	else if (coords_source != CoordsSource::None)
+		dimensions.y = coords.height;
 	else
 		dimensions.y = (float) texture.GetDimensions(GetRenderInterface()).y;
 
@@ -84,14 +83,14 @@ void ElementImage::OnRender()
 		GenerateGeometry();
 
 	// Render the geometry beginning at this element's content region.
-	geometry.Render(GetAbsoluteOffset(Rocket::Core::Box::CONTENT));
+	geometry.Render(GetAbsoluteOffset(Rml::Core::Box::CONTENT).Round());
 }
 
 // Called when attributes on the element are changed.
-void ElementImage::OnAttributeChange(const Rocket::Core::AttributeNameList& changed_attributes)
+void ElementImage::OnAttributeChange(const Rml::Core::ElementAttributes& changed_attributes)
 {
 	// Call through to the base element's OnAttributeChange().
-	Rocket::Core::Element::OnAttributeChange(changed_attributes);
+	Rml::Core::Element::OnAttributeChange(changed_attributes);
 
 	float dirty_layout = false;
 
@@ -112,37 +111,30 @@ void ElementImage::OnAttributeChange(const Rocket::Core::AttributeNameList& chan
 	}
 
 	// Check for a change to the 'coords' attribute. If this changes, the coordinates are
-	// recomputed and a layout forced.
-	if (changed_attributes.find("coords") != changed_attributes.end())
+	// recomputed and a layout forced. If a sprite is set to source, then that will override any attribute.
+	if (changed_attributes.find("coords") != changed_attributes.end() && coords_source != CoordsSource::Sprite)
 	{
 		if (HasAttribute("coords"))
 		{
 			StringList coords_list;
-			StringUtilities::ExpandString(coords_list, GetAttribute< String >("coords", ""));
+			StringUtilities::ExpandString(coords_list, GetAttribute< String >("coords", ""), ' ');
 
 			if (coords_list.size() != 4)
 			{
-				Rocket::Core::Log::Message(Log::LT_WARNING, "Element '%s' has an invalid 'coords' attribute; coords requires 4 values, found %d.", GetAddress().CString(), coords_list.size());
+				Rml::Core::Log::Message(Log::LT_WARNING, "Element '%s' has an invalid 'coords' attribute; coords requires 4 values, found %d.", GetAddress().c_str(), coords_list.size());
 				ResetCoords();
 			}
 			else
 			{
-				for (size_t i = 0; i < 4; ++i)
-					coords[i] = atoi(coords_list[i].CString());
+				coords.x = (float)std::atof(coords_list[0].c_str());
+				coords.y = (float)std::atof(coords_list[1].c_str());
+				coords.width = (float)std::atof(coords_list[2].c_str());
+				coords.height = (float)std::atof(coords_list[3].c_str());
 
-				// Check for the validity of the coordinates.
-				if (coords[0] < 0 || coords[2] < coords[0] ||
-					coords[1] < 0 || coords[3] < coords[1])
-				{
-					Rocket::Core::Log::Message(Log::LT_WARNING, "Element '%s' has an invalid 'coords' attribute; invalid coordinate values specified.", GetAddress().CString());
-					ResetCoords();
-				}
-				else
-				{
-					// We have new, valid coordinates; force the geometry to be regenerated.
-					geometry_dirty = true;
-					using_coords = true;
-				}
+				// We have new, valid coordinates; force the geometry to be regenerated.
+				geometry_dirty = true;
+				coords_source = CoordsSource::Attribute;
+
 			}
 		}
 		else
@@ -156,16 +148,20 @@ void ElementImage::OnAttributeChange(const Rocket::Core::AttributeNameList& chan
 		DirtyLayout();
 }
 
-// Regenerates the element's geometry.
-void ElementImage::ProcessEvent(Rocket::Core::Event& event)
+void ElementImage::OnPropertyChange(const PropertyIdSet& changed_properties)
 {
-	Element::ProcessEvent(event);
+    Element::OnPropertyChange(changed_properties);
 
-	if (event.GetTargetElement() == this &&
-		event == RESIZE)
-	{
-		GenerateGeometry();
-	}
+    if (changed_properties.Contains(PropertyId::ImageColor) ||
+        changed_properties.Contains(PropertyId::Opacity)) {
+        GenerateGeometry();
+    }
+}
+
+// Regenerates the element's geometry.
+void ElementImage::OnResize()
+{
+	GenerateGeometry();
 }
 
 void ElementImage::GenerateGeometry()
@@ -173,7 +169,7 @@ void ElementImage::GenerateGeometry()
 	// Release the old geometry before specifying the new vertices.
 	geometry.Release(true);
 
-	std::vector< Rocket::Core::Vertex >& vertices = geometry.GetVertices();
+	std::vector< Rml::Core::Vertex >& vertices = geometry.GetVertices();
 	std::vector< int >& indices = geometry.GetIndices();
 
 	vertices.resize(4);
@@ -181,7 +177,7 @@ void ElementImage::GenerateGeometry()
 
 	// Generate the texture coordinates.
 	Vector2f texcoords[2];
-	if (using_coords)
+	if (coords_source != CoordsSource::None)
 	{
 		Vector2f texture_dimensions((float) texture.GetDimensions(GetRenderInterface()).x, (float) texture.GetDimensions(GetRenderInterface()).y);
 		if (texture_dimensions.x == 0)
@@ -189,11 +185,11 @@ void ElementImage::GenerateGeometry()
 		if (texture_dimensions.y == 0)
 			texture_dimensions.y = 1;
 
-		texcoords[0].x = (float) coords[0] / texture_dimensions.x;
-		texcoords[0].y = (float) coords[1] / texture_dimensions.y;
+		texcoords[0].x = coords.x / texture_dimensions.x;
+		texcoords[0].y = coords.y / texture_dimensions.y;
 
-		texcoords[1].x = (float) coords[2] / texture_dimensions.x;
-		texcoords[1].y = (float) coords[3] / texture_dimensions.y;
+		texcoords[1].x = (coords.x + coords.width) / texture_dimensions.x;
+		texcoords[1].y = (coords.y + coords.height) / texture_dimensions.y;
 	}
 	else
 	{
@@ -201,13 +197,15 @@ void ElementImage::GenerateGeometry()
 		texcoords[1] = Vector2f(1, 1);
 	}
 
-	Rocket::Core::GeometryUtilities::GenerateQuad(&vertices[0],									// vertices to write to
-												  &indices[0],									// indices to write to
-												  Vector2f(0, 0),					// origin of the quad
-												  GetBox().GetSize(Rocket::Core::Box::CONTENT),	// size of the quad
-												  Colourb(255, 255, 255, 255),		// colour of the vertices
-												  texcoords[0],									// top-left texture coordinate
-												  texcoords[1]);								// top-right texture coordinate
+	const ComputedValues& computed = GetComputedValues();
+
+	float opacity = computed.opacity;
+	Colourb quad_colour = computed.image_color;
+    quad_colour.alpha = (byte)(opacity * (float)quad_colour.alpha);
+	
+	Vector2f quad_size = GetBox().GetSize(Rml::Core::Box::CONTENT).Round();
+
+	Rml::Core::GeometryUtilities::GenerateQuad(&vertices[0], &indices[0], Vector2f(0, 0), quad_size, quad_colour,  texcoords[0], texcoords[1]);
 
 	geometry_dirty = false;
 }
@@ -216,21 +214,38 @@ bool ElementImage::LoadTexture()
 {
 	texture_dirty = false;
 
-	// Get the source URL for the image.
-	String image_source = GetAttribute< String >("src", "");
-	if (image_source.Empty())
+	// Get the sprite name or image source URL.
+	const String source_name = GetAttribute< String >("src", "");
+	if (source_name.empty())
 		return false;
 
 	geometry_dirty = true;
 
-	Rocket::Core::ElementDocument* document = GetOwnerDocument();
-	URL source_url(document == NULL ? "" : document->GetSourceURL());
+	bool valid_sprite = false;
+	URL source_url;
 
-	if (!texture.Load(image_source, source_url.GetPath()))
+	Rml::Core::ElementDocument* document = GetOwnerDocument();
+
+	// Check if the name is a sprite first, otherwise treat it as an image url.
+	if (document) 
 	{
-		geometry.SetTexture(NULL);
-		return false;
+		if (auto& style_sheet = document->GetStyleSheet())
+		{
+			if (const Sprite* sprite = style_sheet->GetSprite(source_name))
+			{
+				coords = sprite->rectangle;
+				coords_source = CoordsSource::Sprite;
+				texture = sprite->sprite_sheet->texture;
+				valid_sprite = true;
+			}
+		}
+
+		if(!valid_sprite)
+			source_url.SetURL(document->GetSourceURL());
 	}
+
+	if(!valid_sprite)
+		texture.Set(source_name, source_url.GetPath());
 
 	// Set the texture onto our geometry object.
 	geometry.SetTexture(&texture);
@@ -239,10 +254,8 @@ bool ElementImage::LoadTexture()
 
 void ElementImage::ResetCoords()
 {
-	using_coords = false;
-
-	for (int i = 0; i < 4; ++i)
-		coords[i] = -1;
+	coords = {};
+	coords_source = CoordsSource::None;
 }
 
 }

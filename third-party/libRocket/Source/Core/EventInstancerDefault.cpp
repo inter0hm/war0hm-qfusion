@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,9 +28,9 @@
 
 #include "precompiled.h"
 #include "EventInstancerDefault.h"
-#include "../../Include/Rocket/Core/Event.h"
+#include "../../Include/RmlUi/Core/Event.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 EventInstancerDefault::EventInstancerDefault()
@@ -40,9 +41,9 @@ EventInstancerDefault::~EventInstancerDefault()
 {
 }
 
-Event* EventInstancerDefault::InstanceEvent(Element* target, const String& name, const Dictionary& parameters, bool interruptible)
+EventPtr EventInstancerDefault::InstanceEvent(Element* target, EventId id, const String& type, const Dictionary& parameters, bool interruptible)
 {
-	return new Event(target, name, parameters, interruptible);
+	return EventPtr(new Event(target, id, type, parameters, interruptible));
 }
 
 // Releases an event instanced by this instancer.

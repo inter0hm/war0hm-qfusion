@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
 #include "LuaDocumentElementInstancer.h"
 #include "LuaDocument.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 
@@ -37,20 +38,15 @@ namespace Lua {
 /// @param[in] parent The element the new element is destined to be parented to.
 /// @param[in] tag The tag of the element to instance.
 /// @param[in] attributes Dictionary of attributes.
-Element* LuaDocumentElementInstancer::InstanceElement(Element* parent, const String& tag, const XMLAttributes& attributes)
+ElementPtr LuaDocumentElementInstancer::InstanceElement(Element* parent, const String& tag, const XMLAttributes& attributes)
 {
-    return new LuaDocument(tag);
+	return ElementPtr(new LuaDocument(tag));
 }
 /// Releases an element instanced by this instancer.
 /// @param[in] element The element to release.
 void LuaDocumentElementInstancer::ReleaseElement(Element* element)
 {
     delete element;
-}
-/// Release the instancer.
-void LuaDocumentElementInstancer::Release()
-{
-    delete this;
 }
 
 }

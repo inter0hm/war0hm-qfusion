@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +29,7 @@
 #ifndef TEXTURELAYOUTRECTANGLE_H
 #define TEXTURELAYOUTRECTANGLE_H
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
@@ -66,8 +67,7 @@ public:
 	/// Sets the rectangle's texture data and stride.
 	/// @param[in] texture_data The pointer to the top-left corner of the texture's data.
 	/// @param[in] texture_stride The stride of the texture data, in bytes.
-	/// @param[in] texture_samples Pixel size of the texture data, in bytes.
-	void Allocate(byte* texture_data, int texture_stride, int texture_samples);
+	void Allocate(byte* texture_data, int texture_stride);
 
 	/// Returns the index of the texture this rectangle is placed on.
 	/// @return The texture index.
@@ -88,7 +88,6 @@ private:
 
 	byte* texture_data;
 	int texture_stride;
-	int texture_samples;
 };
 
 }

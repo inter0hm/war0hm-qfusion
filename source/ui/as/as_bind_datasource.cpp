@@ -5,11 +5,11 @@
 #include "as/asui.h"
 #include "as/asui_local.h"
 
-#include <Rocket/Controls/DataSource.h>
+#include <RmlUi/Controls/DataSource.h>
 
 namespace ASUI {
 
-typedef Rocket::Controls::DataSource DataSource;
+typedef Rml::Controls::DataSource DataSource;
 
 //============================================
 /*
@@ -43,9 +43,8 @@ static asstring_t *DataSource_GetField( DataSource *ds, const asstring_t &table,
 	return ASSTR( "" );
 }
 
-static DataSource *DataSource_GetDataSource( const asstring_t &name )
-{
-	return Rocket::Controls::DataSource::GetDataSource( ASSTR( name ) );
+static DataSource *DataSource_GetDataSource( const asstring_t &name ) {
+	return Rml::Controls::DataSource::GetDataSource( ASSTR( name ) );
 }
 
 static int DataSource_FindRow( DataSource *ds, const asstring_t &table, const asstring_t &field, const asstring_t &value, int start = 0 )
@@ -59,8 +58,8 @@ static int DataSource_FindRow( DataSource *ds, const asstring_t &table, const as
 	for( int i = start; i < numRows; i++ ) {
 		StringList row;
 
-		ds->GetRow( row, ASSTR(table), i, fields );
-		if( !strcmp( row[0].CString(), value.buffer ) ) {
+		ds->GetRow( row, ASSTR( table ), i, fields );
+		if( !strcmp( row[0].c_str(), value.buffer ) ) {
 			return i;
 		}
 	}
@@ -68,9 +67,8 @@ static int DataSource_FindRow( DataSource *ds, const asstring_t &table, const as
 	return -1;
 }
 
-void PrebindDataSource( ASInterface *as )
-{
-	ASBind::Class<Rocket::Controls::DataSource, ASBind::class_ref>( as->getEngine() );
+void PrebindDataSource( ASInterface *as ) {
+	ASBind::Class<Rml::Controls::DataSource, ASBind::class_ref>( as->getEngine() );
 }
 
 void dummy( DataSource *ds )
@@ -78,10 +76,9 @@ void dummy( DataSource *ds )
 }
 
 
-void BindDataSource( ASInterface *as )
-{
-	ASBind::GetClass<Rocket::Controls::DataSource>( as->getEngine() )
-		.refs( &dummy, &dummy )
+void BindDataSource( ASInterface *as ) {
+	ASBind::GetClass<Rml::Controls::DataSource>( as->getEngine() )
+	.refs( &dummy, &dummy )
 
 		.constmethod( &DataSource_GetName, "get_name", true )
 		.constmethod( &DataSource_GetNumRows, "numRows", true )
@@ -97,4 +94,4 @@ void BindDataSource( ASInterface *as )
 
 }
 
-ASBIND_TYPE( Rocket::Controls::DataSource, DataSource );
+ASBIND_TYPE( Rml::Controls::DataSource, DataSource );

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2014 David Wimsey
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +27,7 @@
  */
 
 #include "RenderInterfaceDirectX10.h"
-#include <Rocket/Core.h>
+#include <RmlUi/Core.h>
 #include <d3d10.h>
 #include <d3dx10.h>
 
@@ -35,12 +36,12 @@
 
 void RenderInterfaceDirectX10::SetContext(void *context)
 {
-	m_rocket_context = context;
+	m_rmlui_context = context;
 }
 
 void RenderInterfaceDirectX10::SetViewport(int width, int height)
 {
-	if(this->m_pD3D10Device != NULL)
+	if(this->m_pD3D10Device != nullptr)
 	{
 		if(width == 0 || height == 0)
 		{
@@ -52,7 +53,7 @@ void RenderInterfaceDirectX10::SetViewport(int width, int height)
 		{
 			// Release the existing render target
 			this->m_pRenderTargetView->Release();
-			this->m_pRenderTargetView = NULL;
+			this->m_pRenderTargetView = nullptr;
 		}
 
 		// Resize the swap chain's buffer to the given dimensions
@@ -62,18 +63,18 @@ void RenderInterfaceDirectX10::SetViewport(int width, int height)
 		ID3D10Texture2D *pBackBuffer;
 		if(FAILED(this->m_pSwapChain->GetBuffer(0, __uuidof(ID3D10Texture2D), (LPVOID*) &pBackBuffer)))
 		{
-			MessageBox(NULL, _T("SwapChain->GetBuffer failed."), _T("Could not resize DirectX 10 surface"), MB_OK|MB_ICONERROR);
+			MessageBox(nullptr, _T("SwapChain->GetBuffer failed."), _T("Could not resize DirectX 10 surface"), MB_OK|MB_ICONERROR);
 			return;
 		}
-		if(FAILED(this->m_pD3D10Device->CreateRenderTargetView(pBackBuffer, NULL, &this->m_pRenderTargetView)))
+		if(FAILED(this->m_pD3D10Device->CreateRenderTargetView(pBackBuffer, nullptr, &this->m_pRenderTargetView)))
 		{
 				pBackBuffer->Release();
-				MessageBox(NULL, _T("D3D10Device->CreateRenderTargetView failed."), _T("Could not resize DirectX 10 surface"), MB_OK|MB_ICONERROR);
+				MessageBox(nullptr, _T("D3D10Device->CreateRenderTargetView failed."), _T("Could not resize DirectX 10 surface"), MB_OK|MB_ICONERROR);
 				return;
 		}
 		pBackBuffer->Release();
 	
-		this->m_pD3D10Device->OMSetRenderTargets(1, &this->m_pRenderTargetView, NULL);
+		this->m_pD3D10Device->OMSetRenderTargets(1, &this->m_pRenderTargetView, nullptr);
 
 		D3D10_VIEWPORT vp;
 		vp.Width = width;
@@ -87,11 +88,11 @@ void RenderInterfaceDirectX10::SetViewport(int width, int height)
 		// Recreate our view and projection matrix
 		D3DXMatrixOrthoOffCenterLH(&this->m_matProjection, 0, width, height, 0, -1, 1);
 		m_pProjectionMatrixVariable->SetMatrix((float*)this->m_matProjection);
-	}
 
-	if(m_rocket_context != NULL)
-	{
-		((Rocket::Core::Context*)m_rocket_context)->SetDimensions(Rocket::Core::Vector2i(width, height));
+		if(m_rmlui_context != nullptr)
+		{
+			((Rml::Core::Context*)m_rmlui_context)->SetDimensions(Rml::Core::Vector2i(width, height));
+		}
 	}
 }
 
@@ -128,13 +129,13 @@ bool RenderInterfaceDirectX10::AttachToNative(void *nativeWindow)
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 
 	//Create device and swapchain
-	if(FAILED(D3D10CreateDeviceAndSwapChain(NULL, D3D10_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags,	D3D10_SDK_VERSION, &sd, &this->m_pSwapChain, &this->m_pD3D10Device)))
+	if(FAILED(D3D10CreateDeviceAndSwapChain(nullptr, D3D10_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags,	D3D10_SDK_VERSION, &sd, &this->m_pSwapChain, &this->m_pD3D10Device)))
 	{
-		if(MessageBox(NULL, _T("D3D10CreateDeviceAndSwapChain failed for D3D10_DRIVER_TYPE_HARDWARE.\r\n\r\nWould you like to try the reference renderer, this will be very slow!"), _T("Could not intialized DirectX 10"), MB_OKCANCEL|MB_ICONERROR) == IDOK)
+		if(MessageBox(nullptr, _T("D3D10CreateDeviceAndSwapChain failed for D3D10_DRIVER_TYPE_HARDWARE.\r\n\r\nWould you like to try the reference renderer, this will be very slow!"), _T("Could not intialized DirectX 10"), MB_OKCANCEL|MB_ICONERROR) == IDOK)
 		{
-			if(FAILED(D3D10CreateDeviceAndSwapChain(NULL, D3D10_DRIVER_TYPE_REFERENCE, NULL, createDeviceFlags,	D3D10_SDK_VERSION, &sd, &this->m_pSwapChain, &this->m_pD3D10Device)))
+			if(FAILED(D3D10CreateDeviceAndSwapChain(nullptr, D3D10_DRIVER_TYPE_REFERENCE, nullptr, createDeviceFlags,	D3D10_SDK_VERSION, &sd, &this->m_pSwapChain, &this->m_pD3D10Device)))
 			{
-				MessageBox(NULL, _T("D3D10CreateDeviceAndSwapChain failed for D3D10_DRIVER_TYPE_REFERENCE, giving up."), _T("Could not intialized DirectX 10"), MB_OK|MB_ICONERROR);
+				MessageBox(nullptr, _T("D3D10CreateDeviceAndSwapChain failed for D3D10_DRIVER_TYPE_REFERENCE, giving up."), _T("Could not intialized DirectX 10"), MB_OK|MB_ICONERROR);
 				return false;
 			}
 		}
@@ -148,18 +149,18 @@ bool RenderInterfaceDirectX10::AttachToNative(void *nativeWindow)
 	ID3D10Texture2D *pBackBuffer;
 	if(FAILED (this->m_pSwapChain->GetBuffer(0, __uuidof(ID3D10Texture2D),(void**)&pBackBuffer)))
 	{
-		MessageBox(NULL, _T("SwapChain->GetBuffer failed."), _T("Could not intialized DirectX 10"), MB_OK|MB_ICONERROR);
+		MessageBox(nullptr, _T("SwapChain->GetBuffer failed."), _T("Could not intialized DirectX 10"), MB_OK|MB_ICONERROR);
 		return false;
 	}
-	if(FAILED(this->m_pD3D10Device->CreateRenderTargetView(pBackBuffer, NULL, &this->m_pRenderTargetView)))
+	if(FAILED(this->m_pD3D10Device->CreateRenderTargetView(pBackBuffer, nullptr, &this->m_pRenderTargetView)))
 	{
 			pBackBuffer->Release();
-			MessageBox(NULL, _T("D3D10Device->CreateRenderTargetView failed."), _T("Could not intialized DirectX 10"), MB_OK|MB_ICONERROR);
+			MessageBox(nullptr, _T("D3D10Device->CreateRenderTargetView failed."), _T("Could not intialized DirectX 10"), MB_OK|MB_ICONERROR);
 			return false;
 	}
 	pBackBuffer->Release();
 	
-	this->m_pD3D10Device->OMSetRenderTargets(1, &this->m_pRenderTargetView, NULL);
+	this->m_pD3D10Device->OMSetRenderTargets(1, &this->m_pRenderTargetView, nullptr);
 
 	D3D10_VIEWPORT vp;
 	vp.Width = width;
@@ -184,13 +185,13 @@ bool RenderInterfaceDirectX10::AttachToNative(void *nativeWindow)
 	rasterDesc.FrontCounterClockwise=TRUE;
 	if(FAILED(this->m_pD3D10Device->CreateRasterizerState(&rasterDesc, &this->m_pScissorTestEnable)))
 	{
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Can't create Raster State - ScissorEnable");
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Can't create Raster State - ScissorEnable");
 	}
 
 	rasterDesc.ScissorEnable=FALSE;
 	if(FAILED(this->m_pD3D10Device->CreateRasterizerState(&rasterDesc, &this->m_pScissorTestDisable)))
 	{
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Can't create Raster State - ScissorDisable");
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Can't create Raster State - ScissorDisable");
 	}
 
 	return true;
@@ -198,32 +199,32 @@ bool RenderInterfaceDirectX10::AttachToNative(void *nativeWindow)
 
 void RenderInterfaceDirectX10::DetachFromNative()
 {
-	if(this->m_pD3D10Device != NULL)
+	if(this->m_pD3D10Device != nullptr)
 	{
 		this->m_pD3D10Device->ClearState();
-		this->m_pD3D10Device = NULL;
+		this->m_pD3D10Device = nullptr;
 	}
-	if(this->m_pRenderTargetView != NULL)
+	if(this->m_pRenderTargetView != nullptr)
 	{
 		this->m_pRenderTargetView->Release();
-		this->m_pRenderTargetView = NULL;
+		this->m_pRenderTargetView = nullptr;
 	}
-	if(this->m_pSwapChain != NULL)
+	if(this->m_pSwapChain != nullptr)
 	{
 		this->m_pSwapChain->Release();
-		this->m_pSwapChain = NULL;
+		this->m_pSwapChain = nullptr;
 	}
-	if(this->m_pD3D10Device != NULL)
+	if(this->m_pD3D10Device != nullptr)
 	{
 		this->m_pD3D10Device->Release();
-		this->m_pD3D10Device = NULL;
+		this->m_pD3D10Device = nullptr;
 	}
 
 }
 
 void RenderInterfaceDirectX10::PrepareRenderBuffer()
 {
-	if(this->m_pD3D10Device == NULL)
+	if(this->m_pD3D10Device == nullptr)
 	{
 		return;
 	}
@@ -234,7 +235,7 @@ void RenderInterfaceDirectX10::PrepareRenderBuffer()
 
 void RenderInterfaceDirectX10::PresentRenderBuffer()
 {
-	if(this->m_pSwapChain == NULL)
+	if(this->m_pSwapChain == nullptr)
 	{
 		return;
 	}

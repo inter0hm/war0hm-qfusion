@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,13 +30,14 @@
 #include "FontEffectOutlineInstancer.h"
 #include "FontEffectOutline.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
-FontEffectOutlineInstancer::FontEffectOutlineInstancer()
+FontEffectOutlineInstancer::FontEffectOutlineInstancer() : id_width(PropertyId::Invalid), id_color(PropertyId::Invalid)
 {
-	RegisterProperty("width", "1", true)
-		.AddParser("number");
+	id_width = RegisterProperty("width", "1px", true).AddParser("length").GetId();
+	id_color = RegisterProperty("color", "white", false).AddParser("color").GetId();
+	RegisterShorthand("font-effect", "width, color", ShorthandType::FallThrough);
 }
 
 FontEffectOutlineInstancer::~FontEffectOutlineInstancer()
@@ -43,31 +45,21 @@ FontEffectOutlineInstancer::~FontEffectOutlineInstancer()
 }
 
 // Instances an outline font effect.
-FontEffect* FontEffectOutlineInstancer::InstanceFontEffect(const String& ROCKET_UNUSED_PARAMETER(name), const PropertyDictionary& properties)
+SharedPtr<FontEffect> FontEffectOutlineInstancer::InstanceFontEffect(const String& RMLUI_UNUSED_PARAMETER(name), const PropertyDictionary& properties)
 {
-	ROCKET_UNUSED(name);
+	RMLUI_UNUSED(name);
 
-	float width = properties.GetProperty("width")->Get< float >();
+	float width = properties.GetProperty(id_width)->Get< float >();
+	Colourb color = properties.GetProperty(id_color)->Get< Colourb >();
 
-	FontEffectOutline* font_effect = new FontEffectOutline();
+	auto font_effect = std::make_shared<FontEffectOutline>();
 	if (font_effect->Initialise(Math::RealToInteger(width)))
+	{
+		font_effect->SetColour(color);
 		return font_effect;
+	}
 
-	font_effect->RemoveReference();
-	ReleaseFontEffect(font_effect);
-	return NULL;
-}
-
-// Releases the given font effect.
-void FontEffectOutlineInstancer::ReleaseFontEffect(FontEffect* font_effect)
-{
-	delete font_effect;
-}
-
-// Releases the instancer.
-void FontEffectOutlineInstancer::Release()
-{
-	delete this;
+	return nullptr;
 }
 
 }

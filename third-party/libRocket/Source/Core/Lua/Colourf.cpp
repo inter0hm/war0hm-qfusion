@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +30,7 @@
 #include "Colourf.h"
 
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
 
@@ -154,7 +155,7 @@ int ColourfSetAttralpha(lua_State* L)
 
 int ColourfSetAttrrgba(lua_State* L)
 {
-    Colourf* obj = NULL;
+    Colourf* obj = nullptr;
     int top = lua_gettop(L);
     //each of the items are optional.
     if(top > 0)
@@ -179,7 +180,7 @@ int ColourfSetAttrrgba(lua_State* L)
 
 RegType<Colourf> ColourfMethods[] =
 {
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ColourfGetters[] =
@@ -189,7 +190,7 @@ luaL_Reg ColourfGetters[] =
     LUAGETTER(Colourf,blue)
     LUAGETTER(Colourf,alpha)
     LUAGETTER(Colourf,rgba)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ColourfSetters[] =
@@ -199,10 +200,10 @@ luaL_Reg ColourfSetters[] =
     LUASETTER(Colourf,blue)
     LUASETTER(Colourf,alpha)
     LUASETTER(Colourf,rgba)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
-LUACORETYPEDEFINE(Colourf,false)
+LUACORETYPEDEFINE(Colourf)
 
 
 }

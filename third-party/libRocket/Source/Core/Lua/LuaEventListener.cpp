@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,21 +28,21 @@
  
 #include "precompiled.h"
 #include "LuaEventListener.h"
-#include <Rocket/Core/Lua/Interpreter.h>
-#include <Rocket/Core/Lua/LuaType.h>
-#include <Rocket/Core/Lua/Utilities.h>
+#include <RmlUi/Core/Lua/Interpreter.h>
+#include <RmlUi/Core/Lua/LuaType.h>
+#include <RmlUi/Core/Lua/Utilities.h>
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
-typedef Rocket::Core::ElementDocument Document;
+typedef Rml::Core::ElementDocument Document;
 
 LuaEventListener::LuaEventListener(const String& code, Element* element) : EventListener()
 {
     //compose function
     String function = "return function (event,element,document) ";
-    function.Append(code);
-    function.Append(" end");
+    function.append(code);
+    function.append(" end");
 
     //make sure there is an area to save the function
     lua_State* L = Interpreter::GetLuaState();
@@ -57,7 +58,7 @@ LuaEventListener::LuaEventListener(const String& code, Element* element) : Event
     int tbl = lua_gettop(L);
 
     //compile,execute,and save the function
-    if(luaL_loadstring(L,function.CString()) != 0)
+    if(luaL_loadstring(L,function.c_str()) != 0)
     {
         Report(L);
         return;
@@ -75,9 +76,9 @@ LuaEventListener::LuaEventListener(const String& code, Element* element) : Event
 
     attached = element;
 	if(element)
-		parent = element->GetOwnerDocument();
+		owner_document = element->GetOwnerDocument();
 	else
-		parent = NULL;
+		owner_document = nullptr;
     strFunc = function;
     lua_settop(L,top);
 }
@@ -100,27 +101,35 @@ LuaEventListener::LuaEventListener(lua_State* L, int narg, Element* element)
 
 	attached = element;
 	if(element)
-		parent = element->GetOwnerDocument();
+		owner_document = element->GetOwnerDocument();
 	else
-		parent = NULL;
+		owner_document = nullptr;
     lua_settop(L,top);
 }
 
 LuaEventListener::~LuaEventListener()
 {
-    if(attached)
-        attached->RemoveReference();
-    if(parent)
-        parent->RemoveReference();
+	// Remove the Lua function from its table
+	lua_State* L = Interpreter::GetLuaState();
+	lua_getglobal(L, "EVENTLISTENERFUNCTIONS");
+	luaL_unref(L, -1, luaFuncRef);
+	lua_pop(L, 1); // pop table
+}
+
+void LuaEventListener::OnDetach(Element* element)
+{
+	// We consider this listener owned by its element, so we must delete ourselves when
+	// we detach (probably because element was removed).
+	delete this;
 }
 
 /// Process the incoming Event
 void LuaEventListener::ProcessEvent(Event& event)
 {
     //not sure if this is the right place to do this, but if the element we are attached to isn't a document, then
-    //the 'parent' variable will be NULL, because element->ower_document hasn't been set on the construction. We should
+    //the 'owner_document' variable will be nullptr, because element->ower_document hasn't been set on the construction. We should
     //correct that
-    if(!parent && attached) parent = attached->GetOwnerDocument();
+    if(!owner_document && attached) owner_document = attached->GetOwnerDocument();
     lua_State* L = Interpreter::GetLuaState();
     int top = lua_gettop(L); 
 
@@ -129,7 +138,7 @@ void LuaEventListener::ProcessEvent(Event& event)
     lua_rawgeti(L,-1,luaFuncRef);
     LuaType<Event>::push(L,&event,false);
 	LuaType<Element>::push(L,attached,false);
-    LuaType<Document>::push(L,parent,false);
+    LuaType<Document>::push(L,owner_document,false);
     
     Interpreter::ExecuteCall(3,0); //call the function at the top of the stack with 3 arguments
 

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,16 +28,16 @@
  
 #include "precompiled.h"
 #include "Context.h"
-#include <Rocket/Core/Context.h>
-#include <Rocket/Core/ElementDocument.h>
-#include <Rocket/Core/Factory.h>
+#include <RmlUi/Core/Context.h>
+#include <RmlUi/Core/ElementDocument.h>
+#include <RmlUi/Core/Factory.h>
 #include "LuaEventListener.h"
 #include "ContextDocumentsProxy.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 namespace Lua {
-typedef Rocket::Core::ElementDocument Document;
+typedef Rml::Core::ElementDocument Document;
 template<> void ExtraInit<Context>(lua_State* L, int metatable_index) { return; }
 
 //methods
@@ -44,7 +45,7 @@ int ContextAddEventListener(lua_State* L, Context* obj)
 {
    //need to make an EventListener for Lua before I can do anything else
 	const char* evt = luaL_checkstring(L,1); //event
-	Element* element = NULL;
+	Element* element = nullptr;
 	bool capturephase = false;
 	//get the rest of the stuff needed to construct the listener
 	if(lua_gettop(L) > 2)
@@ -61,27 +62,20 @@ int ContextAddEventListener(lua_State* L, Context* obj)
 		if(element)
 			element->AddEventListener(evt, new LuaEventListener(L,2,element), capturephase);
 		else
-			obj->AddEventListener(evt, new LuaEventListener(L,2,NULL), capturephase);
+			obj->AddEventListener(evt, new LuaEventListener(L,2,nullptr), capturephase);
 	}
 	else if(type == LUA_TSTRING)
 	{
 		if(element)
 			element->AddEventListener(evt, new LuaEventListener(luaL_checkstring(L,2),element), capturephase);
 		else
-			obj->AddEventListener(evt, new LuaEventListener(luaL_checkstring(L,2),NULL), capturephase);
+			obj->AddEventListener(evt, new LuaEventListener(luaL_checkstring(L,2),nullptr), capturephase);
 	}
 	else
 	{
 		Log::Message(Log::LT_WARNING, "Lua Context:AddEventLisener's 2nd argument can only be a Lua function or a string, you passed in a %s", lua_typename(L,type));
 	}
     return 0;
-}
-
-int ContextAddMouseCursor(lua_State* L, Context* obj)
-{
-    Document* cursor_doc = LuaType<Document>::check(L,1);
-    obj->AddMouseCursor(cursor_doc);
-    return 0;   
 }
 
 int ContextCreateDocument(lua_State* L, Context* obj)
@@ -92,7 +86,7 @@ int ContextCreateDocument(lua_State* L, Context* obj)
     else
         tag = luaL_checkstring(L,1);
     Document* doc = obj->CreateDocument(tag);
-    LuaType<Document>::push(L,doc,true);
+    LuaType<Document>::push(L,doc,false);
     return 1;
 }
 
@@ -101,15 +95,6 @@ int ContextLoadDocument(lua_State* L, Context* obj)
     const char* path = luaL_checkstring(L,1);
     Document* doc = obj->LoadDocument(path);
     LuaType<Document>::push(L,doc,false);
-	doc->RemoveReference();
-    return 1;
-}
-
-int ContextLoadMouseCursor(lua_State* L, Context* obj)
-{
-    const char* path = luaL_checkstring(L,1);
-    Document* doc = obj->LoadMouseCursor(path);
-    LuaType<Document>::push(L,doc);
     return 1;
 }
 
@@ -119,22 +104,9 @@ int ContextRender(lua_State* L, Context* obj)
     return 1;
 }
 
-int ContextShowMouseCursor(lua_State* L, Context* obj)
-{
-    bool show = CHECK_BOOL(L,1);
-    obj->ShowMouseCursor(show);
-    return 0;
-}
-
 int ContextUnloadAllDocuments(lua_State* L, Context* obj)
 {
     obj->UnloadAllDocuments();
-    return 0;
-}
-
-int ContextUnloadAllMouseCursors(lua_State* L, Context* obj)
-{
-    obj->UnloadAllMouseCursors();
     return 0;
 }
 
@@ -142,13 +114,6 @@ int ContextUnloadDocument(lua_State* L, Context* obj)
 {
     Document* doc = LuaType<Document>::check(L,1);
     obj->UnloadDocument(doc);
-    return 0;
-}
-
-int ContextUnloadMouseCursor(lua_State* L, Context* obj)
-{
-    const char* name = luaL_checkstring(L,1);
-    obj->UnloadMouseCursor(name);
     return 0;
 }
 
@@ -201,7 +166,7 @@ int ContextGetAttrname(lua_State* L)
 {
     Context* cont = LuaType<Context>::check(L,1);
     LUACHECKOBJ(cont);
-    lua_pushstring(L,cont->GetName().CString());
+    lua_pushstring(L,cont->GetName().c_str());
     return 1;
 }
 
@@ -229,18 +194,13 @@ int ContextSetAttrdimensions(lua_State* L)
 RegType<Context> ContextMethods[] =
 {
     LUAMETHOD(Context,AddEventListener)
-    LUAMETHOD(Context,AddMouseCursor)
     LUAMETHOD(Context,CreateDocument)
     LUAMETHOD(Context,LoadDocument)
-    LUAMETHOD(Context,LoadMouseCursor)
     LUAMETHOD(Context,Render)
-    LUAMETHOD(Context,ShowMouseCursor)
     LUAMETHOD(Context,UnloadAllDocuments)
-    LUAMETHOD(Context,UnloadAllMouseCursors)
     LUAMETHOD(Context,UnloadDocument)
-    LUAMETHOD(Context,UnloadMouseCursor)
     LUAMETHOD(Context,Update)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ContextGetters[] =
@@ -251,16 +211,16 @@ luaL_Reg ContextGetters[] =
     LUAGETTER(Context,hover_element)
     LUAGETTER(Context,name)
     LUAGETTER(Context,root_element)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
 luaL_Reg ContextSetters[] =
 {
     LUASETTER(Context,dimensions)
-    { NULL, NULL },
+    { nullptr, nullptr },
 };
 
-LUACORETYPEDEFINE(Context,true)
+LUACORETYPEDEFINE(Context)
 }
 }
 }

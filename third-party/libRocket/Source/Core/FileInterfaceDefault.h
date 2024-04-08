@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,18 +26,18 @@
  *
  */
 
-#ifndef ROCKETCOREFILEINTERFACEDEFAULT_H
-#define ROCKETCOREFILEINTERFACEDEFAULT_H
+#ifndef RMLUICOREFILEINTERFACEDEFAULT_H
+#define RMLUICOREFILEINTERFACEDEFAULT_H
 
-#include "../../Include/Rocket/Core/FileInterface.h"
+#include "../../Include/RmlUi/Core/FileInterface.h"
 
-#ifndef ROCKET_NO_FILE_INTERFACE_DEFAULT
+#ifndef RMLUI_NO_FILE_INTERFACE_DEFAULT
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
-	Implementation of the Rocket file interface using the Standard C file functions.
+	Implementation of the RmlUi file interface using the Standard C file functions.
 
 	@author Peter Curry
  */
@@ -48,33 +49,33 @@ public:
 
 	/// Opens a file.		
 	/// @param path The path of the file to open.		
-	/// @return A valid file handle, or NULL on failure
-	virtual FileHandle Open(const String& path);
+	/// @return A valid file handle, or nullptr on failure
+	FileHandle Open(const String& path) override;
 	/// Closes a previously opened file.
 	/// @param file The file handle previously opened through Open().
-	virtual void Close(FileHandle file);
+	void Close(FileHandle file) override;
 
 	/// Reads data from a previously opened file.
 	/// @param buffer The buffer to be read into.
 	/// @param size The number of bytes to read into the buffer.
 	/// @param file The handle of the file.
 	/// @return The total number of bytes read into the buffer.
-	virtual size_t Read(void* buffer, size_t size, FileHandle file);
+	size_t Read(void* buffer, size_t size, FileHandle file) override;
 	/// Seeks to a point in a previously opened file.
 	/// @param file The handle of the file to seek.
 	/// @param offset The number of bytes to seek.
 	/// @param origin One of either SEEK_SET (seek from the beginning of the file), SEEK_END (seek from the end of the file) or SEEK_CUR (seek from the current file position).
 	/// @return True if the operation completed successfully, false otherwise.
-	virtual bool Seek(FileHandle file, long offset, int origin);
+	bool Seek(FileHandle file, long offset, int origin) override;
 	/// Returns the current position of the file pointer.
 	/// @param file The handle of the file to be queried.
 	/// @return The number of bytes from the origin of the file.
-	virtual size_t Tell(FileHandle file);
+	size_t Tell(FileHandle file) override;
 };
 
 }
 }
 
-#endif /*ROCKET_NO_FILE_INTERFACE_DEFAULT*/
+#endif /*RMLUI_NO_FILE_INTERFACE_DEFAULT*/
 
 #endif

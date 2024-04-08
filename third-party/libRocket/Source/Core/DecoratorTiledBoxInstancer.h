@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,12 @@
  *
  */
 
-#ifndef ROCKETCOREDECORATORTILEDBOXINSTANCER_H
-#define ROCKETCOREDECORATORTILEDBOXINSTANCER_H
+#ifndef RMLUICOREDECORATORTILEDBOXINSTANCER_H
+#define RMLUICOREDECORATORTILEDBOXINSTANCER_H
 
 #include "DecoratorTiledInstancer.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
@@ -41,15 +42,10 @@ class DecoratorTiledBoxInstancer : public DecoratorTiledInstancer
 {
 public:
 	DecoratorTiledBoxInstancer();
-	virtual ~DecoratorTiledBoxInstancer();
+	~DecoratorTiledBoxInstancer();
 
 	/// Instances a box decorator.
-	virtual Decorator* InstanceDecorator(const String& name, const PropertyDictionary& properties);
-	/// Releases the given decorator.
-	virtual void ReleaseDecorator(Decorator* decorator);
-
-	/// Releases the instancer.
-	virtual void Release();
+	SharedPtr<Decorator> InstanceDecorator(const String& name, const PropertyDictionary& properties, const DecoratorInstancerInterface& interface) override;
 };
 
 }

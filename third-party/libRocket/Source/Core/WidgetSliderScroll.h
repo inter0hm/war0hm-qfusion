@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,12 @@
  *
  */
 
-#ifndef ROCKETCOREWIDGETSLIDERSCROLL_H
-#define ROCKETCOREWIDGETSLIDERSCROLL_H
+#ifndef RMLUICOREWIDGETSLIDERSCROLL_H
+#define RMLUICOREWIDGETSLIDERSCROLL_H
 
 #include "WidgetSlider.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
@@ -68,23 +69,23 @@ protected:
 	/// Called when the slider's bar position is set or dragged.
 	/// @param bar_position[in] The new position of the bar (0 representing the start of the track, 1 representing the end).
 	/// @return The new position of the bar.
-	virtual float OnBarChange(float bar_position);
+	float OnBarChange(float bar_position) override;
 	/// Called when the slider is incremented by one 'line', either by the down / right key or a mouse-click on the
 	/// increment arrow.
 	/// @return The new position of the bar.
-	virtual float OnLineIncrement();
+	float OnLineIncrement() override;
 	/// Called when the slider is decremented by one 'line', either by the up / left key or a mouse-click on the
 	/// decrement arrow.
 	/// @return The new position of the bar.
-	virtual float OnLineDecrement();
+	float OnLineDecrement() override;
 	/// Called when the slider is incremented by one 'page', either by the page-up key or a mouse-click on the
 	/// track below / right of the bar.
 	/// @return The new position of the bar.
-	virtual float OnPageIncrement(float click_position);
+	float OnPageIncrement(float click_position) override;
 	/// Called when the slider is incremented by one 'page', either by the page-down key or a mouse-click on the
 	/// track above / left of the bar.
 	/// @return The new position of the bar.
-	virtual float OnPageDecrement(float click_position);
+	float OnPageDecrement(float click_position) override;
 
 private:
 	// Returns the bar position after scrolling for a number of pixels.

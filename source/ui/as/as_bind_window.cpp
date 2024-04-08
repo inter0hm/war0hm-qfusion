@@ -58,11 +58,7 @@ public:
 
 		// remove schedulers for all documents we hold references to
 		for( SchedulerMap::iterator it = schedulers.begin(); it != schedulers.end(); ++it ) {
-			ElementDocument *doc = it->first;
 			FunctionCallScheduler *scheduler = it->second;
-
-			doc->RemoveReference();
-			doc->RemoveEventListener( "beforeUnload", this );
 
 			scheduler->shutdown();
 			__delete__( scheduler );
@@ -87,9 +83,7 @@ public:
 		WSWUI::Document *ui_document = new_stack->pushDocument( location.buffer );
 		if( !ui_document ) {
 			return NULL;
-		
 		}
-		ui_document->addReference();
 		return ui_document->getRocketDocument();
 	}
 
@@ -196,8 +190,6 @@ public:
 		scheduler->shutdown();
 		__delete__( scheduler );
 
-		doc->RemoveReference();
-
 		schedulers.erase( it );
 	}
 
@@ -205,7 +197,6 @@ public:
 	{
 		ElementDocument *document = GetCurrentUIDocument();
 		assert( document != NULL );
-		document->AddReference();
 		return document;
 	}
 
@@ -213,7 +204,7 @@ public:
 	{
 		ElementDocument *document = GetCurrentUIDocument();
 		assert( document != NULL );
-		return ASSTR( document->GetSourceURL().CString() );
+		return ASSTR( document->GetSourceURL().c_str() );
 	}
 
 	void setLocation( const asstring_t &location )
@@ -384,8 +375,8 @@ private:
 		if( !m ) {
 			return NULL;
 		}
-		WSWUI::Document *ui_document = static_cast<WSWUI::Document *>( m->GetUserData() );
-		return ui_document ? ui_document->getRocketDocument() : NULL;
+		UI_ScriptDocument *ui_document = static_cast<UI_ScriptDocument *>( m->GetUserData() );
+		return ui_document;
 	}
 
 	static WSWUI::NavigationStack *GetCurrentUIStack( void )
@@ -395,8 +386,9 @@ private:
 		if( !m ) {
 			return NULL;
 		}
-		WSWUI::Document *ui_document = static_cast<WSWUI::Document *>( m->GetUserData() );
-		return ui_document ? ui_document->getStack() : NULL;
+		UI_ScriptDocument *ui_document = static_cast<UI_ScriptDocument *>( m->GetUserData() );
+		WSWUI::Document *wsw_document = static_cast<WSWUI::Document *>( ui_document->GetScriptObject() );
+		return wsw_document ? wsw_document->getStack() : NULL;
 	}
 
 	void detachAsEventListener( void )
@@ -418,12 +410,8 @@ private:
 
 		FunctionCallScheduler *scheduler;
 		if( it == schedulers.end() ) {
-			doc->AddReference();
-			doc->AddEventListener( "beforeUnload", this );
-
 			scheduler = __new__( FunctionCallScheduler )();
 			scheduler->init( UI_Main::Get()->getAS() );
-
 			schedulers[doc] = scheduler;
 		}
 		else {

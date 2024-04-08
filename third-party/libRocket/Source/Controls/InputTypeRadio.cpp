@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,11 +27,11 @@
  */
 
 #include "InputTypeRadio.h"
-#include "../../Include/Rocket/Controls/ElementFormControlInput.h"
-#include "../../Include/Rocket/Core/ElementUtilities.h"
-#include "../../Include/Rocket/Controls/ElementForm.h"
+#include "../../Include/RmlUi/Controls/ElementFormControlInput.h"
+#include "../../Include/RmlUi/Core/ElementUtilities.h"
+#include "../../Include/RmlUi/Controls/ElementForm.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 InputTypeRadio::InputTypeRadio(ElementFormControlInput* element) : InputType(element)
@@ -50,7 +51,7 @@ bool InputTypeRadio::IsSubmitted()
 }
 
 // Checks for necessary functional changes in the control as a result of changed attributes.
-bool InputTypeRadio::OnAttributeChange(const Core::AttributeNameList& changed_attributes)
+bool InputTypeRadio::OnAttributeChange(const Core::ElementAttributes& changed_attributes)
 {
 	// Check if maxlength has been defined.
 	if (changed_attributes.find("checked") != changed_attributes.end())
@@ -61,9 +62,9 @@ bool InputTypeRadio::OnAttributeChange(const Core::AttributeNameList& changed_at
 		if (checked)
 			PopRadioSet();
 
-		Rocket::Core::Dictionary parameters;
-		parameters.Set("value", Rocket::Core::String(checked ? GetValue() : ""));
-		element->DispatchEvent("change", parameters);
+		Rml::Core::Dictionary parameters;
+		parameters["value"] = Rml::Core::String(checked ? GetValue() : "");
+		element->DispatchEvent(Core::EventId::Change, parameters);
 	}
 
 	return true;
@@ -77,15 +78,15 @@ void InputTypeRadio::OnChildAdd()
 }
 
 // Checks for necessary functional changes in the control as a result of the event.
-void InputTypeRadio::ProcessEvent(Core::Event& event)
+void InputTypeRadio::ProcessDefaultAction(Core::Event& event)
 {
-	if (event == "click" &&
+	if (event == Core::EventId::Click &&
 		!element->IsDisabled())
 		element->SetAttribute("checked", "");
 }
 
 // Sizes the dimensions to the element's inherent size.
-bool InputTypeRadio::GetIntrinsicDimensions(Rocket::Core::Vector2f& dimensions)
+bool InputTypeRadio::GetIntrinsicDimensions(Rml::Core::Vector2f& dimensions)
 {
 	dimensions.x = 16;
 	dimensions.y = 16;
@@ -97,13 +98,13 @@ bool InputTypeRadio::GetIntrinsicDimensions(Rocket::Core::Vector2f& dimensions)
 void InputTypeRadio::PopRadioSet()
 {
 	// Uncheck all other radio buttons with our name in the form.
-	ElementForm* form = NULL;
+	ElementForm* form = nullptr;
 	Core::Element* parent = element->GetParentNode();
-	while (parent != NULL &&
-		   (form = dynamic_cast< ElementForm* >(parent)) == NULL)
+	while (parent != nullptr &&
+		   (form = dynamic_cast< ElementForm* >(parent)) == nullptr)
 	   parent = parent->GetParentNode();
 
-	if (form != NULL)
+	if (form != nullptr)
 	{
 		Core::ElementList form_controls;
 		Core::ElementUtilities::GetElementsByTagName(form_controls, form, "input");
@@ -111,9 +112,9 @@ void InputTypeRadio::PopRadioSet()
 		for (size_t i = 0; i < form_controls.size(); ++i)
 		{
 			ElementFormControlInput* radio_control = dynamic_cast< ElementFormControlInput* >(form_controls[i]);
-			if (radio_control != NULL &&
+			if (radio_control != nullptr &&
 				element != radio_control &&
-				radio_control->GetAttribute< Rocket::Core::String >("type", "text") == "radio" &&
+				radio_control->GetAttribute< Rml::Core::String >("type", "text") == "radio" &&
 				radio_control->GetName() == element->GetName())
 			{
 				radio_control->RemoveAttribute("checked");

@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,48 +27,36 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/Geometry.h"
-#include "../../Include/Rocket/Core.h"
-#include "GeometryDatabase.h"
+#include "../../Include/RmlUi/Core/Geometry.h"
+#include "../../Include/RmlUi/Core.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
-
-static bool read_texel_offset = false;
-static Vector2f texel_offset;
 
 Geometry::Geometry(Element* _host_element)
 {
 	host_element = _host_element;
-	host_context = NULL;
+	host_context = nullptr;
 
-	GeometryDatabase::AddGeometry(this);
+	texture = nullptr;
 
-	texture = NULL;
-
-	fixed_texcoords = false;
 	compile_attempted = false;
 	compiled_geometry = 0;
 }
 
 Geometry::Geometry(Context* _host_context)
 {
-	host_element = NULL;
+	host_element = nullptr;
 	host_context = _host_context;
 
-	GeometryDatabase::AddGeometry(this);
+	texture = nullptr;
 
-	texture = NULL;
-
-	fixed_texcoords = false;
 	compile_attempted = false;
 	compiled_geometry = 0;
 }
 
 Geometry::~Geometry()
 {
-	GeometryDatabase::RemoveGeometry(this);
-
 	Release();
 }
 
@@ -77,10 +66,10 @@ void Geometry::SetHostElement(Element* _host_element)
 	if (host_element == _host_element)
 		return;
 
-	if (host_element != NULL)
+	if (host_element != nullptr)
 	{
 		Release();
-		host_context = NULL;
+		host_context = nullptr;
 	}
 
 	host_element = _host_element;
@@ -89,12 +78,13 @@ void Geometry::SetHostElement(Element* _host_element)
 void Geometry::Render(const Vector2f& translation)
 {
 	RenderInterface* render_interface = GetRenderInterface();
-	if (render_interface == NULL)
+	if (render_interface == nullptr)
 		return;
 
 	// Render our compiled geometry if possible.
 	if (compiled_geometry)
 	{
+		RMLUI_ZoneScopedN("RenderCompiled");
 		render_interface->RenderCompiledGeometry(compiled_geometry, translation);
 	}
 	// Otherwise, if we actually have geometry, try to compile it if we haven't already done so, otherwise render it in
@@ -105,30 +95,12 @@ void Geometry::Render(const Vector2f& translation)
 			indices.empty())
 			return;
 
+		RMLUI_ZoneScopedN("RenderGeometry");
+
 		if (!compile_attempted)
 		{
-			if (!fixed_texcoords)
-			{
-				fixed_texcoords = true;
-
-				if (!read_texel_offset)
-				{
-					read_texel_offset = true;
-					texel_offset.x = render_interface->GetHorizontalTexelOffset();
-					texel_offset.y = render_interface->GetVerticalTexelOffset();
-				}
-
-				// Add a half-texel offset if required.
-				if (texel_offset.x != 0 ||
-					texel_offset.y != 0)
-				{
-					for (size_t i = 0; i < vertices.size(); ++i)
-						vertices[i].position += texel_offset;
-				}
-			}
-
 			compile_attempted = true;
-			compiled_geometry = render_interface->CompileGeometry(&vertices[0], (int) vertices.size(), &indices[0], (int) indices.size(), texture != NULL ? texture->GetHandle(GetRenderInterface()) : 0);
+			compiled_geometry = render_interface->CompileGeometry(&vertices[0], (int) vertices.size(), &indices[0], (int) indices.size(), texture != nullptr ? texture->GetHandle(GetRenderInterface()) : 0);
 
 			// If we managed to compile the geometry, we can clear the local copy of vertices and indices and
 			// immediately render the compiled version.
@@ -141,7 +113,7 @@ void Geometry::Render(const Vector2f& translation)
 
 		// Either we've attempted to compile before (and failed), or the compile we just attempted failed; either way,
 		// render the uncompiled version.
-		render_interface->RenderGeometry(&vertices[0], (int) vertices.size(), &indices[0], (int) indices.size(), texture != NULL ? texture->GetHandle(GetRenderInterface()) : 0, translation);
+		render_interface->RenderGeometry(&vertices[0], (int) vertices.size(), &indices[0], (int) indices.size(), texture != nullptr ? texture->GetHandle(GetRenderInterface()) : 0, translation);
 	}
 }
 
@@ -184,21 +156,20 @@ void Geometry::Release(bool clear_buffers)
 	{
 		vertices.clear();
 		indices.clear();
-		fixed_texcoords = false;
 	}
 }
 
 // Returns the host context's render interface.
 RenderInterface* Geometry::GetRenderInterface()
 {
-	if (host_context == NULL)
+	if (host_context == nullptr)
 	{
-		if (host_element != NULL)
+		if (host_element != nullptr)
 			host_context = host_element->GetContext();
 	}
 
-	if (host_context == NULL)
-		return Rocket::Core::GetRenderInterface();
+	if (host_context == nullptr)
+		return Rml::Core::GetRenderInterface();
 	else
 		return host_context->GetRenderInterface();
 }

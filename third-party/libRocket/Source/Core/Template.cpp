@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,21 +29,18 @@
 #include "precompiled.h"
 #include "Template.h"
 #include "XMLParseTools.h"
-#include "../../Include/Rocket/Core/ElementUtilities.h"
-#include "../../Include/Rocket/Core/XMLParser.h"
+#include "../../Include/RmlUi/Core/ElementUtilities.h"
+#include "../../Include/RmlUi/Core/XMLParser.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 Template::Template()
 {
-	body = NULL;
 }
 
 Template::~Template()
 {
-	if (body)
-		body->RemoveReference();
 }
 
 const String& Template::GetName() const
@@ -58,7 +56,7 @@ bool Template::Load(Stream* stream)
 	stream->Read(buffer, stream->Length());
 
 	// Pull out the header
-	const char* head_start = XMLParseTools::FindTag("head", buffer.CString());
+	const char* head_start = XMLParseTools::FindTag("head", buffer.c_str());
 	if (!head_start)	
 		return false;
 
@@ -83,7 +81,7 @@ bool Template::Load(Stream* stream)
 	// storing the ones we're interested in.
 	String attribute_name;
 	String attribute_value;
-	const char* ptr = XMLParseTools::FindTag("template", buffer.CString());
+	const char* ptr = XMLParseTools::FindTag("template", buffer.c_str());
 	if (!ptr)
 		return false;
 
@@ -96,18 +94,18 @@ bool Template::Load(Stream* stream)
 	}
 
 	// Create a stream around the header, parse it and store it
-	StreamMemory* header_stream = new StreamMemory((const byte*) head_start,head_end - head_start);
+	auto header_stream = std::make_unique<StreamMemory>((const byte*) head_start,head_end - head_start);
 	header_stream->SetSourceURL(stream->GetSourceURL());
 
-	XMLParser parser(NULL);
-	parser.Parse(header_stream);
+	XMLParser parser(nullptr);
+	parser.Parse(header_stream.get());
 
-	header_stream->RemoveReference();
+	header_stream.reset();
 
 	header = *parser.GetDocumentHeader();
 
 	// Store the body in stream form
-	body = new StreamMemory(body_end - body_start);	
+	body = std::make_unique<StreamMemory>(body_end - body_start);	
 	body->SetSourceURL(stream->GetSourceURL());
 	body->PushBack(body_start, body_end - body_start);
 
@@ -119,11 +117,11 @@ Element* Template::ParseTemplate(Element* element)
 	body->Seek(0, SEEK_SET);
 
 	XMLParser parser(element);
-	parser.Parse(body);
+	parser.Parse(body.get());
 
 	// If theres an inject attribute on the template, 
 	// attempt to find the required element
-	if (!content.Empty())
+	if (!content.empty())
 	{
 		Element* content_element = ElementUtilities::GetElementById(element, content);
 		if (content_element)

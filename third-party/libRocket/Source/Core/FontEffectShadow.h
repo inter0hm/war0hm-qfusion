@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,12 @@
  *
  */
 
-#ifndef ROCKETCOREFONTEFFECTSHADOW_H
-#define ROCKETCOREFONTEFFECTSHADOW_H
+#ifndef RMLUICOREFONTEFFECTSHADOW_H
+#define RMLUICOREFONTEFFECTSHADOW_H
 
-#include "../../Include/Rocket/Core/FontEffect.h"
+#include "../../Include/RmlUi/Core/FontEffect.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
@@ -49,6 +50,17 @@ public:
 	/// @param[in] offset The offset, in pixels, of the shadow from the original text.
 	/// @return True if the effect initialised successfully, false if not.
 	bool Initialise(const Vector2i& offset);
+
+	/// Returns false.
+	/// @return False.
+	bool HasUniqueTexture() const override;
+
+	/// Repositions the glyph by the offset.
+	/// @param[out] origin The desired origin of the effect's glyph bitmap, as a pixel offset from its original origin. This defaults to (0, 0).
+	/// @param[out] dimensions The desired dimensions of the effect's glyph bitmap, in pixels. This defaults to the dimensions of the glyph's original bitmap.
+	/// @param[in] glyph The glyph the effect is being asked to size.
+	/// @return False if the effect is not providing support for the glyph, true otherwise.
+	bool GetGlyphMetrics(Vector2i& origin, Vector2i& dimensions, const FontGlyph& glyph) const override;
 
 private:
 	Vector2i offset;

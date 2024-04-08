@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,18 +26,16 @@
  *
  */
 
-#ifndef ROCKETCOREELEMENTIMAGE_H
-#define ROCKETCOREELEMENTIMAGE_H
+#ifndef RMLUICOREELEMENTIMAGE_H
+#define RMLUICOREELEMENTIMAGE_H
 
-#include "../../Include/Rocket/Core/Header.h"
-#include "../../Include/Rocket/Core/Element.h"
-#include "../../Include/Rocket/Core/Geometry.h"
-#include "../../Include/Rocket/Core/Texture.h"
+#include "../../Include/RmlUi/Core/Header.h"
+#include "../../Include/RmlUi/Core/Element.h"
+#include "../../Include/RmlUi/Core/Geometry.h"
+#include "../../Include/RmlUi/Core/Texture.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
-
-class TextureResource;
 
 /**
 	The 'img' element. The image element can have a rectangular sub-region of its source texture
@@ -63,7 +62,7 @@ class TextureResource;
 	@author Peter Curry
  */
 
-class ROCKETCORE_API ElementImage : public Element
+class RMLUICORE_API ElementImage : public Element
 {
 public:
 	/// Constructs a new ElementImage. This should not be called directly; use the Factory instead.
@@ -74,19 +73,22 @@ public:
 	/// Returns the element's inherent size.
 	/// @param[out] The element's intrinsic dimensions.
 	/// @return True.
-	bool GetIntrinsicDimensions(Vector2f& dimensions);
+	bool GetIntrinsicDimensions(Vector2f& dimensions) override;
 
 protected:
 	/// Renders the image.
-	virtual void OnRender();
+	void OnRender() override;
+
+	/// Regenerates the element's geometry.
+	void OnResize() override;
 
 	/// Checks for changes to the image's source or dimensions.
 	/// @param[in] changed_attributes A list of attributes changed on the element.
-	virtual void OnAttributeChange(const AttributeNameList& changed_attributes);
+	void OnAttributeChange(const ElementAttributes& changed_attributes) override;
 
-	/// Regenerates the element's geometry on a resize event.
-	/// @param[in] event The event to process.
-	virtual void ProcessEvent(Event& event);
+	/// Called when properties on the element are changed.
+	/// @param[in] changed_properties The properties changed on the element.
+	void OnPropertyChange(const PropertyIdSet& changed_properties) override;
 
 private:
 	// Generates the element's geometry.
@@ -104,10 +106,10 @@ private:
 	// that dimension has not been computed yet.
 	Vector2f dimensions;
 
-	// The integer coords extracted from the 'coords' attribute. using_coords will be false if
+	// The coords extracted from the sprite or 'coords' attribute. The coords_source will be None if
 	// these have not been specified or are invalid.
-	int coords[4];
-	bool using_coords;
+	Rectangle coords;
+	enum class CoordsSource { None, Attribute, Sprite } coords_source;
 
 	// The geometry used to render this element.
 	Geometry geometry;

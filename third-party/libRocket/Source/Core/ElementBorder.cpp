@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,13 @@
  *
  */
 
+ 
 #include "precompiled.h"
 #include "ElementBorder.h"
-#include "../../Include/Rocket/Core/Element.h"
-#include "../../Include/Rocket/Core/Property.h"
+#include "../../Include/RmlUi/Core/Element.h"
+#include "../../Include/RmlUi/Core/Property.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 ElementBorder::ElementBorder(Element* _element) : geometry(_element)
@@ -46,6 +48,7 @@ ElementBorder::~ElementBorder()
 // Renders the element's border, if it has one.
 void ElementBorder::RenderBorder()
 {
+	RMLUI_ZoneScoped;
 	if (border_dirty)
 	{
 		border_dirty = false;
@@ -87,12 +90,19 @@ void ElementBorder::GenerateBorder()
 	{
 		Vertex* raw_vertices = &vertices[0];
 		int* raw_indices = &indices[0];
+		const ComputedValues& computed = element->GetComputedValues();
 
 		Colourb border_colours[4];
-		border_colours[0] = element->GetProperty(BORDER_TOP_COLOR)->value.Get< Colourb >();
-		border_colours[1] = element->GetProperty(BORDER_RIGHT_COLOR)->value.Get< Colourb >();
-		border_colours[2] = element->GetProperty(BORDER_BOTTOM_COLOR)->value.Get< Colourb >();
-		border_colours[3] = element->GetProperty(BORDER_LEFT_COLOR)->value.Get< Colourb >();
+		border_colours[0] = computed.border_top_color;
+		border_colours[1] = computed.border_right_color;
+		border_colours[2] = computed.border_bottom_color;
+		border_colours[3] = computed.border_left_color;
+
+		// Apply opacity to the border
+		float opacity = computed.opacity;
+		for(int i = 0; i < 4; ++i) {
+			border_colours[i].alpha = (byte)(opacity * (float)border_colours[i].alpha);
+		}
 
 		for (int i = 0; i < element->GetNumBoxes(); ++i)
 			GenerateBorder(raw_vertices, raw_indices, index_offset, element->GetBox(i), border_colours);

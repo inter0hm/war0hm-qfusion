@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,28 +26,30 @@
  *
  */
 
-static const char* beacon_rcss =
-"body\n"
-"{\n"
-"	position: absolute;\n"
-"	top: 5px;\n"
-"	right: 33px;\n"
-"	z-index: top;\n"
-"	width: 20px;\n"
-"	font-family: Lacuna;\n"
-"	font-size: 12px;\n"
-"	color: black;\n"
-"	visibility: hidden;\n"
-"}\n"
-"button\n"
-"{\n"
-"	display: block;\n"
-"	width: 18px;\n"
-"	height: 18px;\n"
-"	text-align: center;\n"
-"	border-width: 1px;\n"
-"	font-weight: bold;\n"
-"}\n";
+static const char* beacon_rcss = R"RCSS(
+body
+{
+	position: absolute;
+	top: 5px;
+	right: 33dp;
+	z-index: 1000000;
+	width: 20px;
+	font-family: rmlui-debugger-font;
+	font-size: 12dp;
+	color: black;
+	visibility: hidden;
+}
+button
+{
+	display: block;
+	width: 18dp;
+	height: 18dp;
+	text-align: center;
+	border-width: 1px;
+	font-weight: bold;
+}
+)RCSS";
 
-static const char* beacon_rml =
-"<button class=\"error\">!</button>\n";
+static const char* beacon_rml = R"RML(
+<button class="error">!</button>;
+)RML";

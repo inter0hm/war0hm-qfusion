@@ -31,8 +31,7 @@ namespace WSWUI
 {
 
 ProfilesDataSource::ProfilesDataSource( void ) :
-	Rocket::Controls::DataSource( PROFILES_SOURCE )
-{
+	Rml::Controls::DataSource( PROFILES_SOURCE ) {
 	UpdateProfiles();
 }
 
@@ -47,9 +46,8 @@ void ProfilesDataSource::UpdateProfiles( void )
 	getFileList( profilesList, "profiles", ".cfg", false );
 }
 
-void ProfilesDataSource::GetRow( StringList &row, const String &table, int row_index, const StringList &columns)
-{
-	if( row_index < 0 || (size_t)row_index >= profilesList.size() )
+void ProfilesDataSource::GetRow( Rml::Core::StringList &row, const std::string &table, int row_index, const Rml::Core::StringList &columns ) {
+	if( row_index < 0 || (size_t)row_index >= profilesList.size() ) {
 		return;
 
 	// populate table
@@ -63,8 +61,7 @@ void ProfilesDataSource::GetRow( StringList &row, const String &table, int row_i
 	}
 }
 
-int ProfilesDataSource::GetNumRows(const String &table)
-{
+int ProfilesDataSource::GetNumRows( const std::string &table ) {
 	return profilesList.size();
 }
 

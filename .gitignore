@@ -45,3 +45,5 @@ third-party/steamworks/sdk
 
 # Ignore Visual Studio database files
 .vs
+
+third-party/libRocket~985f94cfa (Move to RmlUi)

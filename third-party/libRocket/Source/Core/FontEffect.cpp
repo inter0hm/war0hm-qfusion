@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,28 +27,44 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/FontEffect.h"
-#include "../../Include/Rocket/Core/FontDatabase.h"
-#include "../../Include/Rocket/Core/FontEffectInstancer.h"
+#include "../../Include/RmlUi/Core/FontEffect.h"
+#include "../../Include/RmlUi/Core/FontEffectInstancer.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 FontEffect::FontEffect() : colour(255, 255, 255)
 {
-	instancer = NULL;
-	z_index = 0;
-	specificity = -1;
+	layer = Layer::Back;
 }
 
 FontEffect::~FontEffect()
 {
 }
 
-// Returns the name of the effect; this is the type that instanced the effect.
-const String& FontEffect::GetName() const
+// Asks the font effect if it requires, and will generate, its own unique texture.
+bool FontEffect::HasUniqueTexture() const
 {
-	return name;
+	return false;
+}
+
+// Gets the effect to resize and reposition a glyph's bitmap.
+bool FontEffect::GetGlyphMetrics(Vector2i& RMLUI_UNUSED_PARAMETER(origin), Vector2i& RMLUI_UNUSED_PARAMETER(dimensions), const FontGlyph& RMLUI_UNUSED_PARAMETER(glyph)) const
+{
+	RMLUI_UNUSED(origin);
+	RMLUI_UNUSED(dimensions);
+	RMLUI_UNUSED(glyph);
+
+	return false;
+}
+
+// Requests the effect to generate the texture data for a single glyph's bitmap.
+void FontEffect::GenerateGlyphTexture(byte* RMLUI_UNUSED_PARAMETER(destination_data), const Vector2i& RMLUI_UNUSED_PARAMETER(destination_dimensions), int RMLUI_UNUSED_PARAMETER(destination_stride), const FontGlyph& RMLUI_UNUSED_PARAMETER(glyph)) const
+{
+	RMLUI_UNUSED(destination_data);
+	RMLUI_UNUSED(destination_dimensions);
+	RMLUI_UNUSED(destination_stride);
+	RMLUI_UNUSED(glyph);
 }
 
 // Sets the colour of the effect's geometry.
@@ -62,43 +79,24 @@ const Colourb& FontEffect::GetColour() const
 	return colour;
 }
 
-// Sets the z-index of the font effect.
-void FontEffect::SetZIndex(float _z_index)
+FontEffect::Layer FontEffect::GetLayer() const
 {
-	z_index = _z_index;
+	return layer;
 }
 
-// Returns the font effect's z-index.
-float FontEffect::GetZIndex() const
+void FontEffect::SetLayer(Layer _layer)
 {
-	return z_index;
+	layer = _layer;
 }
 
-// Sets the specificity of the font effect.
-void FontEffect::SetSpecificity(int _specificity)
+size_t FontEffect::GetFingerprint() const
 {
-	specificity = _specificity;
+	return fingerprint;
 }
 
-// Returns the specificity of the font effect.
-int FontEffect::GetSpecificity() const
+void FontEffect::SetFingerprint(size_t _fingerprint)
 {
-	return specificity;
-}
-
-// Returns the font effect's geometry / texture generation key.
-const String& FontEffect::GetGenerationKey() const
-{
-	return generation_key;
-}
-
-// Releases the decorator through its instancer.
-void FontEffect::OnReferenceDeactivate()
-{
-	FontDatabase::ReleaseFontEffect(this);
-
-	if (instancer != NULL)
-		instancer->ReleaseFontEffect(this);
+	fingerprint = _fingerprint;
 }
 
 }

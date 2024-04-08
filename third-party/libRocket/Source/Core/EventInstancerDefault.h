@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +26,12 @@
  *
  */
 
-#ifndef ROCKETCOREEVENTINSTANCERDEFAULT_H
-#define ROCKETCOREEVENTINSTANCERDEFAULT_H
+#ifndef RMLUICOREEVENTINSTANCERDEFAULT_H
+#define RMLUICOREEVENTINSTANCERDEFAULT_H
 
-#include "../../Include/Rocket/Core/EventInstancer.h"
+#include "../../Include/RmlUi/Core/EventInstancer.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 /**
@@ -50,14 +51,14 @@ public:
 	/// @param[in] name Name of this event.
 	/// @param[in] parameters Additional parameters for this event.
 	/// @param[in] interruptible If the event propagation can be stopped.
-	virtual Event* InstanceEvent(Element* target, const String& name, const Dictionary& parameters, bool interruptible);
+	EventPtr InstanceEvent(Element* target, EventId id, const String& type, const Dictionary& parameters, bool interruptible) override;
 
 	/// Releases an event instanced by this instancer.
 	/// @param[in] event The event to release.
-	virtual void ReleaseEvent(Event* event);
+	void ReleaseEvent(Event* event) override;
 
 	/// Releases this event instancer.
-	virtual void Release();
+	void Release() override;
 };
 
 }

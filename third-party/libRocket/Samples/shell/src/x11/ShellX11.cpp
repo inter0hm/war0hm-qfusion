@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +27,8 @@
  */
 
 #include <Shell.h>
-#include <Rocket/Core.h>
+#include <ShellOpenGL.h>
+#include <RmlUi/Core.h>
 #include "ShellFileInterface.h"
 #include <x11/InputX11.h>
 #include <X11/Xlib.h>
@@ -36,20 +38,33 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 static bool running = false;
 static int screen = -1;
 static timeval start_time;
+static Rml::Core::String clipboard_text;
 
-static ShellFileInterface* file_interface = NULL;
+static std::unique_ptr<ShellFileInterface> file_interface;
 
-bool Shell::Initialise(const Rocket::Core::String& path)
+static bool isDirectory(const Rml::Core::String &path)
 {
-	gettimeofday(&start_time, NULL);
+	struct stat sb;
+	return (stat(path.c_str(), &sb)==0 && S_ISDIR(sb.st_mode));
+}
+
+bool Shell::Initialise()
+{
+	gettimeofday(&start_time, nullptr);
 	InputX11::Initialise();
 
-	file_interface = new ShellFileInterface(path);
-	Rocket::Core::SetFileInterface(file_interface);
+	Rml::Core::String root = FindSamplesRoot();
+
+	file_interface = std::make_unique<ShellFileInterface>(root);
+	Rml::Core::SetFileInterface(file_interface.get());
 
 	return true;
 }
@@ -58,20 +73,47 @@ void Shell::Shutdown()
 {
 	InputX11::Shutdown();
 
-	delete file_interface;
-	file_interface = NULL;
+	file_interface.reset();
 }
 
-static Display* display = NULL;
-static XVisualInfo* visual_info = NULL;
+Rml::Core::String Shell::FindSamplesRoot()
+{
+	char executable_file_name[PATH_MAX];
+	ssize_t len = readlink("/proc/self/exe", executable_file_name, PATH_MAX);
+	if (len == -1) {
+		printf("Unable to determine the executable path!\n");
+		executable_file_name[0] = 0;
+	} else {
+		// readlink() does not append a null byte to buf.
+		executable_file_name[len] = 0;
+	}
+	Rml::Core::String executable_path = Rml::Core::String(executable_file_name);
+	executable_path = executable_path.substr(0, executable_path.rfind("/") + 1);
+	
+	// for "../Samples/" to be valid we must be in the Build directory.
+	// NOTE: we can't use "../../Samples/" because it is valid only if:
+	//  1. we are in the installation directory and
+	//  2. the installation directory is exactly "Samples" (case sensitive).
+	Rml::Core::String path = "../Samples/";
+	
+	if(!isDirectory(executable_path + path)) {
+		// we probably are in the installation directory, up by 1 should do.
+		path = "../";
+	}
+	
+	return (executable_path + path);
+}
+
+static Display* display = nullptr;
+static XVisualInfo* visual_info = nullptr;
 static Window window = 0;
 
-static ShellRenderInterfaceExtensions *shell_renderer = NULL;
+static ShellRenderInterfaceExtensions *shell_renderer = nullptr;
 
 bool Shell::OpenWindow(const char* name, ShellRenderInterfaceExtensions *_shell_renderer, unsigned int width, unsigned int height, bool allow_resize)
 {
 	display = XOpenDisplay(0);
-	if (display == NULL)
+	if (display == nullptr)
 		return false;
 
 	// This initialise they keyboard to keycode mapping system of X11
@@ -88,10 +130,11 @@ bool Shell::OpenWindow(const char* name, ShellRenderInterfaceExtensions *_shell_
 							GLX_GREEN_SIZE, 8,
 							GLX_BLUE_SIZE, 8,
 							GLX_DEPTH_SIZE, 24,
-							None};
+							GLX_STENCIL_SIZE, 8,
+							0L};
 
 	visual_info = glXChooseVisual(display, screen, attribute_list);
-	if (visual_info == NULL)
+	if (visual_info == nullptr)
 	{
 		return false;
   	}
@@ -131,7 +174,7 @@ bool Shell::OpenWindow(const char* name, ShellRenderInterfaceExtensions *_shell_
 	{
 		// Force the window to remain at the fixed size by asking the window manager nicely, it may choose to ignore us
 		XSizeHints* win_size_hints = XAllocSizeHints();		// Allocate a size hint structure
-		if (win_size_hints == NULL)
+		if (win_size_hints == nullptr)
 		{
 			fprintf(stderr, "XAllocSizeHints - out of memory\n");
 		}
@@ -157,11 +200,11 @@ bool Shell::OpenWindow(const char* name, ShellRenderInterfaceExtensions *_shell_
 	}
 
 	// Set the window title and show the window.
-	XSetStandardProperties(display, window, name, "", None, NULL, 0, NULL);
+	XSetStandardProperties(display, window, name, "", 0L, nullptr, 0, nullptr);
 	XMapRaised(display, window);
 
 	shell_renderer = _shell_renderer;
-	if(shell_renderer != NULL)
+	if(shell_renderer != nullptr)
 	{
 		struct __X11NativeWindowData nwData;
 		nwData.display = display;
@@ -174,22 +217,22 @@ bool Shell::OpenWindow(const char* name, ShellRenderInterfaceExtensions *_shell_
 
 void Shell::CloseWindow()
 {
-	if(shell_renderer != NULL)
+	if(shell_renderer != nullptr)
 	{
 		shell_renderer->DetachFromNative();
 	}
 
-	if (display != NULL)
+	if (display != nullptr)
 	{
 		XCloseDisplay(display);
-		display = NULL;
+		display = nullptr;
 	}
 }
 
 // Returns a platform-dependent handle to the window.
 void* Shell::GetWindowHandle()
 {
-	return NULL;
+	return nullptr;
 }
 
 void Shell::EventLoop(ShellIdleFunction idle_function)
@@ -202,7 +245,7 @@ void Shell::EventLoop(ShellIdleFunction idle_function)
 		while (XPending(display) > 0)
 		{
 			XEvent event;
-			char *event_type = NULL;
+			char *event_type = nullptr;
 			XNextEvent(display, &event);
 
 			switch (event.type)
@@ -215,7 +258,7 @@ void Shell::EventLoop(ShellIdleFunction idle_function)
 					if (strcmp(event_type, "WM_PROTOCOLS") == 0)
 						running = false;
 					XFree(event_type);
-					event_type = NULL;
+					event_type = nullptr;
 				}
 				break;
 
@@ -285,15 +328,32 @@ void Shell::Log(const char* fmt, ...)
 }
 
 // Returns the seconds that have elapsed since program startup.
-float Shell::GetElapsedTime() 
+double Shell::GetElapsedTime() 
 {
 	struct timeval now;
 
-	gettimeofday(&now, NULL);
+	gettimeofday(&now, nullptr);
 
 	double sec = now.tv_sec - start_time.tv_sec;
 	double usec = now.tv_usec - start_time.tv_usec;
 	double result = sec + (usec / 1000000.0);
 
-	return (float)result;
+	return result;
+}
+
+void Shell::SetMouseCursor(const Rml::Core::String& cursor_name)
+{
+	// Not implemented
+}
+
+void Shell::SetClipboardText(const Rml::Core::String& text)
+{
+	// Todo: interface with system clipboard
+	clipboard_text = text;
+}
+
+void Shell::GetClipboardText(Rml::Core::String& text)
+{
+	// Todo: interface with system clipboard
+	text = clipboard_text;
 }

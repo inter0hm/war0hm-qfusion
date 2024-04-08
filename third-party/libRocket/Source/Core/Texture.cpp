@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -14,7 +15,7 @@
  *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,55 +27,39 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/Texture.h"
+#include "../../Include/RmlUi/Core/Texture.h"
 #include "TextureDatabase.h"
 #include "TextureResource.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
-// Constructs an unloaded texture with no resource.
-Texture::Texture()
-{
-	resource = NULL;
-}
-
-// Constructs a texture sharing the resource of another.
-Texture::Texture(const Texture& copy)
-{
-	resource = NULL;
-	*this = copy;
-}
-
-Texture::~Texture()
-{
-	if (resource)
-		resource->RemoveReference();
-}
-
 // Attempts to load a texture.
-bool Texture::Load(const String& source, const String& source_path)
+void Texture::Set(const String& source, const String& source_path)
 {
-	if (resource != NULL)
-		resource->RemoveReference();
-
 	resource = TextureDatabase::Fetch(source, source_path);
-	return resource != NULL;
+}
+
+void Texture::Set(const String& name, const TextureCallback& callback)
+{
+	resource = std::make_shared<TextureResource>();
+	resource->Set(name, callback);
 }
 
 // Returns the texture's source name. This is usually the name of the file the texture was loaded from.
-String Texture::GetSource() const
+const String& Texture::GetSource() const
 {
-	if (resource == NULL)
-		return NULL;
+	static String empty_string;
+	if (!resource)
+		return empty_string;
 
 	return resource->GetSource();
 }
 
-// Returns the texture's handle.
+// Returns the texture's handle. 
 TextureHandle Texture::GetHandle(RenderInterface* render_interface) const
 {
-	if (resource == NULL)
+	if (!resource)
 		return 0;
 
 	return resource->GetHandle(render_interface);
@@ -83,23 +68,25 @@ TextureHandle Texture::GetHandle(RenderInterface* render_interface) const
 // Returns the texture's dimensions.
 Vector2i Texture::GetDimensions(RenderInterface* render_interface) const
 {
-	if (resource == NULL)
+	if (!resource)
 		return Vector2i(0, 0);
 
 	return resource->GetDimensions(render_interface);
 }
 
-// Releases this texture's resource (if any), and sets it to another texture's resource.
-const Texture& Texture::operator=(const Texture& copy)
+void Texture::RemoveDatabaseCache() const
 {
-	if (resource != NULL)
-		resource->RemoveReference();
+	TextureDatabase::RemoveTexture(resource.get());
+}
 
-	resource = copy.resource;
-	if (resource != NULL)
-		resource->AddReference();
+bool Texture::operator==(const Texture& other) const
+{
+	return resource == other.resource;
+}
 
-	return *this;
+Texture::operator bool() const
+{
+	return static_cast<bool>(resource);
 }
 
 }

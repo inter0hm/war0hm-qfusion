@@ -1,19 +1,19 @@
 #include "RenderInterfaceDirectX10.h"
-#include <Rocket/Core.h>
+#include <RmlUi/Core.h>
 
 #include "D3D10Effect.h"
 
-//RocketD3D10 Texture, this contains the actual texture and the resource view
+//RmlUiD3D10 Texture, this contains the actual texture and the resource view
 //for sending it to the effect
-struct RocketD3D10Texture
+struct RmlUiD3D10Texture
 {
 	ID3D10ShaderResourceView * textureView;
 	ID3D10Texture2D * texture2D;
 };
 
-// This structure is created for each set of geometry that Rocket compiles. It stores the vertex and index buffers and
+// This structure is created for each set of geometry that RmlUi compiles. It stores the vertex and index buffers and
 // the texture associated with the geometry, if one was specified.
-struct RocketD310DCompiledGeometry
+struct RmlUiD310DCompiledGeometry
 {
 	//Vertex Buffer
 	ID3D10Buffer * vertices;
@@ -23,12 +23,12 @@ struct RocketD310DCompiledGeometry
 	ID3D10Buffer * indices;
 	DWORD num_primitives;
 	//Texture
-	RocketD3D10Texture * texture;
+	RmlUiD3D10Texture * texture;
 };
 
-// The internal format of the vertex we use for rendering Rocket geometry. We could optimise space by having a second
+// The internal format of the vertex we use for rendering RmlUi geometry. We could optimise space by having a second
 // untextured vertex for use when rendering coloured borders and backgrounds.
-struct RocketD3D10Vertex
+struct RmlUiD3D10Vertex
 {
 	FLOAT x, y, z;
 	D3DXCOLOR colour;
@@ -46,29 +46,29 @@ const D3D10_INPUT_ELEMENT_DESC layout[] =
 //The constructor of the render
 RenderInterfaceDirectX10::RenderInterfaceDirectX10(void)
 {
-	m_rocket_context = NULL;
-	m_pD3D10Device = NULL;
+	m_rmlui_context = nullptr;
+	m_pD3D10Device = nullptr;
 
-	m_pEffect = NULL;
-	m_pTechnique = NULL;
-	m_pVertexLayout = NULL;
+	m_pEffect = nullptr;
+	m_pTechnique = nullptr;
+	m_pVertexLayout = nullptr;
 
-	m_pSwapChain = NULL;
-	m_pRenderTargetView = NULL;
+	m_pSwapChain = nullptr;
+	m_pRenderTargetView = nullptr;
 
-	m_pProjectionMatrixVariable = NULL;
-	m_pWorldMatrixVariable = NULL;
-	m_pDiffuseTextureVariable = NULL;
+	m_pProjectionMatrixVariable = nullptr;
+	m_pWorldMatrixVariable = nullptr;
+	m_pDiffuseTextureVariable = nullptr;
 
-	m_pScissorTestDisable = NULL;
-	m_pScissorTestEnable = NULL;
+	m_pScissorTestDisable = nullptr;
+	m_pScissorTestEnable = nullptr;
 }
 
 //Loads the effect from memory and retrieves initial variables from the effect
 void RenderInterfaceDirectX10::setupEffect()
 {
 	//The pass we are going to use
-	ID3D10EffectPass *pass=NULL;
+	ID3D10EffectPass *pass=nullptr;
 	DWORD dwShaderFlags = 0;
 	#if defined( DEBUG ) || defined( _DEBUG )
 		// Set the D3D10_SHADER_DEBUG flag to embed debug information in the shaders.
@@ -79,10 +79,10 @@ void RenderInterfaceDirectX10::setupEffect()
 
 	#endif
 	//Create our effect from Memory
-	if (FAILED(D3DX10CreateEffectFromMemory((void*)pEffectData,strlen(pEffectData),"DefaultEffect",NULL,NULL,"fx_4_0",dwShaderFlags,0,m_pD3D10Device,NULL,NULL,&m_pEffect,NULL,NULL)))
+	if (FAILED(D3DX10CreateEffectFromMemory((void*)pEffectData,strlen(pEffectData),"DefaultEffect",nullptr,nullptr,"fx_4_0",dwShaderFlags,0,m_pD3D10Device,nullptr,nullptr,&m_pEffect,nullptr,nullptr)))
 	{
 		//Log error
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Can't create default effect for rendering, graphics card may not support Shader Model 4");
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Can't create default effect for rendering, graphics card may not support Shader Model 4");
 		
 	}
 	
@@ -96,7 +96,7 @@ void RenderInterfaceDirectX10::setupEffect()
 	//create input layout, to allow us to map our vertex structure to the one held in the effect
 	if (FAILED(m_pD3D10Device->CreateInputLayout(layout, numElements, passDesc.pIAInputSignature, passDesc.IAInputSignatureSize, &m_pVertexLayout)))
 	{
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Unable to create input layout");
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Unable to create input layout");
 	}
 	//grab effect variables
 	m_pWorldMatrixVariable=m_pEffect->GetVariableByName("matWorld")->AsMatrix();
@@ -111,25 +111,25 @@ RenderInterfaceDirectX10::~RenderInterfaceDirectX10()
 	if (m_pVertexLayout)
 	{
 		m_pVertexLayout->Release();
-		m_pVertexLayout = NULL;
+		m_pVertexLayout = nullptr;
 	}
 	if (m_pEffect)
 	{
 		m_pEffect->Release();
-		m_pEffect = NULL;
+		m_pEffect = nullptr;
 	}
 	if (m_pScissorTestDisable){
 		m_pScissorTestDisable->Release();
-		m_pScissorTestDisable = NULL;
+		m_pScissorTestDisable = nullptr;
 	}
 	if (m_pScissorTestEnable){
 		m_pScissorTestEnable->Release();
-		m_pScissorTestEnable = NULL;
+		m_pScissorTestEnable = nullptr;
 	}
 }
 
-// Called by Rocket when it wants to render geometry that it does not wish to optimise.
-void RenderInterfaceDirectX10::RenderGeometry(Rocket::Core::Vertex* vertices, int num_vertices, int* indices, int num_indices, const Rocket::Core::TextureHandle texture, const Rocket::Core::Vector2f& translation)
+// Called by RmlUi when it wants to render geometry that it does not wish to optimise.
+void RenderInterfaceDirectX10::RenderGeometry(Rml::Core::Vertex* vertices, int num_vertices, int* indices, int num_indices, const Rml::Core::TextureHandle texture, const Rml::Core::Vector2f& translation)
 {
 	// @TODO We've chosen to not support non-compiled geometry in the DirectX renderer. If you wanted to render non-compiled
 	// geometry, for example for very small sections of geometry, you could use DrawIndexedPrimitiveUP or write to a
@@ -137,29 +137,29 @@ void RenderInterfaceDirectX10::RenderGeometry(Rocket::Core::Vertex* vertices, in
 
         /// @TODO, HACK, just use the compiled geometry framework for now, this is inefficient but better than absolutely nothing
         /// for the time being
-	Rocket::Core::CompiledGeometryHandle geom = this->CompileGeometry(vertices, num_vertices, indices, num_indices, texture);
+	Rml::Core::CompiledGeometryHandle geom = this->CompileGeometry(vertices, num_vertices, indices, num_indices, texture);
 	this->RenderCompiledGeometry(geom, translation);
 	this->ReleaseCompiledGeometry(geom);
 }
 
-// Called by Rocket when it wants to compile geometry it believes will be static for the forseeable future.
-Rocket::Core::CompiledGeometryHandle RenderInterfaceDirectX10::CompileGeometry(Rocket::Core::Vertex* vertices, int num_vertices, int* indices, int num_indices, Rocket::Core::TextureHandle texture)
+// Called by RmlUi when it wants to compile geometry it believes will be static for the forseeable future.
+Rml::Core::CompiledGeometryHandle RenderInterfaceDirectX10::CompileGeometry(Rml::Core::Vertex* vertices, int num_vertices, int* indices, int num_indices, Rml::Core::TextureHandle texture)
 {
 	//Create instance of geometry
-	RocketD310DCompiledGeometry * geometry =new RocketD310DCompiledGeometry();
+	RmlUiD310DCompiledGeometry * geometry =new RmlUiD310DCompiledGeometry();
 
 	//Vertex Buffer description
 	D3D10_BUFFER_DESC bd;
 	bd.Usage = D3D10_USAGE_DEFAULT;
 	//Set the size of the buffer
-	bd.ByteWidth = sizeof(RocketD3D10Vertex) * num_vertices;
+	bd.ByteWidth = sizeof(RmlUiD3D10Vertex) * num_vertices;
 	//This is a vertex buffer
 	bd.BindFlags = D3D10_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 	bd.MiscFlags = 0;
 
 	//copy vertices into buffer
-	RocketD3D10Vertex * pD3D10Vertices=new RocketD3D10Vertex[num_vertices];
+	RmlUiD3D10Vertex * pD3D10Vertices=new RmlUiD3D10Vertex[num_vertices];
 	for (int i=0;i<num_vertices;++i)
 	{
 		pD3D10Vertices[i].x = vertices[i].position.x;
@@ -180,7 +180,7 @@ Rocket::Core::CompiledGeometryHandle RenderInterfaceDirectX10::CompileGeometry(R
 		&bd,
 		&InitData,
 		&geometry->vertices))){
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Undable to create vertex buffer for geometry");
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Undable to create vertex buffer for geometry");
 		return false;
 	}
 
@@ -200,7 +200,7 @@ Rocket::Core::CompiledGeometryHandle RenderInterfaceDirectX10::CompileGeometry(R
 		&bd,
 		&InitData,
 		&geometry->indices))){
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Undable to create index buffer for geometry");
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Undable to create index buffer for geometry");
 		return false;
 	}
 
@@ -208,23 +208,23 @@ Rocket::Core::CompiledGeometryHandle RenderInterfaceDirectX10::CompileGeometry(R
 	geometry->num_vertices = (DWORD) num_vertices;
 	geometry->num_primitives = (DWORD) num_indices / 3;
 
-	geometry->texture = texture == NULL ? NULL : (RocketD3D10Texture *) texture;
+	geometry->texture = texture == nullptr ? nullptr : (RmlUiD3D10Texture *) texture;
 
-	return (Rocket::Core::CompiledGeometryHandle)geometry;
+	return (Rml::Core::CompiledGeometryHandle)geometry;
 }
 
-// Called by Rocket when it wants to render application-compiled geometry.
-void RenderInterfaceDirectX10::RenderCompiledGeometry(Rocket::Core::CompiledGeometryHandle geometry, const Rocket::Core::Vector2f& translation)
+// Called by RmlUi when it wants to render application-compiled geometry.
+void RenderInterfaceDirectX10::RenderCompiledGeometry(Rml::Core::CompiledGeometryHandle geometry, const Rml::Core::Vector2f& translation)
 {
 	//Cast to D3D10 geometry
-	RocketD310DCompiledGeometry* d3d10_geometry = (RocketD310DCompiledGeometry*) geometry;
+	RmlUiD310DCompiledGeometry* d3d10_geometry = (RmlUiD310DCompiledGeometry*) geometry;
 	
 	//if we have a texture then send it, notice we are sending the view(Shader resource) to the 
 	//effect
 	if (d3d10_geometry->texture)
 		m_pDiffuseTextureVariable->SetResource(d3d10_geometry->texture->textureView);
 	else
-		m_pDiffuseTextureVariable->SetResource(NULL);
+		m_pDiffuseTextureVariable->SetResource(nullptr);
 	
 	//build and send the world matrix
 	D3DXMatrixTranslation(&m_matWorld, translation.x, translation.y, 0);
@@ -232,7 +232,7 @@ void RenderInterfaceDirectX10::RenderCompiledGeometry(Rocket::Core::CompiledGeom
 	//Set the layout of the vertices that are held in the VB
 	m_pD3D10Device->IASetInputLayout(m_pVertexLayout);
 	//Get the stride(size) of the a vertex, we need this to tell the pipeline the size of one vertex 
-	UINT stride = sizeof(RocketD3D10Vertex);
+	UINT stride = sizeof(RmlUiD3D10Vertex);
 	//The offset from start of the buffer to where our vertices are located 
 	UINT offset = 0;
 	//Set the VB we are using
@@ -261,32 +261,32 @@ void RenderInterfaceDirectX10::RenderCompiledGeometry(Rocket::Core::CompiledGeom
 	}
 }
 
-// Called by Rocket when it wants to release application-compiled geometry.
-void RenderInterfaceDirectX10::ReleaseCompiledGeometry(Rocket::Core::CompiledGeometryHandle geometry)
+// Called by RmlUi when it wants to release application-compiled geometry.
+void RenderInterfaceDirectX10::ReleaseCompiledGeometry(Rml::Core::CompiledGeometryHandle geometry)
 {
 	//Clean up after ourselves
-	RocketD310DCompiledGeometry* d3d10_geometry=(RocketD310DCompiledGeometry*)geometry;
+	RmlUiD310DCompiledGeometry* d3d10_geometry=(RmlUiD310DCompiledGeometry*)geometry;
 
 	if (d3d10_geometry->vertices){
 		d3d10_geometry->vertices->Release();
-		d3d10_geometry->vertices = NULL;
+		d3d10_geometry->vertices = nullptr;
 	}
 	if (d3d10_geometry->indices){
 		d3d10_geometry->indices->Release();
-		d3d10_geometry->indices = NULL;
+		d3d10_geometry->indices = nullptr;
 	}
 
 	delete d3d10_geometry;
 }
 
-// Called by Rocket when it wants to enable or disable scissoring to clip content.
+// Called by RmlUi when it wants to enable or disable scissoring to clip content.
 void RenderInterfaceDirectX10::EnableScissorRegion(bool enable)
 {
 	//Is the scissor test enabled?
 	enable ? m_pD3D10Device->RSSetState(m_pScissorTestEnable) : m_pD3D10Device->RSSetState(m_pScissorTestDisable);
 }
 
-// Called by Rocket when it wants to change the scissor region.
+// Called by RmlUi when it wants to change the scissor region.
 void RenderInterfaceDirectX10::SetScissorRegion(int x, int y, int width, int height)
 {
 	//The scissor rect
@@ -319,12 +319,12 @@ struct TGAHeader
 // Restore packing
 #pragma pack()
 
-// Called by Rocket when a texture is required by the library.
-bool RenderInterfaceDirectX10::LoadTexture(Rocket::Core::TextureHandle& texture_handle, Rocket::Core::Vector2i& texture_dimensions, const Rocket::Core::String& source)
+// Called by RmlUi when a texture is required by the library.
+bool RenderInterfaceDirectX10::LoadTexture(Rml::Core::TextureHandle& texture_handle, Rml::Core::Vector2i& texture_dimensions, const Rml::Core::String& source)
 {
-	Rocket::Core::FileInterface* file_interface = Rocket::Core::GetFileInterface();
-	Rocket::Core::FileHandle file_handle = file_interface->Open(source);
-	if (file_handle == NULL)
+	Rml::Core::FileInterface* file_interface = Rml::Core::GetFileInterface();
+	Rml::Core::FileHandle file_handle = file_interface->Open(source);
+	if (!file_handle)
 		return false;
 
 	file_interface->Seek(file_handle, 0, SEEK_END);
@@ -343,14 +343,14 @@ bool RenderInterfaceDirectX10::LoadTexture(Rocket::Core::TextureHandle& texture_
 	
 	if (header.dataType != 2)
 	{
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Only 24/32bit uncompressed TGAs are supported.");
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Only 24/32bit uncompressed TGAs are supported.");
 		return false;
 	}
 	
 	// Ensure we have at least 3 colors
 	if (color_mode < 3)
 	{
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Only 24 and 32bit textures are supported");
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Only 24 and 32bit textures are supported");
 		return false;
 	}
 	
@@ -388,11 +388,11 @@ bool RenderInterfaceDirectX10::LoadTexture(Rocket::Core::TextureHandle& texture_
 	return success;
 }
 
-// Called by Rocket when a texture is required to be built from an internally-generated sequence of pixels.
-bool RenderInterfaceDirectX10::GenerateTexture(Rocket::Core::TextureHandle& texture_handle, const byte* source, const Rocket::Core::Vector2i& source_dimensions)
+// Called by RmlUi when a texture is required to be built from an internally-generated sequence of pixels.
+bool RenderInterfaceDirectX10::GenerateTexture(Rml::Core::TextureHandle& texture_handle, const byte* source, const Rml::Core::Vector2i& source_dimensions)
 {
 	//Create the instance of our texture
-	RocketD3D10Texture * pTexture=new RocketD3D10Texture();
+	RmlUiD3D10Texture * pTexture=new RmlUiD3D10Texture();
 
 	//Texture description
 	D3D10_TEXTURE2D_DESC textureDesc;
@@ -414,8 +414,8 @@ bool RenderInterfaceDirectX10::GenerateTexture(Rocket::Core::TextureHandle& text
 	textureDesc.SampleDesc.Quality=0;
 	
 	//create our texture
-	if (FAILED(m_pD3D10Device->CreateTexture2D(&textureDesc,NULL,&pTexture->texture2D))){
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Unable to create texture");
+	if (FAILED(m_pD3D10Device->CreateTexture2D(&textureDesc,nullptr,&pTexture->texture2D))){
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Unable to create texture");
 		return false;
 	}
 
@@ -444,26 +444,26 @@ bool RenderInterfaceDirectX10::GenerateTexture(Rocket::Core::TextureHandle& text
 	srvDesc.Texture2D.MipLevels=textureDesc.MipLevels;
 	srvDesc.Texture2D.MostDetailedMip=0;
 	if (FAILED(m_pD3D10Device->CreateShaderResourceView(pTexture->texture2D, &srvDesc, &pTexture->textureView))){
-		Rocket::Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Unable to create texture view");
+		Rml::Core::Log::Message(Rml::Core::Log::LT_ERROR, "Unable to create texture view");
 		return false;
 	}
 
-	texture_handle = (Rocket::Core::TextureHandle)pTexture;
+	texture_handle = (Rml::Core::TextureHandle)pTexture;
 	return true;
 }
 
-// Called by Rocket when a loaded texture is no longer required.
-void RenderInterfaceDirectX10::ReleaseTexture(Rocket::Core::TextureHandle texture_handle)
+// Called by RmlUi when a loaded texture is no longer required.
+void RenderInterfaceDirectX10::ReleaseTexture(Rml::Core::TextureHandle texture_handle)
 {
 	//clean up after ourselves
-	RocketD3D10Texture * pTexture = (RocketD3D10Texture*)texture_handle;
+	RmlUiD3D10Texture * pTexture = (RmlUiD3D10Texture*)texture_handle;
 	if (pTexture->texture2D){
 		pTexture->texture2D->Release();
-		pTexture->texture2D = NULL;
+		pTexture->texture2D = nullptr;
 	}
 	if (pTexture->textureView){
 		pTexture->textureView->Release();
-		pTexture->textureView = NULL;
+		pTexture->textureView = nullptr;
 	}
 	delete pTexture;
 }

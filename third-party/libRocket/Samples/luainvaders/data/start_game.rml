@@ -13,8 +13,7 @@
 			
 			div#title_bar div#icon
 			{
-				icon-image-s: 230px 281px;
-				icon-image-t: 152px 191px;
+				decorator: image( icon-game );
 			}
 			
 			form div
@@ -36,7 +35,7 @@ function StartGame.SetupGame(event,document)
     --some lua trickery coming up. Compiling a string at runtime that will return the values,
     --because they are comma separated. For example, if the user chose "Denim", then the
     --compiled string would look like "return 21,96,189"
-    local red,green,blue = loadstring('return '..event.parameters['colour']) ()
+    local red,green,blue = load('return '..event.parameters['colour']) ()
 	Game.SetDefenderColour(Colourb.new(red,green,blue,255))
 	
 	local elem = Window.LoadMenu('game',document):GetElementById('game')

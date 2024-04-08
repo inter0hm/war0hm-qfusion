@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,15 +27,15 @@
  */
 
 #include "precompiled.h"
-#include "../../Include/Rocket/Core/ConvolutionFilter.h"
+#include "../../Include/RmlUi/Core/ConvolutionFilter.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Core {
 
 ConvolutionFilter::ConvolutionFilter()
 {
 	kernel_size = 0;
-	kernel = NULL;
+	kernel = nullptr;
 
 	operation = MEDIAN;
 }
@@ -63,7 +64,7 @@ bool ConvolutionFilter::Initialise(int _kernel_size, FilterOperation _operation)
 // Returns a reference to one of the rows of the filter kernel.
 float* ConvolutionFilter::operator[](int index)
 {
-	ROCKET_ASSERT(kernel != NULL);
+	RMLUI_ASSERT(kernel != nullptr);
 
 	index = Math::Max(index, 0);
 	index = Math::Min(index, kernel_size - 1);
@@ -115,11 +116,7 @@ void ConvolutionFilter::Run(byte* destination, const Vector2i& destination_dimen
 				opacity /= num_pixels;
 
 			opacity = Math::Min(255, opacity);
-#ifdef ROCKET_8BPP_FONTS
-			destination[x] = (byte) opacity;
-#else
 			destination[x * 4 + 3] = (byte) opacity;
-#endif
 		}
 
 		destination += destination_stride;

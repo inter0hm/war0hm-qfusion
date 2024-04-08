@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,13 +27,13 @@
  */
 
 #include "XMLNodeHandlerDataGrid.h"
-#include "../../Include/Rocket/Core/StreamMemory.h"
-#include "../../Include/Rocket/Core/Log.h"
-#include "../../Include/Rocket/Core/Factory.h"
-#include "../../Include/Rocket/Core/XMLParser.h"
-#include "../../Include/Rocket/Controls/ElementDataGrid.h"
+#include "../../Include/RmlUi/Core/StreamMemory.h"
+#include "../../Include/RmlUi/Core/Log.h"
+#include "../../Include/RmlUi/Core/Factory.h"
+#include "../../Include/RmlUi/Core/XMLParser.h"
+#include "../../Include/RmlUi/Controls/ElementDataGrid.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 XMLNodeHandlerDataGrid::XMLNodeHandlerDataGrid()
@@ -43,34 +44,30 @@ XMLNodeHandlerDataGrid::~XMLNodeHandlerDataGrid()
 {
 }
 
-Core::Element* XMLNodeHandlerDataGrid::ElementStart(Core::XMLParser* parser, const Rocket::Core::String& name, const Rocket::Core::XMLAttributes& attributes)
+Core::Element* XMLNodeHandlerDataGrid::ElementStart(Core::XMLParser* parser, const Rml::Core::String& name, const Rml::Core::XMLAttributes& attributes)
 {
-	Core::Element* element = NULL;
+	Core::Element* result = nullptr;
 	Core::Element* parent = parser->GetParseFrame()->element;
 
-	ROCKET_ASSERT(name == "datagrid" ||
-			   name == "col");
+	RMLUI_ASSERT(name == "datagrid" || name == "col");
 
 	if (name == "datagrid")
 	{
 		// Attempt to instance the grid.
-		element = Core::Factory::InstanceElement(parent, name, name, attributes);
-		ElementDataGrid* grid = dynamic_cast< ElementDataGrid* >(element);
-		if (grid == NULL)
+		Core::ElementPtr element = Core::Factory::InstanceElement(parent, name, name, attributes);
+		ElementDataGrid* grid = dynamic_cast< ElementDataGrid* >(element.get());
+		if (!grid)
 		{
-			if (element != NULL)
-				element->RemoveReference();
-
-			Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Instancer failed to create data grid for tag %s.", name.CString());
-			return NULL;
+			element.reset();
+			Core::Log::Message(Rml::Core::Log::LT_ERROR, "Instancer failed to create data grid for tag %s.", name.c_str());
+			return nullptr;
 		}
 
 		// Set the data source and table on the data grid.
-		Rocket::Core::String data_source = attributes.Get< Rocket::Core::String >("source", "");
+		Rml::Core::String data_source = Core::Get<Core::String>(attributes, "source", "");
 		grid->SetDataSource(data_source);
 
-		parent->AppendChild(grid);
-		grid->RemoveReference();
+		result = parent->AppendChild(std::move(element));
 
 		// Switch to this handler for all columns.
 		parser->PushHandler("datagrid");
@@ -78,47 +75,41 @@ Core::Element* XMLNodeHandlerDataGrid::ElementStart(Core::XMLParser* parser, con
 	else if (name == "col")
 	{
 		// Make a new node handler to handle the header elements.		
-		element = Core::Factory::InstanceElement(parent, "datagridcolumn", "datagridcolumn", attributes);
-		if (element == NULL)
-			return NULL;
+		Core::ElementPtr element = Core::Factory::InstanceElement(parent, "datagridcolumn", "datagridcolumn", attributes);
+		if (!element)
+			return nullptr;
+
+		result = element.get();
 
 		ElementDataGrid* grid = dynamic_cast< ElementDataGrid* >(parent);
-		if (grid != NULL)
-		{
-			grid->AddColumn(attributes.Get< Rocket::Core::String >("fields", ""), attributes.Get< Rocket::Core::String >("formatter", ""), attributes.Get< float >("width", 0), element);
-			element->RemoveReference();
-		}
+		if (grid)
+			grid->AddColumn(Core::Get<Core::String>(attributes, "fields", ""), Core::Get<Core::String>(attributes, "formatter", ""), Core::Get(attributes, "width", 0.0f), std::move(element));
 
 		// Switch to element handler for all children.
 		parser->PushDefaultHandler();
 	}
 	else
 	{
-		ROCKET_ERROR;
+		RMLUI_ERROR;
 	}
 
-	return element;
+	return result;
 }
 
-bool XMLNodeHandlerDataGrid::ElementEnd(Core::XMLParser* ROCKET_UNUSED_PARAMETER(parser), const Rocket::Core::String& ROCKET_UNUSED_PARAMETER(name))
+bool XMLNodeHandlerDataGrid::ElementEnd(Core::XMLParser* RMLUI_UNUSED_PARAMETER(parser), const Rml::Core::String& RMLUI_UNUSED_PARAMETER(name))
 {
-	ROCKET_UNUSED(parser);
-	ROCKET_UNUSED(name);
+	RMLUI_UNUSED(parser);
+	RMLUI_UNUSED(name);
 
 	return true;
 }
 
-bool XMLNodeHandlerDataGrid::ElementData(Core::XMLParser* parser, const Rocket::Core::String& data)
+bool XMLNodeHandlerDataGrid::ElementData(Core::XMLParser* parser, const Rml::Core::String& data)
 {
 	Core::Element* parent = parser->GetParseFrame()->element;
 
 	// Parse the text into the parent element.
 	return Core::Factory::InstanceElementText(parent, data);
-}
-
-void XMLNodeHandlerDataGrid::Release()
-{
-	delete this;
 }
 
 }

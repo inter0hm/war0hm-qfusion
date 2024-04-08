@@ -1,9 +1,10 @@
 /*
- * This source file is part of libRocket, the HTML/CSS Interface Middleware
+ * This source file is part of RmlUi, the HTML/CSS Interface Middleware
  *
- * For the latest information, see http://www.librocket.com
+ * For the latest information, see http://github.com/mikke89/RmlUi
  *
  * Copyright (c) 2008-2010 CodePoint Ltd, Shift Technology Ltd
+ * Copyright (c) 2019 The RmlUi Team, and contributors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +27,12 @@
  */
 
 #include "XMLNodeHandlerTabSet.h"
-#include "../../Include/Rocket/Core/Log.h"
-#include "../../Include/Rocket/Core/Factory.h"
-#include "../../Include/Rocket/Core/XMLParser.h"
-#include "../../Include/Rocket/Controls/ElementTabSet.h"
+#include "../../Include/RmlUi/Core/Log.h"
+#include "../../Include/RmlUi/Core/Factory.h"
+#include "../../Include/RmlUi/Core/XMLParser.h"
+#include "../../Include/RmlUi/Controls/ElementTabSet.h"
 
-namespace Rocket {
+namespace Rml {
 namespace Controls {
 
 XMLNodeHandlerTabSet::XMLNodeHandlerTabSet()
@@ -42,9 +43,9 @@ XMLNodeHandlerTabSet::~XMLNodeHandlerTabSet()
 {
 }
 
-Core::Element* XMLNodeHandlerTabSet::ElementStart(Core::XMLParser* parser, const Rocket::Core::String& name, const Rocket::Core::XMLAttributes& attributes)
+Core::Element* XMLNodeHandlerTabSet::ElementStart(Core::XMLParser* parser, const Rml::Core::String& name, const Rml::Core::XMLAttributes& attributes)
 {
-	ROCKET_ASSERT(name == "tabset" ||
+	RMLUI_ASSERT(name == "tabset" ||
 			   name == "tabs" ||
 			   name == "tab" ||
 			   name == "panels" ||
@@ -56,37 +57,35 @@ Core::Element* XMLNodeHandlerTabSet::ElementStart(Core::XMLParser* parser, const
 		parser->PushHandler("tabset");
 
 		// Attempt to instance the tabset
-		Core::Element* element = Core::Factory::InstanceElement(parser->GetParseFrame()->element, name, name, attributes);		
-		ElementTabSet* tabset = dynamic_cast< ElementTabSet* >(element);
+		Core::ElementPtr element = Core::Factory::InstanceElement(parser->GetParseFrame()->element, name, name, attributes);		
+		ElementTabSet* tabset = dynamic_cast< ElementTabSet* >(element.get());
 		if (!tabset)
 		{
-			if (element)
-				element->RemoveReference();
-			Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Instancer failed to create element for tag %s.", name.CString());
-			return NULL;
+			Core::Log::Message(Rml::Core::Log::LT_ERROR, "Instancer failed to create element for tag %s.", name.c_str());
+			return nullptr;
 		}
 
 		// Add the TabSet into the document
-		parser->GetParseFrame()->element->AppendChild(element);
-		element->RemoveReference();
+		Core::Element* result = parser->GetParseFrame()->element->AppendChild(std::move(element));
 
-		return element;
+		return result;
 	}	
 	else if (name == "tab")
 	{
 		// Call default element handler for all children.
 		parser->PushDefaultHandler();
 
-		Core::Element* tab_element = Core::Factory::InstanceElement(parser->GetParseFrame()->element, "*", "tab", attributes);
+		Core::ElementPtr tab_element = Core::Factory::InstanceElement(parser->GetParseFrame()->element, "*", "tab", attributes);
+		Core::Element* result = nullptr;
 
 		ElementTabSet* tabset = dynamic_cast< ElementTabSet* >(parser->GetParseFrame()->element);
 		if (tabset)
 		{
-			tabset->SetTab(-1, tab_element);
-			tab_element->RemoveReference();
+			result = tab_element.get();
+			tabset->SetTab(-1, std::move(tab_element));
 		}
 
-		return tab_element;
+		return result;
 
 	}
 	else if (name == "panel")
@@ -94,16 +93,17 @@ Core::Element* XMLNodeHandlerTabSet::ElementStart(Core::XMLParser* parser, const
 		// Call default element handler for all children.
 		parser->PushDefaultHandler();
 
-		Core::Element* panel_element = Core::Factory::InstanceElement(parser->GetParseFrame()->element, "*", "panel", attributes);
+		Core::ElementPtr panel_element = Core::Factory::InstanceElement(parser->GetParseFrame()->element, "*", "panel", attributes);
+		Core::Element* result = nullptr;
 
 		ElementTabSet* tabset = dynamic_cast< ElementTabSet* >(parser->GetParseFrame()->element);
 		if (tabset)
 		{
-			tabset->SetPanel(-1, panel_element);
-			panel_element->RemoveReference();
+			result = panel_element.get();
+			tabset->SetPanel(-1, std::move(panel_element));
 		}
 
-		return panel_element;
+		return result;
 	}
 	else if (name == "tabs" || name == "panels")
 	{	
@@ -114,37 +114,32 @@ Core::Element* XMLNodeHandlerTabSet::ElementStart(Core::XMLParser* parser, const
 		Core::Element* parent = parser->GetParseFrame()->element;
 
 		// Attempt to instance the element with the instancer.
-		Core::Element* element = Core::Factory::InstanceElement(parent, name, name, attributes);
+		Core::ElementPtr element = Core::Factory::InstanceElement(parent, name, name, attributes);
 		if (!element)
 		{
-			Core::Log::Message(Rocket::Core::Log::LT_ERROR, "Instancer failed to create element for tag %s.", name.CString());
-			return NULL;
+			Core::Log::Message(Rml::Core::Log::LT_ERROR, "Instancer failed to create element for tag %s.", name.c_str());
+			return nullptr;
 		}
 
 		// Add the element to its parent and remove the initial reference.
-		parent->AppendChild(element);
-		element->RemoveReference();
+		Core::Element* result = parent->AppendChild(std::move(element));
+		return result;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-bool XMLNodeHandlerTabSet::ElementEnd(Core::XMLParser* ROCKET_UNUSED_PARAMETER(parser), const Rocket::Core::String& ROCKET_UNUSED_PARAMETER(name))
+bool XMLNodeHandlerTabSet::ElementEnd(Core::XMLParser* RMLUI_UNUSED_PARAMETER(parser), const Rml::Core::String& RMLUI_UNUSED_PARAMETER(name))
 {
-	ROCKET_UNUSED(parser);
-	ROCKET_UNUSED(name);
+	RMLUI_UNUSED(parser);
+	RMLUI_UNUSED(name);
 
 	return true;
 }
 
-bool XMLNodeHandlerTabSet::ElementData(Core::XMLParser* parser, const Rocket::Core::String& data)
+bool XMLNodeHandlerTabSet::ElementData(Core::XMLParser* parser, const Rml::Core::String& data)
 {	
 	return Core::Factory::InstanceElementText(parser->GetParseFrame()->element, data);
-}
-
-void XMLNodeHandlerTabSet::Release()
-{
-	delete this;
 }
 
 }
