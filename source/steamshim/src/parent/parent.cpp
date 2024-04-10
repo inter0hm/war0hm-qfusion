@@ -31,6 +31,18 @@ freely, subject to the following restrictions:
 int GArgc = 0;
 char **GArgv = NULL;
 
+
+static size_t SyncToken;
+static size_t RecievedSyncToken; // the position of the recieved token
+struct steam_rpc_async_s {
+    uint32_t token;
+    void* self;
+    STEAMSHIM_rpc_handle handle;
+};
+
+#define NUM_RPC_ASYNC_HANDLE 2048
+struct steam_rpc_async_s handles[NUM_RPC_ASYNC_HANDLE];
+
 static SteamshimEvent* ProcessEvent(){
     static SteamshimEvent event;
     // make sure this is static, since it needs to persist between pumps
@@ -215,6 +227,37 @@ extern "C" {
     Write1ByteMessage(CMD_PUMP);
     return ProcessEvent();
   } 
+
+  static void recv_handler(void* self, struct steam_rpc_recieve_s* recv) {
+    switch(recv->common.cmd) {
+        case RPC_REQUEST_STEAM_ID:
+            break;
+    }
+  }
+
+  void sample() {
+    struct steam_rpc_req_s req;
+    req.common.cmd = RPC_REQUEST_STEAM_ID;
+    req.steam_req.id = 1034;
+    STEAMSHIM_sendRPC(&req, sizeof(req.steam_req), NULL, recv_handler);
+  }
+
+  int STEAMSHIM_sendRPC(struct steam_rpc_req_s* req, uint32_t size, void* self, STEAMSHIM_rpc_handle rpc) {
+    uint32_t syncIndex = ++SyncToken;
+    struct steam_rpc_async_s* handle = handles + (syncIndex % NUM_RPC_ASYNC_HANDLE);
+
+    if(handle->token != 0 && handle->token < RecievedSyncToken) {
+        SyncToken--;
+        return -1;
+    }
+
+    handle->token = syncIndex;
+    handle->self = self;
+    handle->handle = rpc;
+    writePipe(GPipeWrite, &size, sizeof(uint32_t));
+    writePipe(GPipeWrite, (uint8_t*)req, size);
+    return 0;
+  }
 
   void STEAMSHIM_getSteamID()
   {

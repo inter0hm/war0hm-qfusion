@@ -26,6 +26,7 @@ freely, subject to the following restrictions:
 #include "../steamshim_types.h"
 
 
+
 typedef struct { 
   bool debug;
   bool runclient;
@@ -58,6 +59,10 @@ int STEAMSHIM_init(SteamshimOptions* options);
 void STEAMSHIM_deinit(void);
 int STEAMSHIM_alive(void);
 const SteamshimEvent *STEAMSHIM_pump(void);
+
+int STEAMSHIM_sendRPC(struct steam_rpc_req_s* req, uint32_t size, void* self, STEAMSHIM_rpc_handle rpc); 
+
+
 void STEAMSHIM_getSteamID();
 void STEAMSHIM_getPersonaName();
 void STEAMSHIM_setRichPresence(int num, const char** key, const char** val);
