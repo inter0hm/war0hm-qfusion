@@ -207,6 +207,10 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
 }
 
 
+static void process_rpc(steam_rpc_req_s* req) {
+    
+}
+
 static void processCommands()
 {
   PipeBuffer buf;
@@ -224,8 +228,16 @@ static void processCommands()
       continue;
 
     if (buf.hasmsg){
+      
+       steam_packet_buffer packet;
+       uint32_t size;
+       readPipe(GPipeRead, &size, sizeof(uint32_t));
+	   readPipe( GPipeRead, &packet, size );
+	   if( packet.common.cmd > RPC_BEGIN && packet.common.cmd < RPC_END ) {
+		   process_rpc( &packet.rpc_req );
+	   }
 
-        volatile unsigned int evlen =buf.ReadInt();
+	   volatile unsigned int evlen =buf.ReadInt();
 
         ShimCmd cmd = (ShimCmd)buf.ReadByte();
 

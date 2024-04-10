@@ -30,53 +30,65 @@ extern "C" {
 #define AUTH_TICKET_MAXSIZE 1024
 
 enum shim_cmd_s {
-  RPC_REQUEST_STEAM_ID
+  RPC_BEGIN, 
+  RPC_REQUEST_STEAM_ID,
+
+  RPC_END,
+  EVT_BEGIN = RPC_END,
+
+
+  EVT_END
 };
 
 typedef void (*STEAMSHIM_rpc_handle)(void* self, struct steam_rpc_recieve_s* rec );
 
 #define STEAM_SHIM_COMMON() \
-  enum shim_cmd_s cmd;  \
+  enum shim_cmd_s cmd; 
+
+#define STEAM_RPC_SHIM_COMMON() \
+  STEAM_SHIM_COMMON()  \
   uint32_t sync;
 
 #define STEAM_RPC_REQ(name) struct name ## _req_s
 #define STEAM_RPC_RECV(name) struct name ## _recv_s 
 
 #pragma pack(push, 1)
-struct steam_shim_rpc_common_s {
-  STEAM_SHIM_COMMON()
+struct steam_shim_common_s {
+  STEAM_RPC_SHIM_COMMON()
+};
+
+struct steam_rpc_shim_common_s {
+  STEAM_RPC_SHIM_COMMON()
 };
 
 STEAM_RPC_REQ(steam_id) {
-  STEAM_SHIM_COMMON()
+  STEAM_RPC_SHIM_COMMON()
   uint64_t id;
 };
 
 STEAM_RPC_RECV(steam_id) {
-  STEAM_SHIM_COMMON()
+  STEAM_RPC_SHIM_COMMON()
 };
 
 STEAM_RPC_REQ(persona_name) {
-  STEAM_SHIM_COMMON()
+  STEAM_RPC_SHIM_COMMON()
 };
 
 STEAM_RPC_RECV(persona_name) {
-  STEAM_SHIM_COMMON()
+  STEAM_RPC_SHIM_COMMON()
 };
 
 STEAM_RPC_REQ(set_rich_presence) {
-  STEAM_SHIM_COMMON()
+  STEAM_RPC_SHIM_COMMON()
 };
 
 STEAM_RPC_RECV(set_rich_presence) {
-  STEAM_SHIM_COMMON()
+  STEAM_RPC_SHIM_COMMON()
 };
 
 struct steam_rpc_req_s {
   union {
-    struct {
-      STEAM_SHIM_COMMON();
-    } common;
+    struct steam_rpc_shim_common_s common;
     steam_id_req_s steam_req;
     persona_name_req_s persona_req;
   };
@@ -84,9 +96,18 @@ struct steam_rpc_req_s {
 
 struct steam_rpc_recieve_s {
   union {
-    struct steam_shim_rpc_common_s common;
+    struct steam_rpc_shim_common_s common;
   };
 };
+
+struct steam_packet_buffer {
+    union {
+        struct steam_shim_common_s common; 
+        struct steam_rpc_shim_common_s rpc_common;
+        struct steam_rpc_req_s rpc_req;
+    };
+};
+
 #pragma pack(pop) 
 
 typedef enum eventtype

@@ -228,21 +228,21 @@ extern "C" {
     return ProcessEvent();
   } 
 
-  static void recv_handler(void* self, struct steam_rpc_recieve_s* recv) {
-    switch(recv->common.cmd) {
-        case RPC_REQUEST_STEAM_ID:
-            break;
-    }
-  }
+//  static void recv_handler(void* self, struct steam_rpc_recieve_s* recv) {
+//    switch(recv->common.cmd) {
+//        case RPC_REQUEST_STEAM_ID:
+//            break;
+//    }
+//  }
 
-  void sample() {
-    struct steam_rpc_req_s req;
-    req.common.cmd = RPC_REQUEST_STEAM_ID;
-    req.steam_req.id = 1034;
-    STEAMSHIM_sendRPC(&req, sizeof(req.steam_req), NULL, recv_handler);
-  }
+ // void sample() {
+ //   struct steam_rpc_req_s req;
+ //   req.common.cmd = RPC_REQUEST_STEAM_ID;
+ //   req.steam_req.id = 1034;
+ //   STEAMSHIM_sendRPC(&req, sizeof(req.steam_req), NULL, recv_handler);
+ // }
 
-  int STEAMSHIM_sendRPC(struct steam_rpc_req_s* req, uint32_t size, void* self, STEAMSHIM_rpc_handle rpc) {
+  int STEAMSHIM_sendRPC(struct steam_rpc_req_s* req, uint32_t size, void* self, STEAMSHIM_rpc_handle rpc, uint32_t* sync) {
     uint32_t syncIndex = ++SyncToken;
     struct steam_rpc_async_s* handle = handles + (syncIndex % NUM_RPC_ASYNC_HANDLE);
 
@@ -256,6 +256,10 @@ extern "C" {
     handle->handle = rpc;
     writePipe(GPipeWrite, &size, sizeof(uint32_t));
     writePipe(GPipeWrite, (uint8_t*)req, size);
+    return 0;
+  }
+
+  int STEAMSHIM_waitRPC(uint32_t syncIndex) {
     return 0;
   }
 
