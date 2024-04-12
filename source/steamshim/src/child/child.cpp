@@ -215,26 +215,29 @@ static void prepared_rpc_packet(const steam_rpc_shim_common_s* req, T* response)
 }
 
 template<typename T>
-static void send_rpc_packet(T* response){
-    uint32_t size = sizeof(T);
+static void send_rpc_packet(T* response, uint32_t size){
     writePipe(GPipeWrite, &size, sizeof(uint32_t));
     writePipe(GPipeWrite, response, sizeof(T));
 }
 
-static void process_rpc(steam_rpc_req_s* req) {
+static void process_rpc(steam_rpc_req_s* req, size_t size) {
 	switch( req->common.cmd ) {
 		case RPC_REQUEST_STEAM_ID: {
 			struct steam_id_recv_s recv;
 			prepared_rpc_packet( &req->common, &recv );
 			recv.id = SteamUser()->GetSteamID().ConvertToUint64();
-			send_rpc_packet( &recv );
+			send_rpc_packet( &recv , sizeof(steam_id_recv_s));
 			break;
+		}
+		case RPC_REQUEST_STEAM_AUTH: {
+
+
+		    break;
 		}
 		default:
 			break;
 	}
 }
-
 static void processCommands()
 {
   struct steam_packet_buf packet;
@@ -264,7 +267,7 @@ static void processCommands()
 
 	// readPipe(GPipeRead, &packet, size );
 	if( packet.common.cmd > RPC_BEGIN && packet.common.cmd < RPC_END ) {
-		process_rpc( &packet.rpc_req );
+		process_rpc( &packet.rpc_req, packet.size);
 	} else if( packet.common.cmd > EVT_BEGIN && packet.common.cmd < EVT_END) {
 	}
 

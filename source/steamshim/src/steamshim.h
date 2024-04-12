@@ -27,16 +27,20 @@ freely, subject to the following restrictions:
 extern "C" {
 #endif
 
-#define AUTH_TICKET_MAXSIZE 1024
+#define STEAM_AVATAR_SIZE (128*128*4)
+//#define STEAM_PIPEMESSAGE_MAX (STEAM_AVATAR_SIZE + 64)
+#define STEAM_AUTH_TICKET_MAXSIZE 1024
 
 enum shim_cmd_s {
   RPC_BEGIN, 
   RPC_REQUEST_STEAM_ID,
-
+  RPC_REQUEST_STEAM_AUTH,
+  RPC_REQUEST_AVATAR,
   RPC_END,
   EVT_BEGIN = RPC_END,
   
-  EVT_END
+  EVT_END,
+  CMD_LEN
 };
 
 typedef void (*STEAMSHIM_rpc_handle)(void* self, struct steam_rpc_recieve_s* rec );
@@ -66,9 +70,23 @@ STEAM_RPC_REQ(steam_id) {
   uint64_t id;
 };
 
+
 STEAM_RPC_RECV(steam_id) {
   STEAM_RPC_SHIM_COMMON()
   uint64_t id;
+};
+
+STEAM_RPC_REQ( steam_auth )
+{
+	STEAM_RPC_SHIM_COMMON()
+	uint64_t pcbTicket;
+	char ticket[STEAM_AUTH_TICKET_MAXSIZE];
+};
+
+STEAM_RPC_REQ( steam_avatar )
+{
+	STEAM_RPC_SHIM_COMMON()
+	uint64_t pcbTicket;
 };
 
 STEAM_RPC_REQ(persona_name) {
@@ -91,6 +109,7 @@ struct steam_rpc_req_s {
   union {
     struct steam_rpc_shim_common_s common;
     struct steam_id_req_s steam_id;
+    struct steam_auth_req_s steam_auth;
     struct persona_name_req_s persona_req;
   };
 };
@@ -116,6 +135,8 @@ struct steam_packet_buf {
 		uint8_t buffer[STEAM_PACKED_RESERVE_SIZE];
 	};
 };
+
+
 
 #pragma pack(pop) 
 
