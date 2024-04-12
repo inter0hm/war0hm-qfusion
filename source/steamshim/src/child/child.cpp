@@ -23,6 +23,7 @@ freely, subject to the following restrictions:
 #include <ctime>
 #include <chrono>
 #include <thread>
+#include <cassert>
 #include <stdlib.h>
 
 #include "child_private.h"
@@ -207,13 +208,37 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
 }
 
 
+template<typename T>
+static void prepared_rpc_packet(const steam_rpc_shim_common_s* req, T* response){
+    response->sync = req->sync;
+    response->cmd = req->cmd;
+}
+
+template<typename T>
+static void send_rpc_packet(T* response){
+    uint32_t size = sizeof(T);
+    writePipe(GPipeWrite, &size, sizeof(uint32_t));
+    writePipe(GPipeWrite, response, sizeof(T));
+}
+
 static void process_rpc(steam_rpc_req_s* req) {
-    
+	switch( req->common.cmd ) {
+		case RPC_REQUEST_STEAM_ID: {
+			struct steam_id_recv_s recv;
+			prepared_rpc_packet( &req->common, &recv );
+			recv.id = SteamUser()->GetSteamID().ConvertToUint64();
+			send_rpc_packet( &recv );
+			break;
+		}
+		default:
+			break;
+	}
 }
 
 static void processCommands()
 {
-  PipeBuffer buf;
+  struct steam_packet_buf packet;
+  size_t cursor = 0;
   while (1){
     if (time_since_last_pump != 0){
         time_t delta = time(NULL) - time_since_last_pump;
@@ -224,33 +249,35 @@ static void processCommands()
         }
     }
 
-    if (!buf.Recieve())
-      continue;
+	assert( sizeof( struct steam_packet_buf ) == STEAM_PACKED_RESERVE_SIZE );
+	int bytesRead = readPipe( GPipeRead, packet.buffer + cursor, STEAM_PACKED_RESERVE_SIZE - cursor );
+	if( bytesRead > 0 ) {
+		cursor += bytesRead;
+	} else {
+		std::this_thread::sleep_for( std::chrono::microseconds( 1000 ) );
+		continue;
+	}
 
-    if (buf.hasmsg){
-      
-       steam_packet_buffer packet;
-       uint32_t size;
-       readPipe(GPipeRead, &size, sizeof(uint32_t));
-	   readPipe( GPipeRead, &packet, size );
-	   if( packet.common.cmd > RPC_BEGIN && packet.common.cmd < RPC_END ) {
-		   process_rpc( &packet.rpc_req );
-	   }
+	if( cursor < packet.size + sizeof( uint32_t ) ) {
+		continue;
+	}
 
-	   volatile unsigned int evlen =buf.ReadInt();
+	// readPipe(GPipeRead, &packet, size );
+	if( packet.common.cmd > RPC_BEGIN && packet.common.cmd < RPC_END ) {
+		process_rpc( &packet.rpc_req );
+	} else if( packet.common.cmd > EVT_BEGIN && packet.common.cmd < EVT_END) {
+	}
 
-        ShimCmd cmd = (ShimCmd)buf.ReadByte();
-
-        if (!processCommand(buf, cmd, evlen)) {
-            dbgprintf("Child terminating in processCommand .\n");
-            return; // we were told to exit
-        }
-    } else {
-        std::this_thread::sleep_for(std::chrono::microseconds(1000));
-    }
+	if( cursor > packet.size + sizeof( uint32_t )) {
+	    const size_t packetlen = packet.size + sizeof( uint32_t );
+	    const size_t remainingLen = cursor - packetlen; 
+		memmove(packet.buffer, packet.buffer + packet.size + sizeof( uint32_t ), remainingLen);
+		cursor = remainingLen;
+	} else {
+	    cursor = 0;
+	}
   }
-} 
-
+}
 
 static bool initSteamworks(PipeType fd)
 {

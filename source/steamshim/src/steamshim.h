@@ -35,8 +35,7 @@ enum shim_cmd_s {
 
   RPC_END,
   EVT_BEGIN = RPC_END,
-
-
+  
   EVT_END
 };
 
@@ -45,17 +44,18 @@ typedef void (*STEAMSHIM_rpc_handle)(void* self, struct steam_rpc_recieve_s* rec
 #define STEAM_SHIM_COMMON() \
   enum shim_cmd_s cmd; 
 
-#define STEAM_RPC_SHIM_COMMON() \
-  STEAM_SHIM_COMMON()  \
-  uint32_t sync;
 
 #define STEAM_RPC_REQ(name) struct name ## _req_s
 #define STEAM_RPC_RECV(name) struct name ## _recv_s 
 
 #pragma pack(push, 1)
 struct steam_shim_common_s {
-  STEAM_RPC_SHIM_COMMON()
+  STEAM_SHIM_COMMON()
 };
+
+#define STEAM_RPC_SHIM_COMMON() \
+  STEAM_SHIM_COMMON()  \
+  uint32_t sync;
 
 struct steam_rpc_shim_common_s {
   STEAM_RPC_SHIM_COMMON()
@@ -68,6 +68,7 @@ STEAM_RPC_REQ(steam_id) {
 
 STEAM_RPC_RECV(steam_id) {
   STEAM_RPC_SHIM_COMMON()
+  uint64_t id;
 };
 
 STEAM_RPC_REQ(persona_name) {
@@ -89,23 +90,31 @@ STEAM_RPC_RECV(set_rich_presence) {
 struct steam_rpc_req_s {
   union {
     struct steam_rpc_shim_common_s common;
-    steam_id_req_s steam_req;
-    persona_name_req_s persona_req;
+    struct steam_id_req_s steam_id;
+    struct persona_name_req_s persona_req;
   };
 };
 
 struct steam_rpc_recieve_s {
   union {
     struct steam_rpc_shim_common_s common;
+    struct steam_id_recv_s steam_id;
   };
 };
 
-struct steam_packet_buffer {
-    union {
-        struct steam_shim_common_s common; 
-        struct steam_rpc_shim_common_s rpc_common;
-        struct steam_rpc_req_s rpc_req;
-    };
+#define STEAM_PACKED_RESERVE_SIZE ( 4096 )
+struct steam_packet_buf {
+	union {
+		struct {
+			uint32_t size;
+			union {
+				struct steam_shim_common_s common;
+				struct steam_rpc_shim_common_s rpc_common;
+				struct steam_rpc_req_s rpc_req;
+			};
+		};
+		uint8_t buffer[STEAM_PACKED_RESERVE_SIZE];
+	};
 };
 
 #pragma pack(pop) 
