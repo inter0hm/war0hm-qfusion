@@ -21,6 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef __CG_PUBLIC_H__
 #define __CG_PUBLIC_H__
 
+#include "../gameshared/q_arch.h"
+#include "../steamshim/src/mod_steam.h"
+
 #include <stdint.h>
 struct orientation_s;
 struct bonepose_s;
@@ -274,6 +277,8 @@ typedef struct
 
 	// steam.h
 	void ( *Steam_RequestAvatar )(uint64_t steamid, int size);
+
+	struct steam_import_s steam_import;
 } cgame_import_t;
 
 //

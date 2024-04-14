@@ -9,8 +9,6 @@ typedef void ( *STEAMSHIM_rpc_handle )( void *self, struct steam_rpc_pkt *rec );
 	typedef ret ( *name##Fn )( __VA_ARGS__ );    \
 	ret name( __VA_ARGS__ );
 
-// DECLARE_TYPEDEF_METHOD( void, Q_LinkToPool, void *ptr, mempool_t *pool );
-
 DECLARE_TYPEDEF_METHOD( int, STEAMSHIM_dispatch );
 DECLARE_TYPEDEF_METHOD( int, STEAMSHIM_sendRPC, void *req, uint32_t size, void *self, STEAMSHIM_rpc_handle rpc, uint32_t *syncIndex );
 DECLARE_TYPEDEF_METHOD( int, STEAMSHIM_waitDispatchSync, uint32_t syncIndex ); // wait on the dispatch loop
@@ -28,11 +26,13 @@ struct steam_import_s {
 	STEAMSHIM_waitDispatchSync \
 };
 
-
 #if MEM_DEFINE_INTERFACE_IMPL
 static struct steam_import_s  steam_import;
 static inline void Q_ImportSteamModule(const struct steam_imsteam_import_s* imp) {
 	steam_import = *imp;
 }
+
+
+
 #endif
 #endif
