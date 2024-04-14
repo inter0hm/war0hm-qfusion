@@ -60,10 +60,10 @@ void STEAMSHIM_deinit(void);
 int STEAMSHIM_alive(void);
 const SteamshimEvent *STEAMSHIM_pump(void);
 
-int STEAMSHIM_sendRPC(struct steam_rpc_req_s* req, uint32_t size, void* self, STEAMSHIM_rpc_handle rpc, uint32_t* syncIndex); 
-int STEAMSHIM_waitRPC(uint32_t syncIndex); 
+int STEAMSHIM_dispatch(); 
+int STEAMSHIM_sendRPC(void* req, uint32_t size, void* self, STEAMSHIM_rpc_handle rpc, uint32_t* syncIndex); 
+int STEAMSHIM_waitDispatchRPC(uint32_t syncIndex); // wait on the dispatch loop
 
-void STEAMSHIM_getSteamID();
 void STEAMSHIM_getPersonaName();
 void STEAMSHIM_setRichPresence(int num, const char** key, const char** val);
 void STEAMSHIM_getAuthSessionTicket();

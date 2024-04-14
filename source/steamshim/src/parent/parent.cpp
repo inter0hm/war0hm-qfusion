@@ -18,6 +18,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <stdio.h>
@@ -32,17 +33,27 @@ int GArgc = 0;
 char **GArgv = NULL;
 
 
-static size_t SyncToken;
-static size_t RecievedSyncToken; // the position of the recieved token
 struct steam_rpc_async_s {
     uint32_t token;
     void* self;
-    STEAMSHIM_rpc_handle handle;
+    STEAMSHIM_rpc_handle cb;
 };
 
 #define NUM_RPC_ASYNC_HANDLE 2048
-struct steam_rpc_async_s handles[NUM_RPC_ASYNC_HANDLE];
+static size_t SyncToken;
+struct steam_rpc_async_s rpc_handles[NUM_RPC_ASYNC_HANDLE];
 
+int STEAMSHIM_dispatch() {
+  //struct steam_packet_buf packet;
+  uint32_t syncIndex = 0;
+  //size_t cursor = 0;
+  struct steam_rpc_shim_common_s pkt;
+  pkt.cmd = RPC_PUMP;
+  if( STEAMSHIM_sendRPC( &pkt, sizeof( steam_rpc_shim_common_s ), NULL, NULL, &syncIndex ) < 0 ) {
+	  return -1;
+  }
+  return STEAMSHIM_waitDispatchRPC( syncIndex );
+}
 static SteamshimEvent* ProcessEvent(){
     static SteamshimEvent event;
     // make sure this is static, since it needs to persist between pumps
@@ -235,38 +246,78 @@ extern "C" {
 //    }
 //  }
 
- // void sample() {
- //   struct steam_rpc_req_s req;
- //   req.common.cmd = RPC_REQUEST_STEAM_ID;
- //   req.steam_req.id = 1034;
- //   STEAMSHIM_sendRPC(&req, sizeof(req.steam_req), NULL, recv_handler);
- // }
+  // void sample() {
+  //   struct steam_rpc_req_s req;
+  //   req.common.cmd = RPC_REQUEST_STEAM_ID;
+  //   req.steam_req.id = 1034;
+  //   STEAMSHIM_sendRPC(&req, sizeof(req.steam_req), NULL, recv_handler);
+  // }
 
-  int STEAMSHIM_sendRPC(struct steam_rpc_req_s* req, uint32_t size, void* self, STEAMSHIM_rpc_handle rpc, uint32_t* sync) {
-    uint32_t syncIndex = ++SyncToken;
-    struct steam_rpc_async_s* handle = handles + (syncIndex % NUM_RPC_ASYNC_HANDLE);
-
-    if(handle->token != 0 && handle->token < RecievedSyncToken) {
-        SyncToken--;
-        return -1;
-    }
-
-    handle->token = syncIndex;
-    handle->self = self;
-    handle->handle = rpc;
-    writePipe(GPipeWrite, &size, sizeof(uint32_t));
-    writePipe(GPipeWrite, (uint8_t*)req, size);
-    return 0;
-  }
-
-  int STEAMSHIM_waitRPC(uint32_t syncIndex) {
-    return 0;
-  }
-
-  void STEAMSHIM_getSteamID()
+  int STEAMSHIM_sendRPC( void *packet, uint32_t size, void *self, STEAMSHIM_rpc_handle rpc, uint32_t *sync )
   {
-	  Write1ByteMessage(CMD_CL_REQUESTSTEAMID);
+	  uint32_t syncIndex = ++SyncToken;
+	  if( sync ) {
+		  ( *sync ) = syncIndex;
+	  }
+	  struct steam_rpc_async_s *handle = rpc_handles + ( syncIndex % NUM_RPC_ASYNC_HANDLE );
+
+	 // if( handle->token != 0 && handle->token < RecievedSyncToken ) {
+	 //     SyncToken--;
+	 //     return -1;
+	 // }
+
+	  handle->token = syncIndex;
+	  handle->self = self;
+	  handle->cb = rpc;
+	  writePipe( GPipeWrite, &size, sizeof( uint32_t ) );
+	  writePipe( GPipeWrite, (uint8_t *)packet, size );
+	  return 0;
   }
+
+  static void consumeRPC( struct steam_rpc_pkt *rpc, size_t size )
+  {
+	  struct steam_rpc_async_s *handle = rpc_handles + ( rpc->common.sync % NUM_RPC_ASYNC_HANDLE );
+	  if( handle->cb ) {
+		  handle->cb( handle->self, rpc );
+	  }
+  }
+
+  int STEAMSHIM_waitDispatchRPC( uint32_t syncIndex )
+  {
+	  static struct steam_packet_buf packet;
+      static size_t cursor = 0;
+	  while( 1 ) {
+		  assert( sizeof( struct steam_packet_buf ) == STEAM_PACKED_RESERVE_SIZE );
+		  int bytesRead = readPipe( GPipeRead, packet.buffer + cursor, STEAM_PACKED_RESERVE_SIZE - cursor );
+		  if( bytesRead > 0 ) {
+			  cursor += bytesRead;
+		  } else {
+			  continue;
+		  }
+		  if( packet.size > STEAM_PACKED_RESERVE_SIZE - sizeof( uint32_t ) ) {
+			  // the packet is larger then the reserved size
+			  return -1;
+		  }
+		  const bool rpcPacket = packet.common.cmd > RPC_BEGIN && packet.common.cmd < RPC_END;
+		  if( rpcPacket ) {
+			  consumeRPC( &packet.rpc_payload, packet.size );
+		  }
+
+		  if( cursor > packet.size + sizeof( uint32_t ) ) {
+			  const size_t packetlen = packet.size + sizeof( uint32_t );
+			  const size_t remainingLen = cursor - packetlen;
+			  memmove( packet.buffer, packet.buffer + packet.size + sizeof( uint32_t ), remainingLen );
+			  cursor = remainingLen;
+		  } else {
+			  cursor = 0;
+		  }
+		  if( rpcPacket && packet.rpc_common.sync == syncIndex ) {
+			  break;
+		  }
+	  }
+	  return 0;
+  }
+
 
   void STEAMSHIM_getPersonaName(){
       Write1ByteMessage(CMD_CL_REQUESTPERSONANAME);

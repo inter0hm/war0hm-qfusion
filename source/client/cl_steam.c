@@ -2,6 +2,7 @@
 #include "../qcommon/steam.h"
 #include "client.h"
 #include "../steamshim/src/parent/parent.h"
+#include "../steamshim/src/packet_utils.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
@@ -80,13 +81,6 @@ void Steam_SetRichPresence( int num, const char **key, const char **val )
 	STEAMSHIM_setRichPresence(num, key, val);
 }
 
-uint64_t Steam_GetSteamID( void )
-{
-	STEAMSHIM_getSteamID();
-	const SteamshimEvent *evt = blockOnEvent(EVT_CL_STEAMIDRECIEVED);
-	return evt->cl_steamidrecieved;
-}
-
 /*
 * Steam_RequestAvatar
 * size is 0 for 32x32, 1 for 64x64, 2 for 128x128
@@ -99,17 +93,20 @@ void Steam_RequestAvatar(uint64_t steamid, int size)
 /*
 * Steam_AdvertiseGame
 */
-void Steam_AdvertiseGame( const uint8_t *ip, unsigned short port )
+void Steam_AdvertiseGame( const uint8_t *ip, unsigned short port, uint32_t* syncToken)
 {
-	const char* keys[1] = {"connect"};
-	const char* values[1];
+	char rpc_connect_packet[sizeof(struct buffer_rpc_s) + 256];
+	struct buffer_rpc_s* req = (struct buffer_rpc_s*)rpc_connect_packet;
+	req->cmd = RPC_SET_RICH_PRESENCE; 
+	char connectstr[64] = {0};
 
-	char connectstr[64];
 	if (port) {
 		snprintf( connectstr,sizeof connectstr, "%d.%d.%d.%d:%i",ip[0],ip[1],ip[2],ip[3],port);
-		values[0] = connectstr;
-	} else {
-		values[0] = "";
-	}
-	Steam_SetRichPresence(1, keys, values);
+	} 	
+	const char* pairs[] = {
+		"connect",
+		connectstr
+	};
+	const size_t bufferLen = pack_cstr_null_terminated( (char *)req->buf, 256, pairs, 2 );
+	STEAMSHIM_sendRPC(req, bufferLen + sizeof(struct buffer_rpc_s), NULL, NULL, syncToken);
 }
