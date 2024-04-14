@@ -83,7 +83,6 @@ typedef enum {
 	AVATAR_LARGE,
 } SteamAvatarSize;
 
-typedef void (*STEAMSHIM_rpc_handle )( void *self, struct steam_rpc_pkt *rec );
 
 #ifdef __cplusplus
 }

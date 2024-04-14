@@ -23,7 +23,6 @@ freely, subject to the following restrictions:
 #include "steam/steam_gameserver.h"
 #include "../steamshim.h"
 
-void TransmitAvatar(uint64 id, SteamAvatarSize size);
 class SteamCallbacks
 {
 public:

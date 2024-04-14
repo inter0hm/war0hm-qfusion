@@ -372,9 +372,6 @@ typedef struct
 	bool ( *IsTouchDown )( int id );
 
 
-	void ( *CallbackRequestAvatar )( uint64_t steamid, uint8_t *avatar );
-
-
 	/**
 	 * Retrieves the blocklist item at the given index.
 	 *

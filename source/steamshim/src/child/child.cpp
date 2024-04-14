@@ -19,27 +19,28 @@ freely, subject to the following restrictions:
 */
 
 #include <SDL2/SDL_stdinc.h>
+#include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <ctime>
-#include <chrono>
-#include <thread>
-#include <cassert>
 #include <stdlib.h>
+#include <thread>
 
-#include "child_private.h"
-#include "../steamshim_private.h"
 #include "../os.h"
 #include "../steamshim.h"
+#include "../steamshim_private.h"
+#include "ServerBrowser.h"
+#include "child_private.h"
 #include "steam/isteamfriends.h"
 #include "steam/isteammatchmaking.h"
 #include "steam/isteamutils.h"
 #include "steam/steam_api.h"
 #include "steam/steam_gameserver.h"
-#include "ServerBrowser.h"
 #include "steam/steamclientpublic.h"
 
 #include "../packet_utils.h"
+#include "write_utils.h"
 
 static bool GRunServer = false;
 static bool GRunClient = false;
@@ -55,182 +56,165 @@ static time_t time_since_last_pump = 0;
 
 static SteamCallbacks *GSteamCallbacks;
 
-//static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
+// static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
 //{
 //
-//    if (debug){
-//        // dbgprintf("Processing command %d\n", cmdtype);
-//    }
-//    PipeBuffer msg;
-//    switch (cmdtype)
-//    {
-//        case CMD_PUMP:
-//            time(&time_since_last_pump);
-//            if (GRunServer)
-//                SteamGameServer_RunCallbacks();
-//            if (GRunClient)
-//                SteamAPI_RunCallbacks();
-//            break;
+//     if (debug){
+//         // dbgprintf("Processing command %d\n", cmdtype);
+//     }
+//     PipeBuffer msg;
+//     switch (cmdtype)
+//     {
+//         case CMD_PUMP:
+//             time(&time_since_last_pump);
+//             if (GRunServer)
+//                 SteamGameServer_RunCallbacks();
+//             if (GRunClient)
+//                 SteamAPI_RunCallbacks();
+//             break;
 //
-//        case CMD_CL_REQUESTSTEAMID:
-//            {
-//                unsigned long long id = SteamUser()->GetSteamID().ConvertToUint64();
+//         case CMD_CL_REQUESTSTEAMID:
+//             {
+//                 unsigned long long id = SteamUser()->GetSteamID().ConvertToUint64();
 //
-//                msg.WriteByte(EVT_CL_STEAMIDRECIEVED);
-//                msg.WriteLong(id);
-//                msg.Transmit();
-//            }
-//            break;
+//                 msg.WriteByte(EVT_CL_STEAMIDRECIEVED);
+//                 msg.WriteLong(id);
+//                 msg.Transmit();
+//             }
+//             break;
 //
-//        case CMD_CL_REQUESTPERSONANAME:
-//            {
-//                const char* name = SteamFriends()->GetPersonaName();
+//         case CMD_CL_REQUESTPERSONANAME:
+//             {
+//                 const char* name = SteamFriends()->GetPersonaName();
 //
-//                msg.WriteByte(EVT_CL_PERSONANAMERECIEVED);
-//                msg.WriteData((void*)name, strlen(name));
-//                msg.Transmit();
-//            }
-//            break;
+//                 msg.WriteByte(EVT_CL_PERSONANAMERECIEVED);
+//                 msg.WriteData((void*)name, strlen(name));
+//                 msg.Transmit();
+//             }
+//             break;
 //
-//        case CMD_CL_SETRICHPRESENCE:
-//            {
-//                int num = cmd.ReadInt();
+//         case CMD_CL_SETRICHPRESENCE:
+//             {
+//                 int num = cmd.ReadInt();
 //
-//                for (int i=0; i < num;i++){
-//                    const char *key = cmd.ReadString();
-//                    const char *val = cmd.ReadString();
-//                    SteamFriends()->SetRichPresence(key,val);
-//                }
-//            }
-//            break;
-//        case CMD_CL_REQUESTAUTHSESSIONTICKET:
-//            {
-//                char pTicket[AUTH_TICKET_MAXSIZE];
-//                uint32 pcbTicket;
-//                GSteamUser->GetAuthSessionTicket(pTicket,AUTH_TICKET_MAXSIZE, &pcbTicket);
+//                 for (int i=0; i < num;i++){
+//                     const char *key = cmd.ReadString();
+//                     const char *val = cmd.ReadString();
+//                     SteamFriends()->SetRichPresence(key,val);
+//                 }
+//             }
+//             break;
+//         case CMD_CL_REQUESTAUTHSESSIONTICKET:
+//             {
+//                 char pTicket[AUTH_TICKET_MAXSIZE];
+//                 uint32 pcbTicket;
+//                 GSteamUser->GetAuthSessionTicket(pTicket,AUTH_TICKET_MAXSIZE, &pcbTicket);
 //
-//                msg.WriteByte(EVT_CL_AUTHSESSIONTICKETRECIEVED);
-//                msg.WriteLong(pcbTicket);
-//                msg.WriteData(pTicket, AUTH_TICKET_MAXSIZE);
-//                msg.Transmit();
-//            }
-//            break;
-//        case CMD_SV_BEGINAUTHSESSION:
-//            {
-//                uint64 steamID = cmd.ReadLong();
-//                long long cbAuthTicket = cmd.ReadLong();
-//                void* pAuthTicket = cmd.ReadData(AUTH_TICKET_MAXSIZE);
+//                 msg.WriteByte(EVT_CL_AUTHSESSIONTICKETRECIEVED);
+//                 msg.WriteLong(pcbTicket);
+//                 msg.WriteData(pTicket, AUTH_TICKET_MAXSIZE);
+//                 msg.Transmit();
+//             }
+//             break;
+//         case CMD_SV_BEGINAUTHSESSION:
+//             {
+//                 uint64 steamID = cmd.ReadLong();
+//                 long long cbAuthTicket = cmd.ReadLong();
+//                 void* pAuthTicket = cmd.ReadData(AUTH_TICKET_MAXSIZE);
 //
 //
-//                int result = GSteamGameServer->BeginAuthSession(pAuthTicket, cbAuthTicket, steamID);
+//                 int result = GSteamGameServer->BeginAuthSession(pAuthTicket, cbAuthTicket, steamID);
 //
-//                msg.WriteByte(EVT_SV_AUTHSESSIONVALIDATED);
-//                msg.WriteInt(result);
-//                msg.Transmit();
-//            }
-//            break;
-//        case CMD_CL_REQUESTAVATAR:
-//            {
-//                uint64 id = cmd.ReadLong();
-//                SteamAvatarSize size = (SteamAvatarSize)cmd.ReadInt();
+//                 msg.WriteByte(EVT_SV_AUTHSESSIONVALIDATED);
+//                 msg.WriteInt(result);
+//                 msg.Transmit();
+//             }
+//             break;
+//         case CMD_CL_REQUESTAVATAR:
+//             {
+//                 uint64 id = cmd.ReadLong();
+//                 SteamAvatarSize size = (SteamAvatarSize)cmd.ReadInt();
 //
-//                if (!SteamFriends()->RequestUserInformation(id, false)){
-//                    TransmitAvatar(id, size);
-//                }
-//            }
-//            break;
-//        case CMD_SV_ENDAUTHSESSION:
-//            {
-//                uint64 steamID = cmd.ReadLong();
-//                GSteamGameServer->EndAuthSession(steamID);
-//            }
-//            break;
-//        case CMD_CL_OPENPROFILE:
-//            {
-//                uint64 steamID = cmd.ReadLong();
-//                SteamFriends()->ActivateGameOverlayToUser("steamid", steamID);
-//            }
-//            break;
-//        case CMD_CL_REQUESTCOMMANDLINE:
-//            {
-//                char cmdline[1024] = {0};
-//                SteamApps()->GetLaunchCommandLine(cmdline, 1024);
-//                msg.WriteByte(EVT_CL_COMMANDLINERECIEVED);
-//                msg.WriteString(cmdline);
-//                msg.Transmit();
-//            }
-//            break;
-//        case CMD_SV_UPDATESERVERINFO:
-//            {
-//                bool advertise = cmd.ReadByte();
-//                GSteamGameServer->SetAdvertiseServerActive(advertise);
-//                int botplayercount = cmd.ReadInt();
-//                GSteamGameServer->SetBotPlayerCount(botplayercount);
-//                bool dedicatedserver = cmd.ReadByte();
-//                GSteamGameServer->SetDedicatedServer(dedicatedserver);
-//                const char *gamedata = cmd.ReadString();
-//                if (gamedata[0])
-//                    GSteamGameServer->SetGameData(gamedata);
-//                const char *gamedescription = cmd.ReadString();
-//                if (gamedescription[0])
-//                    GSteamGameServer->SetGameDescription(gamedescription);
-//                const char *gametags = cmd.ReadString();
-//                if (gametags[0])
-//                    GSteamGameServer->SetGameTags(gametags);
-//                int heartbeatinterval = cmd.ReadInt();
-//                // GSteamGameServer->SetHeartbeatInterval(heartbeatinterval);
-//                const char *mapname = cmd.ReadString();
-//                if (mapname[0])
-//                    GSteamGameServer->SetMapName(mapname);
-//                int maxplayercount = cmd.ReadInt();
-//                GSteamGameServer->SetMaxPlayerCount(maxplayercount);
-//                const char *moddir = cmd.ReadString();
-//                if (moddir[0])
-//                    GSteamGameServer->SetModDir(moddir);
-//                bool passwordprotected = cmd.ReadByte();
-//                GSteamGameServer->SetPasswordProtected(passwordprotected);
-//                const char *product = cmd.ReadString();
-//                if (product[0])
-//                    GSteamGameServer->SetProduct(product);
-//                const char *region = cmd.ReadString();
-//                if (region[0])
-//                    GSteamGameServer->SetRegion(region);
-//                const char *servername = cmd.ReadString();
-//                if (servername[0])
-//                    GSteamGameServer->SetServerName(servername);
-//            }
-//            break;
-//        case CMD_CL_REQUESTSERVERS:
-//            {
-//                GServerBrowser->RefreshInternetServers();
-//            }
-//            break;
-//    } // switch
+//                 if (!SteamFriends()->RequestUserInformation(id, false)){
+//                     TransmitAvatar(id, size);
+//                 }
+//             }
+//             break;
+//         case CMD_SV_ENDAUTHSESSION:
+//             {
+//                 uint64 steamID = cmd.ReadLong();
+//                 GSteamGameServer->EndAuthSession(steamID);
+//             }
+//             break;
+//         case CMD_CL_OPENPROFILE:
+//             {
+//                 uint64 steamID = cmd.ReadLong();
+//                 SteamFriends()->ActivateGameOverlayToUser("steamid", steamID);
+//             }
+//             break;
+//         case CMD_CL_REQUESTCOMMANDLINE:
+//             {
+//                 char cmdline[1024] = {0};
+//                 SteamApps()->GetLaunchCommandLine(cmdline, 1024);
+//                 msg.WriteByte(EVT_CL_COMMANDLINERECIEVED);
+//                 msg.WriteString(cmdline);
+//                 msg.Transmit();
+//             }
+//             break;
+//         case CMD_SV_UPDATESERVERINFO:
+//             {
+//                 bool advertise = cmd.ReadByte();
+//                 GSteamGameServer->SetAdvertiseServerActive(advertise);
+//                 int botplayercount = cmd.ReadInt();
+//                 GSteamGameServer->SetBotPlayerCount(botplayercount);
+//                 bool dedicatedserver = cmd.ReadByte();
+//                 GSteamGameServer->SetDedicatedServer(dedicatedserver);
+//                 const char *gamedata = cmd.ReadString();
+//                 if (gamedata[0])
+//                     GSteamGameServer->SetGameData(gamedata);
+//                 const char *gamedescription = cmd.ReadString();
+//                 if (gamedescription[0])
+//                     GSteamGameServer->SetGameDescription(gamedescription);
+//                 const char *gametags = cmd.ReadString();
+//                 if (gametags[0])
+//                     GSteamGameServer->SetGameTags(gametags);
+//                 int heartbeatinterval = cmd.ReadInt();
+//                 // GSteamGameServer->SetHeartbeatInterval(heartbeatinterval);
+//                 const char *mapname = cmd.ReadString();
+//                 if (mapname[0])
+//                     GSteamGameServer->SetMapName(mapname);
+//                 int maxplayercount = cmd.ReadInt();
+//                 GSteamGameServer->SetMaxPlayerCount(maxplayercount);
+//                 const char *moddir = cmd.ReadString();
+//                 if (moddir[0])
+//                     GSteamGameServer->SetModDir(moddir);
+//                 bool passwordprotected = cmd.ReadByte();
+//                 GSteamGameServer->SetPasswordProtected(passwordprotected);
+//                 const char *product = cmd.ReadString();
+//                 if (product[0])
+//                     GSteamGameServer->SetProduct(product);
+//                 const char *region = cmd.ReadString();
+//                 if (region[0])
+//                     GSteamGameServer->SetRegion(region);
+//                 const char *servername = cmd.ReadString();
+//                 if (servername[0])
+//                     GSteamGameServer->SetServerName(servername);
+//             }
+//             break;
+//         case CMD_CL_REQUESTSERVERS:
+//             {
+//                 GServerBrowser->RefreshInternetServers();
+//             }
+//             break;
+//     } // switch
 //
-//    return true;
-//}
+//     return true;
+// }
 
-
-template<typename T>
-static void prepared_rpc_packet(const steam_rpc_shim_common_s* req, T* response){
-    response->sync = req->sync;
-    response->cmd = req->cmd;
-}
-
-template<typename T>
-static void write_packet(PipeType fd,const T* response, uint32_t size){
-    writePipe(fd, &size, sizeof(uint32_t));
-    writePipe(fd, response, size);
-}
-
-
-static void send_raw(const void* buf, uint32_t size) {
-    writePipe(GPipeWrite, buf, size);
-}
-
-static void processRPC(steam_rpc_pkt* req, size_t size) {
+static void processRPC( steam_rpc_pkt_s *req, size_t size )
+{
 	switch( req->common.cmd ) {
-	    case RPC_PUMP: {
+		case RPC_PUMP: {
 			time( &time_since_last_pump );
 			if( GRunServer )
 				SteamGameServer_RunCallbacks();
@@ -238,109 +222,113 @@ static void processRPC(steam_rpc_pkt* req, size_t size) {
 				SteamAPI_RunCallbacks();
 			struct steam_rpc_shim_common_s recv;
 			prepared_rpc_packet( &req->common, &recv );
-			write_packet(GPipeWrite, &recv , sizeof(steam_result_recv_s));
+			write_packet( GPipeWrite, &recv, sizeof( steam_result_recv_s ) );
 			break;
-	    }
-	    case RPC_PERSONA_NAME: {
-            const char* name = SteamFriends()->GetPersonaName();
-            struct buffer_rpc_s recv;
-			prepared_rpc_packet( &req->common, &recv);
-		
-		    const uint32_t bufferSize = strlen(name) + 1 + sizeof(struct buffer_rpc_s);
-            writePipe(GPipeWrite, &bufferSize, sizeof(uint32_t));
-			writePipe(GPipeWrite, &recv, sizeof(struct buffer_rpc_s));
-			writePipe(GPipeWrite, name, strlen(name) + 1);
-	        break;
-	    }
-	    case RPC_REQUEST_LAUNCH_COMMAND: {
-	        uint8_t buffer[sizeof(struct buffer_rpc_s) + 1024];
-			struct buffer_rpc_s* recv = (struct buffer_rpc_s*)buffer;
-			prepared_rpc_packet( &req->common, recv);
-            const int numberBytes = SteamApps()->GetLaunchCommandLine((char*)recv->buf, 1024);
-            assert(numberBytes > 0);
-			write_packet(GPipeWrite, &recv, sizeof(buffer_rpc_s) + numberBytes);
-	        break;
-	    }
-	    case RPC_BEGIN_AUTH_SESSION: {
-			const int result = GSteamGameServer->BeginAuthSession( 
-			    req->begin_auth_session.authTicket, 
-			    req->begin_auth_session.cbAuthTicket, 
-			    (uint64)req->begin_auth_session.steamID 
-			);
+		}
+		case RPC_AUTHSESSION_TICKET: {
+			struct auth_session_ticket_recv_s recv;
+			prepared_rpc_packet( &req->common, &recv );
+			GSteamUser->GetAuthSessionTicket( recv.ticket, AUTH_TICKET_MAXSIZE, &recv.pcbTicket);
+			write_packet( GPipeWrite, &recv, sizeof( struct auth_session_ticket_recv_s ));
+
+			break;
+		}
+		case RPC_PERSONA_NAME: {
+			const char *name = SteamFriends()->GetPersonaName();
+			struct buffer_rpc_s recv;
+			prepared_rpc_packet( &req->common, &recv );
+
+			const uint32_t bufferSize = strlen( name ) + 1 + sizeof( struct buffer_rpc_s );
+			writePipe( GPipeWrite, &bufferSize, sizeof( uint32_t ) );
+			writePipe( GPipeWrite, &recv, sizeof( struct buffer_rpc_s ) );
+			writePipe( GPipeWrite, name, strlen( name ) + 1 );
+			break;
+		}
+		case RPC_REQUEST_LAUNCH_COMMAND: {
+			uint8_t buffer[sizeof( struct buffer_rpc_s ) + 1024];
+			struct buffer_rpc_s *recv = (struct buffer_rpc_s *)buffer;
+			prepared_rpc_packet( &req->common, recv );
+			const int numberBytes = SteamApps()->GetLaunchCommandLine( (char *)recv->buf, 1024 );
+			assert( numberBytes > 0 );
+			write_packet( GPipeWrite, &recv, sizeof( buffer_rpc_s ) + numberBytes );
+			break;
+		}
+		case RPC_BEGIN_AUTH_SESSION: {
+			const int result = GSteamGameServer->BeginAuthSession( req->begin_auth_session.authTicket, req->begin_auth_session.cbAuthTicket, (uint64)req->begin_auth_session.steamID );
 			struct steam_result_recv_s recv;
 			prepared_rpc_packet( &req->common, &recv );
 			recv.result = result;
-			write_packet(GPipeWrite, &recv , sizeof(steam_result_recv_s));
+			write_packet( GPipeWrite, &recv, sizeof( steam_result_recv_s ) );
 			break;
-	    }
-        case RPC_UPDATE_SERVERINFO: {
-            GSteamGameServer->SetAdvertiseServerActive(req->server_info.advertise);
-            GSteamGameServer->SetDedicatedServer(req->server_info.dedicated);
-            GSteamGameServer->SetMaxPlayerCount(req->server_info.maxPlayerCount);
-            GSteamGameServer->SetBotPlayerCount(req->server_info.botPlayerCount);
+		}
+		case RPC_UPDATE_SERVERINFO: {
+			GSteamGameServer->SetAdvertiseServerActive( req->server_info.advertise );
+			GSteamGameServer->SetDedicatedServer( req->server_info.dedicated );
+			GSteamGameServer->SetMaxPlayerCount( req->server_info.maxPlayerCount );
+			GSteamGameServer->SetBotPlayerCount( req->server_info.botPlayerCount );
 			struct steam_rpc_shim_common_s recv;
 			prepared_rpc_packet( &req->common, &recv );
-			write_packet(GPipeWrite, &recv , sizeof(steam_result_recv_s));
-            break;
-        }
-		case RPC_ACTIVATE_OVERLAY: {
-			SteamFriends()->ActivateGameOverlayToUser( "steamid", (uint64)req->open_overlay.id);
+			write_packet( GPipeWrite, &recv, sizeof( steam_result_recv_s ) );
 			break;
-		} 
+		}
+		case RPC_ACTIVATE_OVERLAY: {
+			SteamFriends()->ActivateGameOverlayToUser( "steamid", (uint64)req->open_overlay.id );
+			break;
+		}
 		case RPC_UPDATE_SERVERINFO_GAME_DATA: {
 			struct steam_rpc_shim_common_s recv;
-            GSteamGameServer->SetGameData((const char*)req->server_game_data.buf);
+			GSteamGameServer->SetGameData( (const char *)req->server_game_data.buf );
 			prepared_rpc_packet( &req->common, &recv );
-			write_packet(GPipeWrite, &recv , sizeof(steam_rpc_shim_common_s));
+			write_packet( GPipeWrite, &recv, sizeof( steam_rpc_shim_common_s ) );
 			break;
 		}
 		case RPC_UPDATE_SERVERINFO_GAME_DESCRIPTION: {
 			struct steam_rpc_shim_common_s recv;
-            GSteamGameServer->SetGameDescription((const char*)req->server_description.buf);
+			GSteamGameServer->SetGameDescription( (const char *)req->server_description.buf );
 			prepared_rpc_packet( &req->common, &recv );
-			write_packet(GPipeWrite, &recv , sizeof(steam_rpc_shim_common_s));
+			write_packet( GPipeWrite, &recv, sizeof( steam_rpc_shim_common_s ) );
 			break;
 		}
 		case RPC_UPDATE_SERVERINFO_GAME_TAGS: {
 			struct steam_rpc_shim_common_s recv;
-            GSteamGameServer->SetGameDescription((const char*)req->server_tags.buf);
+			GSteamGameServer->SetGameDescription( (const char *)req->server_tags.buf );
 			prepared_rpc_packet( &req->common, &recv );
-			write_packet(GPipeWrite, &recv , sizeof(steam_rpc_shim_common_s));
+			write_packet( GPipeWrite, &recv, sizeof( steam_rpc_shim_common_s ) );
 			break;
 		}
 		case RPC_UPDATE_SERVERINFO_MAP_NAME: {
 			struct steam_rpc_shim_common_s recv;
-            GSteamGameServer->SetGameDescription((const char*)req->server_map_name.buf);
+			GSteamGameServer->SetGameDescription( (const char *)req->server_map_name.buf );
 			prepared_rpc_packet( &req->common, &recv );
-			write_packet(GPipeWrite, &recv , sizeof(steam_rpc_shim_common_s));
+			write_packet( GPipeWrite, &recv, sizeof( steam_rpc_shim_common_s ) );
 			break;
 		}
 		case RPC_UPDATE_SERVERINFO_MOD_DIR: {
-			struct steam_rpc_shim_common_s  recv;
-            GSteamGameServer->SetGameDescription((const char*)req->server_mod_dir.buf);
+			struct steam_rpc_shim_common_s recv;
+			GSteamGameServer->SetGameDescription( (const char *)req->server_mod_dir.buf );
 			prepared_rpc_packet( &req->common, &recv );
-			write_packet(GPipeWrite, &recv , sizeof(steam_rpc_shim_common_s));
+			write_packet( GPipeWrite, &recv, sizeof( steam_rpc_shim_common_s ) );
 			break;
 		}
 		case RPC_UPDATE_SERVERINFO_PRODUCT: {
 			struct steam_rpc_shim_common_s recv;
-            GSteamGameServer->SetGameDescription((const char*)req->server_product.buf);
+			GSteamGameServer->SetGameDescription( (const char *)req->server_product.buf );
 			prepared_rpc_packet( &req->common, &recv );
-			write_packet(GPipeWrite, &recv , sizeof(steam_rpc_shim_common_s));
+			write_packet( GPipeWrite, &recv, sizeof( steam_rpc_shim_common_s ) );
 			break;
 		}
 		case RPC_UPDATE_SERVERINFO_REGION: {
 			struct steam_rpc_shim_common_s recv;
-            GSteamGameServer->SetGameDescription((const char*)req->server_region.buf);
+			GSteamGameServer->SetGameDescription( (const char *)req->server_region.buf );
 			prepared_rpc_packet( &req->common, &recv );
-			write_packet(GPipeWrite, &recv , sizeof(steam_rpc_shim_common_s));
+			write_packet( GPipeWrite, &recv, sizeof( steam_rpc_shim_common_s ) );
 			break;
 		}
 		case RPC_UPDATE_SERVERINFO_SERVERNAME: {
 			struct steam_rpc_shim_common_s recv;
-            GSteamGameServer->SetGameDescription((const char*)req->server_name.buf);
+			GSteamGameServer->SetGameDescription( (const char *)req->server_name.buf );
 			prepared_rpc_packet( &req->common, &recv );
-			write_packet(GPipeWrite, &recv , sizeof(steam_rpc_shim_common_s));
+			write_packet( GPipeWrite, &recv, sizeof( steam_rpc_shim_common_s ) );
 			break;
 		}
 		case RPC_SET_RICH_PRESENCE: {
@@ -351,16 +339,16 @@ static void processRPC(steam_rpc_pkt* req, size_t size) {
 				break;
 			}
 			SteamFriends()->SetRichPresence( key, value );
-			
+
 			struct steam_rpc_shim_common_s recv;
 			prepared_rpc_packet( &req->common, &recv );
-			write_packet(GPipeWrite, &recv , sizeof(steam_rpc_shim_common_s));
+			write_packet( GPipeWrite, &recv, sizeof( steam_rpc_shim_common_s ) );
 			break;
-	    }
-	    case RPC_END_AUTH_SESSION: {
-            GSteamGameServer->EndAuthSession((uint64)req->end_auth_session.id);
-	        break;
-	    }
+		}
+		case RPC_END_AUTH_SESSION: {
+			GSteamGameServer->EndAuthSession( (uint64)req->end_auth_session.id );
+			break;
+		}
 		case RPC_REQUEST_STEAM_ID: {
 			struct steam_id_rpc_s recv;
 			prepared_rpc_packet( &req->common, &recv );
@@ -369,27 +357,27 @@ static void processRPC(steam_rpc_pkt* req, size_t size) {
 			break;
 		}
 		case RPC_REQUEST_AVATAR: {
-	        uint8_t buffer[sizeof(struct steam_avatar_recv_s ) + STEAM_MAX_AVATAR_SIZE];
-			struct steam_avatar_recv_s* recv = (struct steam_avatar_recv_s*)buffer;
-			prepared_rpc_packet( &req->common, recv);
-            int handle;
-			switch(req->avatar.size) {
-			    case STEAM_AVATAR_SMALL:
-                    handle = SteamFriends()->GetLargeFriendAvatar((uint64)req->avatar.steamID);
-			        break;
-			    case STEAM_AVATAR_MED:
-                    handle = SteamFriends()->GetMediumFriendAvatar((uint64)req->avatar.steamID);
-			        break;
-			    case STEAM_AVATAR_LARGE:
-                    handle = SteamFriends()->GetLargeFriendAvatar((uint64)req->avatar.steamID);
-			        break;
+			uint8_t buffer[sizeof( struct steam_avatar_recv_s ) + STEAM_MAX_AVATAR_SIZE];
+			struct steam_avatar_recv_s *recv = (struct steam_avatar_recv_s *)buffer;
+			prepared_rpc_packet( &req->common, recv );
+			int handle;
+			switch( req->avatar_req.size ) {
+				case STEAM_AVATAR_SMALL:
+					handle = SteamFriends()->GetLargeFriendAvatar( (uint64)req->avatar_req.steamID );
+					break;
+				case STEAM_AVATAR_MED:
+					handle = SteamFriends()->GetMediumFriendAvatar( (uint64)req->avatar_req.steamID );
+					break;
+				case STEAM_AVATAR_LARGE:
+					handle = SteamFriends()->GetLargeFriendAvatar( (uint64)req->avatar_req.steamID );
+					break;
 			}
-			SteamUtils()->GetImageSize(handle, &recv->width, &recv->height);
-            SteamUtils()->GetImageRGBA(handle, recv->buf, STEAM_MAX_AVATAR_SIZE);
-            const uint32_t size =  (recv->width * recv->height * 4) + sizeof(steam_avatar_recv_s);
-            assert(size <= sizeof(buffer));
-            writePipe(GPipeWrite, &size, sizeof(uint32_t));
-            writePipe(GPipeWrite, buffer, size);
+			SteamUtils()->GetImageSize( handle, &recv->width, &recv->height );
+			SteamUtils()->GetImageRGBA( handle, recv->buf, STEAM_MAX_AVATAR_SIZE );
+			const uint32_t size = ( recv->width * recv->height * 4 ) + sizeof( steam_avatar_recv_s );
+			assert( size <= sizeof( buffer ) );
+			writePipe( GPipeWrite, &size, sizeof( uint32_t ) );
+			writePipe( GPipeWrite, buffer, size );
 			break;
 		}
 		default:
@@ -398,172 +386,166 @@ static void processRPC(steam_rpc_pkt* req, size_t size) {
 }
 static void processCommands()
 {
-  static struct steam_packet_buf packet;
-  static size_t cursor = 0;
-  while (1){
-    if (time_since_last_pump != 0){
-        time_t delta = time(NULL) - time_since_last_pump;
-        if (delta > 5) // we haven't gotten a pump in 5 seconds, safe to assume the main process is either dead or unresponsive and we can terminate
-        {
-            dbgprintf("Child terminating from timeout.\n");
-            return;
-        }
-    }
+	static struct steam_packet_buf packet;
+	static size_t cursor = 0;
+	while( 1 ) {
+		if( time_since_last_pump != 0 ) {
+			time_t delta = time( NULL ) - time_since_last_pump;
+			if( delta > 5 ) // we haven't gotten a pump in 5 seconds, safe to assume the main process is either dead or unresponsive and we can terminate
+				return;
+		}
 
-	assert( sizeof( struct steam_packet_buf ) == STEAM_PACKED_RESERVE_SIZE );
- 
-	int bytesRead = readPipe( GPipeRead, packet.buffer + cursor, STEAM_PACKED_RESERVE_SIZE - cursor );
-	if( bytesRead > 0 ) {
-		cursor += bytesRead;
-	} else {
-		std::this_thread::sleep_for( std::chrono::microseconds( 1000 ) );
-		continue;
-	}
-	if( packet.size > STEAM_PACKED_RESERVE_SIZE - sizeof( uint32_t ) ) {
-	    // the packet is larger then the reserved size
-		return;
-	}
+		assert( sizeof( struct steam_packet_buf ) == STEAM_PACKED_RESERVE_SIZE );
 
-	if( cursor < packet.size + sizeof( uint32_t ) ) {
-		continue;
-	}
+		int bytesRead = readPipe( GPipeRead, packet.buffer + cursor, STEAM_PACKED_RESERVE_SIZE - cursor );
+		if( bytesRead > 0 ) {
+			cursor += bytesRead;
+		} else {
+			std::this_thread::sleep_for( std::chrono::microseconds( 1000 ) );
+			continue;
+		}
+		if( packet.size > STEAM_PACKED_RESERVE_SIZE - sizeof( uint32_t ) ) {
+			// the packet is larger then the reserved size
+			return;
+		}
 
-	// readPipe(GPipeRead, &packet, size );
-	if( packet.common.cmd > RPC_BEGIN && packet.common.cmd < RPC_END ) {
-		processRPC( &packet.rpc_payload, packet.size);
-	}
-   // else if( packet.common.cmd > EVT_BEGIN && packet.common.cmd < EVT_END) {
-   // }
+		if( cursor < packet.size + sizeof( uint32_t ) ) {
+			continue;
+		}
 
-	if( cursor > packet.size + sizeof( uint32_t )) {
-	    const size_t packetlen = packet.size + sizeof( uint32_t );
-	    const size_t remainingLen = cursor - packetlen; 
-		memmove(packet.buffer, packet.buffer + packet.size + sizeof( uint32_t ), remainingLen);
-		cursor = remainingLen;
-	} else {
-	    cursor = 0;
+		// readPipe(GPipeRead, &packet, size );
+		if( packet.common.cmd > RPC_BEGIN && packet.common.cmd < RPC_END ) {
+			processRPC( &packet.rpc_payload, packet.size );
+		}
+		// else if( packet.common.cmd > EVT_BEGIN && packet.common.cmd < EVT_END) {
+		// }
+
+		if( cursor > packet.size + sizeof( uint32_t ) ) {
+			const size_t packetlen = packet.size + sizeof( uint32_t );
+			const size_t remainingLen = cursor - packetlen;
+			memmove( packet.buffer, packet.buffer + packet.size + sizeof( uint32_t ), remainingLen );
+			cursor = remainingLen;
+		} else {
+			cursor = 0;
+		}
 	}
-  }
 }
 
-static bool initSteamworks(PipeType fd)
+static bool initSteamworks( PipeType fd )
 {
-    if (GRunClient){
-        // this can fail for many reasons:
-        //  - you forgot a steam_appid.txt in the current working directory.
-        //  - you don't have Steam running
-        //  - you don't own the game listed in steam_appid.txt
-        if (!SteamAPI_Init())
-            return 0;
+	if( GRunClient ) {
+		// this can fail for many reasons:
+		//  - you forgot a steam_appid.txt in the current working directory.
+		//  - you don't have Steam running
+		//  - you don't own the game listed in steam_appid.txt
+		if( !SteamAPI_Init() )
+			return 0;
 
-        GSteamStats = SteamUserStats();
-        GSteamUtils = SteamUtils();
-        GSteamUser = SteamUser();
+		GSteamStats = SteamUserStats();
+		GSteamUtils = SteamUtils();
+		GSteamUser = SteamUser();
 
-        GAppID = GSteamUtils ? GSteamUtils->GetAppID() : 0;
-	    GUserID = GSteamUser ? GSteamUser->GetSteamID().ConvertToUint64() : 0;
+		GAppID = GSteamUtils ? GSteamUtils->GetAppID() : 0;
+		GUserID = GSteamUser ? GSteamUser->GetSteamID().ConvertToUint64() : 0;
 
+		GServerBrowser = new ServerBrowser();
 
-        GServerBrowser = new ServerBrowser();
+		GServerBrowser->RefreshInternetServers();
+	}
 
-        GServerBrowser->RefreshInternetServers();
-    }
+	if( GRunServer ) {
+		// this will fail if port is in use
+		if( !SteamGameServer_Init( 0, 27015, 27016, eServerModeAuthenticationAndSecure, "0.0.0.0" ) )
+			return 0;
+		GSteamGameServer = SteamGameServer();
+		if( !GSteamGameServer )
+			return 0;
 
-    if (GRunServer) {
-        // this will fail if port is in use
-        if (!SteamGameServer_Init(0, 27015, 27016, eServerModeAuthenticationAndSecure,"0.0.0.0"))
-            return 0;
-        GSteamGameServer = SteamGameServer();
-        if (!GSteamGameServer)
-            return 0;
+		GSteamGameServer->LogOnAnonymous();
+	}
 
-        GSteamGameServer->LogOnAnonymous();
-        
-    }
-    
-    GSteamCallbacks = new SteamCallbacks();
-    return 1;
-} 
-
-static void deinitSteamworks() {
-    if (GRunServer) {
-        SteamGameServer_Shutdown();
-    }
-
-    if (GRunClient) {
-        SteamAPI_Shutdown();
-    }
+	GSteamCallbacks = new SteamCallbacks();
+	return 1;
 }
 
-static int initPipes(void)
+static void deinitSteamworks()
 {
-    char buf[64];
-    unsigned long long val;
+	if( GRunServer ) {
+		SteamGameServer_Shutdown();
+	}
 
-    if (!getEnvVar("STEAMSHIM_READHANDLE", buf, sizeof (buf)))
-        return 0;
-    else if (sscanf(buf, "%llu", &val) != 1)
-        return 0;
-    else
-        GPipeRead = (PipeType) val;
+	if( GRunClient ) {
+		SteamAPI_Shutdown();
+	}
+}
 
-    if (!getEnvVar("STEAMSHIM_WRITEHANDLE", buf, sizeof (buf)))
-        return 0;
-    else if (sscanf(buf, "%llu", &val) != 1)
-        return 0;
-    else
-        GPipeWrite = (PipeType) val;
-    
-    return ((GPipeRead != NULLPIPE) && (GPipeWrite != NULLPIPE));
+static int initPipes( void )
+{
+	char buf[64];
+	unsigned long long val;
+
+	if( !getEnvVar( "STEAMSHIM_READHANDLE", buf, sizeof( buf ) ) )
+		return 0;
+	else if( sscanf( buf, "%llu", &val ) != 1 )
+		return 0;
+	else
+		GPipeRead = (PipeType)val;
+
+	if( !getEnvVar( "STEAMSHIM_WRITEHANDLE", buf, sizeof( buf ) ) )
+		return 0;
+	else if( sscanf( buf, "%llu", &val ) != 1 )
+		return 0;
+	else
+		GPipeWrite = (PipeType)val;
+
+	return ( ( GPipeRead != NULLPIPE ) && ( GPipeWrite != NULLPIPE ) );
 } /* initPipes */
 
-int main(int argc, char **argv)
+int main( int argc, char **argv )
 {
 #ifndef _WIN32
-    signal(SIGPIPE, SIG_IGN);
+	signal( SIGPIPE, SIG_IGN );
 
-    if( argc > 1 && !strcmp(argv[1], "steamdebug") ) {
-        debug = true;
-    }
+	if( argc > 1 && !strcmp( argv[1], "steamdebug" ) ) {
+		debug = true;
+	}
 #endif
 
-    dbgprintf("Child starting mainline.\n");
+	dbgprintf( "Child starting mainline.\n" );
 
+	char buf[64];
+	if( !initPipes() )
+		fail( "Child init failed.\n" );
 
-    char buf[64];
-    if (!initPipes())
-        fail("Child init failed.\n");
-    
-    if (getEnvVar("STEAMSHIM_RUNCLIENT", buf, sizeof(buf)))
-        GRunClient = true;
-    if (getEnvVar("STEAMSHIM_RUNSERVER", buf, sizeof(buf)))
-        GRunServer = true;
+	if( getEnvVar( "STEAMSHIM_RUNCLIENT", buf, sizeof( buf ) ) )
+		GRunClient = true;
+	if( getEnvVar( "STEAMSHIM_RUNSERVER", buf, sizeof( buf ) ) )
+		GRunServer = true;
 
-    if (!initSteamworks(GPipeWrite)) {
-        char failure = 0;
-        writePipe(GPipeWrite, &failure, sizeof failure);
-        fail("Failed to initialize Steamworks");
-    }
+	if( !initSteamworks( GPipeWrite ) ) {
+		char failure = 0;
+		writePipe( GPipeWrite, &failure, sizeof failure );
+		fail( "Failed to initialize Steamworks" );
+	}
 
-    char success = 1;
-    writePipe(GPipeWrite, &success, sizeof success);
+	char success = 1;
+	writePipe( GPipeWrite, &success, sizeof success );
 
+	dbgprintf( "Child in command processing loop.\n" );
 
-    dbgprintf("Child in command processing loop.\n");
+	// Now, we block for instructions until the pipe fails (child closed it or
+	//  terminated/crashed).
+	processCommands();
 
-    // Now, we block for instructions until the pipe fails (child closed it or
-    //  terminated/crashed).
-    processCommands();
+	dbgprintf( "Child shutting down.\n" );
 
-    dbgprintf("Child shutting down.\n");
+	// Close our ends of the pipes.
+	closePipe( GPipeRead );
+	closePipe( GPipeWrite );
 
-    // Close our ends of the pipes.
-    closePipe(GPipeRead);
-    closePipe(GPipeWrite);
+	deinitSteamworks();
 
-    deinitSteamworks();
-
-    return 0;
+	return 0;
 }
 
 #ifdef _WIN32
@@ -575,13 +557,12 @@ char *argv[MAX_NUM_ARGVS];
 
 int CALLBACK WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
 {
-    if( strstr( GetCommandLineA(), "steamdebug" ) ) {
-        debug = true;
-        FreeConsole();
-        AllocConsole();
-        freopen( "CONOUT$", "w", stdout );
-    }
+	if( strstr( GetCommandLineA(), "steamdebug" ) ) {
+		debug = true;
+		FreeConsole();
+		AllocConsole();
+		freopen( "CONOUT$", "w", stdout );
+	}
 	return main( argc, argv );
 } // WinMain
 #endif
-

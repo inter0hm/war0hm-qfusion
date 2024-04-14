@@ -24,17 +24,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <string.h>
 
 static const SteamshimEvent* blockOnEvent(SteamshimEventType type){
+	return NULL;
+ // while( 1 ) {
+ // 	const SteamshimEvent *evt = STEAMSHIM_pump();
+ // 	if (!evt) continue;
 
-	while( 1 ) {
-		const SteamshimEvent *evt = STEAMSHIM_pump();
-		if (!evt) continue;
-
-		if (evt->type == type){
-			return evt;
-		} else {
-			printf("warning: ignoring event %i\n",evt->type);
-		}
-	}
+ // 	if (evt->type == type){
+ // 		return evt;
+ // 	} else {
+ // 		printf("warning: ignoring event %i\n",evt->type);
+ // 	}
+ // }
 }
 cvar_t *steam_debug;
 /*
@@ -71,8 +71,3 @@ int Steam_Active(){
 	return STEAMSHIM_alive();
 }
 
-const char *Steam_CommandLine() {
-	STEAMSHIM_requestCommandLine();
-	const SteamshimEvent *e = blockOnEvent(EVT_CL_COMMANDLINERECIEVED);
-	return e->cl_commandlinerecieved;
-}

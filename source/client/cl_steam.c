@@ -11,40 +11,35 @@
 static const SteamshimEvent* blockOnEvent(SteamshimEventType type){
 
 	while( 1 ) {
-		const SteamshimEvent*evt = STEAMSHIM_pump();
-		if (!evt) continue;
+	 // const SteamshimEvent*evt = STEAMSHIM_pump();
+	 // if (!evt) continue;
 
-		if (evt->type == type){
-			return evt;
-		} else {
-			printf("warning: ignoring event %i\n",evt->type);
-		}
+	 // if (evt->type == type){
+	 // 	return evt;
+	 // } else {
+	 // 	printf("warning: ignoring event %i\n",evt->type);
+	 // }
 	}
 }
 
 /*
 * Steam_RunFrame
 */
-void CL_Steam_RunFrame( void )
-{
-	const SteamshimEvent *evt = STEAMSHIM_pump();
-	if( evt ) {
-		switch (evt->type){
-			case EVT_CL_AVATARRECIEVED: 
-				{
-          CL_GameModule_CallbackRequestAvatar(evt->cl_avatarrecieved.steamid, evt->cl_avatarrecieved.avatar);
-				}
-				break;
-			case EVT_CL_GAMEJOINREQUESTED:
-				{
-					uint64_t inviter = evt->cl_gamejoinrequested.steamIDFriend;
-					CL_ParseSteamConnectString(evt->cl_gamejoinrequested.connectString);
-				}
-				break;
-			default: break;
-		}
-	}
-}
+//void CL_Steam_RunFrame( void )
+//{
+//	//const SteamshimEvent *evt = STEAMSHIM_pump();
+//	//if( evt ) {
+//	//	switch (evt->type){
+//	//		case EVT_CL_GAMEJOINREQUESTED:
+//	//			{
+//	//				uint64_t inviter = evt->cl_gamejoinrequested.steamIDFriend;
+//	//				CL_ParseSteamConnectString(evt->cl_gamejoinrequested.connectString);
+//	//			}
+//	//			break;
+//	//		default: break;
+//	//	}
+//	//}
+//}
 
 /*
 * Steam_GetAuthSessionTicketBlocking

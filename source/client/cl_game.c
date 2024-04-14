@@ -557,6 +557,7 @@ void CL_GameModule_Init( void )
 	import.IN_IME_GetCandidates = IN_IME_GetCandidates;
 	import.IN_SupportedDevices = IN_SupportedDevices;
 
+	import.steam_import = (struct steam_import_s)DECLARE_STEAM_STRUCT();
 
 	import.Steam_RequestAvatar = Steam_RequestAvatar;
 
@@ -756,18 +757,6 @@ bool CL_GameModule_IsTouchDown( int id )
 	return false;
 }
 
-/*
-* CL_GameModule_CallbackRequestAvatar
-*/
-void CL_GameModule_CallbackRequestAvatar( uint64_t steamid, uint8_t* avatar )
-{
-	if( cge )
-		cge->CallbackRequestAvatar( steamid, avatar );
-}
-
-/*
-* CL_GameModule_CallbackRequestAvatar
-*/
 bool CL_GameModule_GetBlocklistItem( size_t index, uint64_t* steamid_out, char* name, size_t* name_len_in_out )
 {
 	if ( cge )

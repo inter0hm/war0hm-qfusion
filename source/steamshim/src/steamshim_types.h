@@ -21,6 +21,8 @@ freely, subject to the following restrictions:
 #ifndef _INCL_STEAMSHIM_TYPES_H_
 #define _INCL_STEAMSHIM_TYPES_H_
 
+#include "../../gameshared/q_arch.h"
+
 #define STEAM_AVATAR_SIZE (128*128*4)
 #define PIPEMESSAGE_MAX (STEAM_AVATAR_SIZE + 64)
 #define AUTH_TICKET_MAXSIZE 1024
@@ -37,7 +39,7 @@ enum steam_avatar_size_e { STEAM_AVATAR_LARGE, STEAM_AVATAR_MED, STEAM_AVATAR_SM
 
 enum steam_cmd_s {
 	RPC_BEGIN,
-	RPC_PUMP,
+	RPC_PUMP = RPC_BEGIN,
 	RPC_REQUEST_STEAM_ID,
 	RPC_REQUEST_AVATAR,
 	RPC_BEGIN_AUTH_SESSION,
@@ -61,13 +63,18 @@ enum steam_cmd_s {
 	RPC_UPDATE_SERVERINFO_REGION,
 	RPC_UPDATE_SERVERINFO_SERVERNAME,
 
+	RPC_AUTHSESSION_TICKET,
+
 	RPC_END,
-
 	EVT_BEGIN = RPC_END,
-
+	EVT_PERSONA_CHANGED = EVT_BEGIN,
+	EVT_GAME_JOIN,
 	EVT_END,
 	CMD_LEN
 };
+#define STEAM_EVT_LEN (EVT_END - EVT_BEGIN)
+#define STEAM_RPC_LEN (RPC_END - RPC_BEGIN)
+
 #define STEAM_SHIM_COMMON() enum steam_cmd_s cmd;
 #define STEAM_RPC_REQ( name ) struct name##_req_s
 #define STEAM_RPC_RECV( name ) struct name##_recv_s
@@ -128,6 +135,12 @@ STEAM_RPC_RECV( steam_avatar )
 	uint8_t buf[];
 };
 
+STEAM_RPC_RECV(auth_session_ticket) {
+	STEAM_RPC_SHIM_COMMON()
+	uint32_t pcbTicket;
+	char ticket[AUTH_TICKET_MAXSIZE];
+};
+
 STEAM_RPC_REQ( begin_auth_session )
 {
 	STEAM_RPC_SHIM_COMMON()
@@ -136,34 +149,25 @@ STEAM_RPC_REQ( begin_auth_session )
 	uint8_t authTicket[STEAM_AUTH_TICKET_MAXSIZE];
 };
 
-// enum steam_dialog_overlay {
-//     STEAM_USER_PROFILE,
-//     STEAM_CHAT,
-//     STEAM_JOIN_TRADE,
-//     STEAM_ACHIEVEMENTS
-// };
-//
-// STEAM_RPC_REQ( overlay)
-//{
-//	STEAM_RPC_SHIM_COMMON()
-// };
-
 STEAM_RPC_RECV( steam_result )
 {
 	STEAM_RPC_SHIM_COMMON()
 	int result;
 };
 
-struct steam_rpc_pkt {
+struct steam_rpc_pkt_s {
 	union {
 		struct steam_rpc_shim_common_s common;
 		struct steam_auth_req_s steam_auth;
-		struct steam_avatar_req_s avatar;
+		struct steam_avatar_req_s avatar_req;
+		struct steam_avatar_recv_s avatar_recv;
 		struct steam_rpc_shim_common_s pump;
 		struct begin_auth_session_req_s begin_auth_session;
 		struct steam_id_rpc_s end_auth_session;
-		struct steam_rpc_shim_common_s launch_command;
+		struct buffer_rpc_s launch_command;
 		struct buffer_rpc_s rich_presence;
+
+		struct auth_session_ticket_recv_s auth_session;
 
 		struct steam_id_rpc_s open_overlay;
 		struct steam_id_rpc_s steam_id;
@@ -179,9 +183,25 @@ struct steam_rpc_pkt {
 	};
 };
 
-struct steam_evt_s {
+STEAM_EVT(persona_changes) {
+	STEAM_SHIM_COMMON()
+	uint32_t avatar_changed: 1;
+	//uint32_t name_change : 1;
+	//uint32_t status_change: 1;
+	//uint32_t online_status_change: 1;
+};
+
+STEAM_EVT(join_request) {
+	STEAM_SHIM_COMMON()
+	uint64_t steamID;
+	char rgchConnect[256];
+};
+
+struct steam_evt_pkt_s {
 	union {
 		struct steam_shim_common_s common;
+		struct join_request_evt_s join_request;
+		struct persona_changes_evt_s persona_changed;
 	};
 };
 
@@ -193,7 +213,8 @@ struct steam_packet_buf {
 			union {
 				struct steam_shim_common_s common;
 				struct steam_rpc_shim_common_s rpc_common;
-				struct steam_rpc_pkt rpc_payload;
+				struct steam_rpc_pkt_s rpc_payload;
+				struct steam_evt_pkt_s evt_payload;
 			};
 		};
 		uint8_t buffer[STEAM_PACKED_RESERVE_SIZE];
@@ -201,6 +222,9 @@ struct steam_packet_buf {
 };
 
 #pragma pack( pop )
+
+typedef void (*STEAMSHIM_rpc_handle )( void *self, struct steam_rpc_pkt_s *rec );
+typedef void (*STEAMSHIM_evt_handle )( void *self, struct steam_evt_pkt_s *rec );
 
 
 #endif

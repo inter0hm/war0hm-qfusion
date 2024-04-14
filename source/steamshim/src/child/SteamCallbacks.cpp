@@ -29,52 +29,35 @@ freely, subject to the following restrictions:
 #include "../steamshim_private.h"
 #include "../steamshim.h"
 #include <cstdint>
+#include "write_utils.h"
+
 
 SteamCallbacks::SteamCallbacks()
     : m_CallbackCreateBeacon( this, &SteamCallbacks::OnCreateBeacon ),
     m_CallbackPersonaStateChange( this, &SteamCallbacks::OnPersonaStateChange),
     m_CallbackGameRichPresenceJoinRequested( this, &SteamCallbacks::OnGameJoinRequested)
 {
-} 
+}
+
 
 void SteamCallbacks::OnCreateBeacon(UserStatsReceived_t *pCallback)
 {
 }
 void SteamCallbacks::OnGameJoinRequested(GameRichPresenceJoinRequested_t *pCallback)
 {
-    PipeBuffer msg;
-    msg.WriteByte(EVT_CL_GAMEJOINREQUESTED);
-    msg.WriteLong(pCallback->m_steamIDFriend.ConvertToUint64());
-    msg.WriteString(pCallback->m_rgchConnect);
-    msg.Transmit();
+
+    join_request_evt_s evt;
+    evt.cmd = EVT_GAME_JOIN;
+	evt.steamID = pCallback->m_steamIDFriend.ConvertToUint64();
+	memcpy(evt.rgchConnect, pCallback->m_rgchConnect, k_cchMaxRichPresenceValueLength);
+    write_packet(GPipeWrite, &evt, sizeof(struct join_request_evt_s ));
 }
 
 void SteamCallbacks::OnPersonaStateChange(PersonaStateChange_t *pCallback)
 {
-    if (pCallback->m_nChangeFlags & k_EPersonaChangeAvatar){
-        TransmitAvatar(pCallback->m_ulSteamID, AVATAR_SMALL);
-    }
+    persona_changes_evt_s evt;
+    evt.cmd = EVT_PERSONA_CHANGED;
+	evt.avatar_changed = pCallback->m_nChangeFlags & k_EPersonaChangeAvatar;
+    write_packet(GPipeWrite, &evt, sizeof(struct persona_changes_evt_s));
 } 
-void TransmitAvatar(uint64 id, SteamAvatarSize size){
-    int handle;
-
-    if(size == AVATAR_LARGE){
-        handle = SteamFriends()->GetLargeFriendAvatar(id);
-    } else if(size == AVATAR_MEDIUM){
-        handle = SteamFriends()->GetMediumFriendAvatar(id);
-    } else if(size == AVATAR_SMALL){
-        handle = SteamFriends()->GetSmallFriendAvatar(id);
-    } else {
-        return;
-    }
-
-    uint8_t image[STEAM_AVATAR_SIZE];
-    SteamUtils()->GetImageRGBA(handle, image, sizeof image);
-
-    PipeBuffer msg;
-    msg.WriteByte(EVT_CL_AVATARRECIEVED);
-    msg.WriteLong(id);
-    msg.WriteData(image, sizeof image);
-    msg.Transmit();
-}
 

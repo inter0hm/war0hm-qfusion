@@ -234,7 +234,27 @@ void CG_SexedVSay( int entnum, int vsay, float fvol )
 	CG_SexedSound( entnum, CHAN_AUTO, cg_vsaySexedSounds[vsay], fvol, ATTN_NONE);
 }
 
-
+static void CG_CallbackRequestAvatar(uint64_t steamid, uint8_t *avatar){
+	for (int i = 0; i < gs.maxclients; i++){
+		cg_clientInfo_t *ci = &cgs.clientInfo[i];
+		if (ci->steamid == steamid){
+			ci->avatar = trap_R_RegisterRawPic(va("avatar-%llu", ci->steamid), 32, 32, avatar, 4);
+			return;
+		}
+	}
+}
+static void CG_RPC_cb_requestAvatar( void *self, struct steam_rpc_pkt_s *rec )
+{
+	assert(rec->common.cmd == RPC_REQUEST_STEAM_ID);
+	cg_clientInfo_t *target = (cg_clientInfo_t *)self;
+	for( int i = 0; i < gs.maxclients; i++ ) {
+		cg_clientInfo_t *ci = &cgs.clientInfo[i];
+		if( ci == target ) {
+			ci->avatar = trap_R_RegisterRawPic( va( "avatar-%llu", ci->steamid ), rec->avatar_recv.width, rec->avatar_recv.height, rec->avatar_recv.buf, 4 );
+			return;
+		}
+	}
+}
 /*
 * CG_LoadClientInfo
 */
@@ -274,15 +294,11 @@ void CG_LoadClientInfo( cg_clientInfo_t *ci, const char *info, int client )
 	s = Info_ValueForKey( info, "steam_id" );
 	if (s && atol(s)){
 		ci->steamid = atoll(s);
-		CGAME_IMPORT.Steam_RequestAvatar(ci->steamid, 0);
-	}
-}
-void CG_CallbackRequestAvatar(uint64_t steamid, uint8_t *avatar){
-	for (int i = 0; i < gs.maxclients; i++){
-		cg_clientInfo_t *ci = &cgs.clientInfo[i];
-		if (ci->steamid == steamid){
-			ci->avatar = trap_R_RegisterRawPic(va("avatar-%llu", ci->steamid), 32, 32, avatar, 4);
-			return;
-		}
+		struct steam_avatar_req_s req;
+		req.cmd = RPC_REQUEST_AVATAR;
+		req.size = STEAM_AVATAR_SMALL;
+		req.steamID = ci->steamid;
+		uint32_t syncIndex;
+		STEAMSHIM_sendRPC(&req, sizeof(struct steam_avatar_req_s), ci, CG_RPC_cb_requestAvatar, &syncIndex);
 	}
 }

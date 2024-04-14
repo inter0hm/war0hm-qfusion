@@ -2141,7 +2141,7 @@ static char* CL_RandomName(){
 	return name;
 }
 
-static void CL_RPC_cb_steam_id(void* self, struct steam_rpc_pkt* rec ) {
+static void CL_RPC_cb_steam_id(void* self, struct steam_rpc_pkt_s* rec ) {
   assert(rec->common.cmd == RPC_REQUEST_STEAM_ID);
   cvar_t* steam_cvar = self;
   char id[18];
@@ -2149,7 +2149,7 @@ static void CL_RPC_cb_steam_id(void* self, struct steam_rpc_pkt* rec ) {
   Cvar_ForceSet( steam_cvar->name, id );
 }
 
-static void CL_RPC_cb_persona( void *self, struct steam_rpc_pkt *rec )
+static void CL_RPC_cb_persona( void *self, struct steam_rpc_pkt_s *rec )
 {
 	cvar_t *name_cvar = self;
 	assert( rec->common.cmd == RPC_PERSONA_NAME );
@@ -2268,7 +2268,7 @@ static void CL_InitLocal( void )
   	cvar_t *steam_id = Cvar_Get( "steam_id", "", CVAR_USERINFO | CVAR_READONLY );
 		STEAMSHIM_sendRPC(&request,sizeof(struct steam_rpc_shim_common_s), steam_id , CL_RPC_cb_steam_id, &syncIndex);
 	}
-	STEAMSHIM_waitDispatchRPC(syncIndex);
+	STEAMSHIM_waitDispatchSync(syncIndex);
 
 	Cvar_Get( "clan", "", CVAR_USERINFO | CVAR_ARCHIVE );
 	Cvar_Get( "model", DEFAULT_PLAYERMODEL, CVAR_USERINFO | CVAR_ARCHIVE );
@@ -2749,7 +2749,7 @@ void CL_Frame( int realmsec, int gamemsec )
 	CL_AdjustServerTime( gamemsec );
 	CL_UserInputFrame();
 	CL_NetFrame( realmsec, gamemsec );
-	CL_Steam_RunFrame();
+	STEAMSHIM_dispatch();
 	CL_MM_Frame();
 	
 	if( cls.state == CA_CINEMATIC )
@@ -3172,20 +3172,14 @@ void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, 
 	}
 }
 
-void CL_ParseSteamConnectString(const char* cmdline){
-	if (!cmdline[0]) return;
-	if (Q_strrstr(cmdline, "\"")) {
+static void CL_RPC_cb_commandLine(void *self, struct steam_rpc_pkt_s *rec ){
+	if( !rec->launch_command.buf[0] )
+		return;
+	if( Q_strrstr( (char *)rec->launch_command.buf, "\"" ) ) {
 		// block potential command injection
 		return;
 	}
-	Cbuf_ExecuteText(EXEC_NOW, va("connect \"%s\"", cmdline));
-}
-
-static void CL_SteamCommandLineInit(){
-	if (Steam_Active()) {
-		const char *cmdline = Steam_CommandLine();
-		CL_ParseSteamConnectString(cmdline);
-	}
+	Cbuf_ExecuteText( EXEC_NOW, va( "connect \"%s\"", rec->launch_command.buf ) );
 }
 
 //============================================================================
@@ -3254,7 +3248,12 @@ void CL_Init( void )
 
 	ML_Init();
 
-	CL_SteamCommandLineInit();
+	if (Steam_Active()) {
+		struct steam_rpc_shim_common_s req;
+		req.cmd = RPC_REQUEST_LAUNCH_COMMAND;
+		STEAMSHIM_sendRPC(&req, sizeof(struct steam_rpc_shim_common_s), NULL, CL_RPC_cb_commandLine, NULL);
+	}
+
 }
 
 /*
