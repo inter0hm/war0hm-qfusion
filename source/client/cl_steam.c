@@ -76,11 +76,6 @@ void Steam_OpenProfile(uint64_t steamid) {
 	STEAMSHIM_openProfile(steamid);
 }
 
-void Steam_SetRichPresence( int num, const char **key, const char **val )
-{
-	STEAMSHIM_setRichPresence(num, key, val);
-}
-
 /*
 * Steam_RequestAvatar
 * size is 0 for 32x32, 1 for 64x64, 2 for 128x128
