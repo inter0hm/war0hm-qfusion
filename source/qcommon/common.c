@@ -249,7 +249,6 @@ void Com_Printf( const char *format, ... )
 	// also echo to debugging console
 	Sys_ConsoleOutput( msg );
 
-	printf("%s\n", msg);
 	Con_Print( msg );
 
 	if( log_file )
