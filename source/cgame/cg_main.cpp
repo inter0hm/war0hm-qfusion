@@ -1248,6 +1248,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 */
 void CG_Shutdown( void )
 {
+	CG_deinitPlayer();
 	CG_FreeLocalEntities();
 	CG_DemocamShutdown();
 	CG_ScreenShutdown();

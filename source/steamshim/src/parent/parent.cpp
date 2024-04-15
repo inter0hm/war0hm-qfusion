@@ -321,7 +321,8 @@ void STEAMSHIM_unsubscribeEvent( uint32_t id, STEAMSHIM_evt_handle cb )
 	for( ; ic < len; ic++, ib++ ) {
 		if( handle->handles[ic].cb == cb ) {
 			handle->numSubscribers--;
-			ic++;
+			ib--;
+		    continue;
 		}
 		if( ic == ib )
 			continue;

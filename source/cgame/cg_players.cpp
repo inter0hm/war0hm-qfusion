@@ -277,6 +277,10 @@ static void CG_EVT_cb_personaChanged(void* self, struct steam_evt_pkt_s* pkt) {
 void CG_initPlayer() {
 	STEAMSHIM_subscribeEvent(EVT_PERSONA_CHANGED, NULL, CG_EVT_cb_personaChanged);
 }
+
+void CG_deinitPlayer() {
+	STEAMSHIM_unsubscribeEvent(EVT_PERSONA_CHANGED, CG_EVT_cb_personaChanged);
+}
 /*
 * CG_LoadClientInfo
 */

@@ -704,6 +704,7 @@ extern cvar_t *cg_skin;
 extern cvar_t *cg_hand;
 
 void CG_initPlayer();
+void CG_deinitPlayer(); 
 void CG_LoadClientInfo( cg_clientInfo_t *ci, const char *s, int client );
 void CG_UpdateSexedSoundsRegistration( pmodelinfo_t *pmodelinfo );
 void CG_SexedSound( int entnum, int entchannel, const char *name, float fvol, float attn );
