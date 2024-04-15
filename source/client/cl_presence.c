@@ -522,7 +522,7 @@ void UpdatePresenceIfChanged( RichPresence presence )
 
 		{
 			const char *pairs[] = { "score", steam_display };
-			const size_t bufferLen = pack_cstr_null_terminated( (char *)req->buf, 256, pairs, 2 );
+			const size_t bufferLen = pack_cstr_null_terminated( (char*)req->buf, 256, pairs, 2 );
 			STEAMSHIM_sendRPC( req, bufferLen + sizeof( struct buffer_rpc_s ), NULL, NULL, NULL);
 		}
 		

@@ -46,7 +46,9 @@ static inline void Q_ImportSteamModule( const struct steam_import_s *imp )
 	steam_import = *imp;
 }
 int STEAMSHIM_dispatch() { return steam_import.STEAMSHIM_dispatch();}
-int STEAMSHIM_sendRPC( void *req, uint32_t size, void *self, STEAMSHIM_rpc_handle rpc, uint32_t *syncIndex );
-int STEAMSHIM_waitDispatchSync( uint32_t syncIndex ); // wait on the dispatch loop
+int STEAMSHIM_sendRPC( void *req, uint32_t size, void *self, STEAMSHIM_rpc_handle rpc, uint32_t *syncIndex ) { return steam_import.STEAMSHIM_sendRPC(req, size, self, rpc, syncIndex);}
+int STEAMSHIM_waitDispatchSync( uint32_t syncIndex ){ return steam_import.STEAMSHIM_waitDispatchSync(syncIndex);} // wait on the dispatch loop
+void STEAMSHIM_subscribeEvent( uint32_t id, void *self, STEAMSHIM_evt_handle evt ){ return steam_import.STEAMSHIM_subscribeEvent(id, self, evt);} // wait on the dispatch loop
+void STEAMSHIM_unsubscribeEvent( uint32_t id, STEAMSHIM_evt_handle evt){ return steam_import.STEAMSHIM_unsubscribeEvent(id, evt);} // wait on the dispatch loop
 #endif
 #endif

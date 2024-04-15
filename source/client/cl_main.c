@@ -2154,7 +2154,7 @@ static void CL_RPC_cb_persona( void *self, struct steam_rpc_pkt_s *rec )
 	cvar_t *name_cvar = self;
 	assert( rec->common.cmd == RPC_PERSONA_NAME );
 	char steamname[MAX_NAME_BYTES * 4], *steamnameIn = steamname, c;
-	Steam_GetPersonaName( steamname, sizeof( steamname ) );
+	strncpy( steamname, (char *)rec->persona_name.buf, sizeof( steamname ) );
 
 	bool steamnamePrintable = true;
 	while( ( c = *steamnameIn ) != '\0' ) {
@@ -2259,7 +2259,6 @@ static void CL_InitLocal( void )
 		} else {
 			Cvar_Set( name->name, CL_RandomName() );
 		}
-
 	}
 
 	if (Steam_Active()){

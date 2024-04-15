@@ -679,8 +679,4 @@ void CL_Sys_Shutdown( void );
 //
 
 void Steam_AdvertiseGame( const uint8_t *ip, unsigned short port, uint32_t* syncToken);
-void Steam_GetPersonaName( char *name, size_t namesize );
-const SteamAuthTicket_t* Steam_GetAuthSessionTicketBlocking();
-void Steam_RequestAvatar(uint64_t steamid, int size);
-void Steam_OpenProfile( uint64_t steamid );
 

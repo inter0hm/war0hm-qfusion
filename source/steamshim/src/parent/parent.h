@@ -58,17 +58,6 @@ extern "C" {
 int STEAMSHIM_init(SteamshimOptions* options);
 void STEAMSHIM_deinit(void);
 int STEAMSHIM_alive(void);
-//const SteamshimEvent *STEAMSHIM_pump(void);
-//
-void STEAMSHIM_getPersonaName();
-void STEAMSHIM_setRichPresence(int num, const char** key, const char** val);
-void STEAMSHIM_getAuthSessionTicket();
-void STEAMSHIM_beginAuthSession(uint64_t steamid, SteamAuthTicket_t* ticket);
-void STEAMSHIM_endAuthSession(uint64_t steamid);
-void STEAMSHIM_createBeacon(uint32_t openSlots, char* connectString, char* metadata);
-void STEAMSHIM_requestAvatar(uint64_t steamid, SteamAvatarSize size);
-void STEAMSHIM_openProfile(uint64_t steamid);
-void STEAMSHIM_requestCommandLine();
 #ifdef __cplusplus
 }
 #endif

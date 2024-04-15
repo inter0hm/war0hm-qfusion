@@ -559,8 +559,6 @@ void CL_GameModule_Init( void )
 
 	import.steam_import = (struct steam_import_s)DECLARE_STEAM_STRUCT();
 
-	import.Steam_RequestAvatar = Steam_RequestAvatar;
-
 	if( builtinAPIfunc ) {
 		cge = builtinAPIfunc( &import );
 	}

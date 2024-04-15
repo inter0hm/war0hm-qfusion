@@ -69,58 +69,58 @@ int STEAMSHIM_dispatch()
 	return STEAMSHIM_waitDispatchSync( syncIndex );
 }
 
-static SteamshimEvent *ProcessEvent()
-{
-	static SteamshimEvent event;
-	// make sure this is static, since it needs to persist between pumps
-	static PipeBuffer buf;
-
-	if( !buf.Recieve() )
-		return NULL;
-
-	if( !buf.hasmsg )
-		return NULL;
-
-	volatile unsigned int msglen = buf.ReadInt();
-
-	char type = buf.ReadByte();
-	event.type = (SteamshimEventType)type;
-
-	switch( type ) {
-		case EVT_CL_STEAMIDRECIEVED: {
-			event.cl_steamidrecieved = buf.ReadLong();
-		} break;
-		case EVT_CL_PERSONANAMERECIEVED: {
-			char *string = buf.ReadString();
-			event.cl_personanamerecieved = string;
-		} break;
-		case EVT_CL_AUTHSESSIONTICKETRECIEVED: {
-			long long pcbTicket = buf.ReadLong();
-			event.cl_authsessionticketrecieved.pcbTicket = pcbTicket;
-			void *ticket = buf.ReadData( AUTH_TICKET_MAXSIZE );
-			memcpy( event.cl_authsessionticketrecieved.pTicket, ticket, AUTH_TICKET_MAXSIZE );
-		} break;
-		case EVT_SV_AUTHSESSIONVALIDATED: {
-			int result = buf.ReadInt();
-			event.sv_authsessionvalidated = result;
-		} break;
-		case EVT_CL_AVATARRECIEVED: {
-			event.cl_avatarrecieved.steamid = buf.ReadLong();
-			event.cl_avatarrecieved.avatar = (uint8_t *)buf.ReadData( STEAM_AVATAR_SIZE );
-		} break;
-		case EVT_CL_GAMEJOINREQUESTED: {
-			event.cl_gamejoinrequested.steamIDFriend = buf.ReadLong();
-			char *string = (char *)buf.ReadString();
-			event.cl_gamejoinrequested.connectString = string;
-		} break;
-		case EVT_CL_COMMANDLINERECIEVED: {
-			char *string = (char *)buf.ReadString();
-			event.cl_commandlinerecieved = string;
-		} break;
-	}
-
-	return &event;
-}
+//static SteamshimEvent *ProcessEvent()
+//{
+//	static SteamshimEvent event;
+//	// make sure this is static, since it needs to persist between pumps
+//	static PipeBuffer buf;
+//
+//	if( !buf.Recieve() )
+//		return NULL;
+//
+//	if( !buf.hasmsg )
+//		return NULL;
+//
+//	volatile unsigned int msglen = buf.ReadInt();
+//
+//	char type = buf.ReadByte();
+//	event.type = (SteamshimEventType)type;
+//
+//	switch( type ) {
+//		case EVT_CL_STEAMIDRECIEVED: {
+//			event.cl_steamidrecieved = buf.ReadLong();
+//		} break;
+//		case EVT_CL_PERSONANAMERECIEVED: {
+//			char *string = buf.ReadString();
+//			event.cl_personanamerecieved = string;
+//		} break;
+//		case EVT_CL_AUTHSESSIONTICKETRECIEVED: {
+//			long long pcbTicket = buf.ReadLong();
+//			event.cl_authsessionticketrecieved.pcbTicket = pcbTicket;
+//			void *ticket = buf.ReadData( AUTH_TICKET_MAXSIZE );
+//			memcpy( event.cl_authsessionticketrecieved.pTicket, ticket, AUTH_TICKET_MAXSIZE );
+//		} break;
+//		case EVT_SV_AUTHSESSIONVALIDATED: {
+//			int result = buf.ReadInt();
+//			event.sv_authsessionvalidated = result;
+//		} break;
+//		case EVT_CL_AVATARRECIEVED: {
+//			event.cl_avatarrecieved.steamid = buf.ReadLong();
+//			event.cl_avatarrecieved.avatar = (uint8_t *)buf.ReadData( STEAM_AVATAR_SIZE );
+//		} break;
+//		case EVT_CL_GAMEJOINREQUESTED: {
+//			event.cl_gamejoinrequested.steamIDFriend = buf.ReadLong();
+//			char *string = (char *)buf.ReadString();
+//			event.cl_gamejoinrequested.connectString = string;
+//		} break;
+//		case EVT_CL_COMMANDLINERECIEVED: {
+//			char *string = (char *)buf.ReadString();
+//			event.cl_commandlinerecieved = string;
+//		} break;
+//	}
+//
+//	return &event;
+//}
 
 static bool setEnvironmentVars( PipeType pipeChildRead, PipeType pipeChildWrite )
 {
@@ -226,25 +226,6 @@ int STEAMSHIM_alive( void )
 	return isAlive();
 }
 
-// const SteamshimEvent *STEAMSHIM_pump(void)
-//{
-//   Write1ByteMessage(CMD_PUMP);
-//   return ProcessEvent();
-// }
-
-//  static void recv_handler(void* self, struct steam_rpc_recieve_s* recv) {
-//    switch(recv->common.cmd) {
-//        case RPC_REQUEST_STEAM_ID:
-//            break;
-//    }
-//  }
-
-// void sample() {
-//   struct steam_rpc_req_s req;
-//   req.common.cmd = RPC_REQUEST_STEAM_ID;
-//   req.steam_req.id = 1034;
-//   STEAMSHIM_sendRPC(&req, sizeof(req.steam_req), NULL, recv_handler);
-// }
 
 int STEAMSHIM_sendRPC( void *packet, uint32_t size, void *self, STEAMSHIM_rpc_handle rpc, uint32_t *sync )
 {
@@ -253,7 +234,6 @@ int STEAMSHIM_sendRPC( void *packet, uint32_t size, void *self, STEAMSHIM_rpc_ha
 		( *sync ) = syncIndex;
 	}
 	struct steam_rpc_async_s *handle = rpc_handles + ( syncIndex % NUM_RPC_ASYNC_HANDLE );
-
 	struct steam_rpc_shim_common_s *rpc_common = (steam_rpc_shim_common_s *)packet;
 	rpc_common->sync = syncIndex;
 
@@ -280,12 +260,20 @@ int STEAMSHIM_waitDispatchSync( uint32_t syncIndex )
 		} else {
 			continue;
 		}
+		continue_processing:
+
 		if( packet.size > STEAM_PACKED_RESERVE_SIZE - sizeof( uint32_t ) ) {
 			// the packet is larger then the reserved size
 			return -1;
 		}
+		
+		if( cursor < packet.size + sizeof( uint32_t ) ) {
+			continue;
+		}
 		const bool rpcPacket = packet.common.cmd >= RPC_BEGIN && packet.common.cmd < RPC_END;
 		if( rpcPacket ) {
+		    assert(packet.rpc_payload.common.sync > currentSync); // rpc's are FIFO no out of order 
+	        
 	        struct steam_rpc_async_s *handle = rpc_handles + ( packet.rpc_payload.common.sync % NUM_RPC_ASYNC_HANDLE );
 	        if( handle->cb ) {
 		        handle->cb( handle->self, &packet.rpc_payload );
@@ -303,10 +291,11 @@ int STEAMSHIM_waitDispatchSync( uint32_t syncIndex )
 			const size_t remainingLen = cursor - packetlen;
 			memmove( packet.buffer, packet.buffer + packet.size + sizeof( uint32_t ), remainingLen );
 			cursor = remainingLen;
+		    goto continue_processing;
 		} else {
 			cursor = 0;
 		}
-		if( rpcPacket && packet.rpc_common.sync == syncIndex ) {
+		if( rpcPacket && currentSync == syncIndex ) {
 			break;
 		}
 	}
@@ -314,6 +303,7 @@ int STEAMSHIM_waitDispatchSync( uint32_t syncIndex )
 }
 void STEAMSHIM_subscribeEvent( uint32_t id, void *self, STEAMSHIM_evt_handle evt )
 {
+    assert(evt);
 	assert( id >= EVT_BEGIN && id < EVT_END );
 	struct event_subscriber_s *handle = evt_handles + ( EVT_BEGIN - id );
 	assert( handle->numSubscribers < NUM_EVT_HANDLE );
@@ -337,87 +327,5 @@ void STEAMSHIM_unsubscribeEvent( uint32_t id, STEAMSHIM_evt_handle cb )
 			continue;
 		handle->handles[ib] = handle->handles[ic];
 	}
-}
-void STEAMSHIM_getPersonaName()
-{
-	//     Write1ByteMessage(CMD_CL_REQUESTPERSONANAME);
-}
-
-void STEAMSHIM_getAuthSessionTicket()
-{
-	//    Write1ByteMessage(CMD_CL_REQUESTAUTHSESSIONTICKET);
-}
-
-void STEAMSHIM_beginAuthSession( uint64_t steamid, SteamAuthTicket_t *ticket )
-{
-	//     PipeBuffer buf;
-	//     buf.WriteByte(CMD_SV_BEGINAUTHSESSION);
-	//     buf.WriteLong(steamid);
-	//     buf.WriteLong(ticket->pcbTicket);
-	//     buf.WriteData(ticket->pTicket, AUTH_TICKET_MAXSIZE);
-	//     buf.Transmit();
-}
-
-void STEAMSHIM_endAuthSession( uint64_t steamid )
-{
-	//   PipeBuffer buf;
-	//   buf.WriteByte(CMD_SV_ENDAUTHSESSION);
-	//   buf.WriteLong(steamid);
-	//   buf.Transmit();
-}
-
-void STEAMSHIM_setRichPresence( int num, const char **key, const char **val )
-{
-	//     PipeBuffer buf;
-	//     buf.WriteByte(CMD_CL_SETRICHPRESENCE);
-	//     buf.WriteInt(num);
-	//     for (int i=0; i < num;i++){
-	//         buf.WriteString(key[i]);
-	//         buf.WriteString(val[i]);
-	//     }
-	//     buf.Transmit();
-}
-
-void STEAMSHIM_requestAvatar( uint64_t steamid, SteamAvatarSize size )
-{
-	//   PipeBuffer buf;
-	//   buf.WriteByte(CMD_CL_REQUESTAVATAR);
-	//   buf.WriteLong(steamid);
-	//   buf.WriteInt(size);
-	//   buf.Transmit();
-}
-
-void STEAMSHIM_openProfile( uint64_t steamid )
-{
-	//     PipeBuffer buf;
-	//     buf.WriteByte(CMD_CL_OPENPROFILE);
-	//     buf.WriteLong(steamid);
-	//     buf.Transmit();
-}
-
-void STEAMSHIM_requestCommandLine()
-{
-	//   Write1ByteMessage(CMD_CL_REQUESTCOMMANDLINE);
-}
-
-void STEAMSHIM_updateServerInfo( ServerInfo *info )
-{
-	//  PipeBuffer buf;
-	//  buf.WriteByte(CMD_SV_UPDATESERVERINFO);
-	//  buf.WriteByte(info->advertise);
-	//  buf.WriteInt(info->botplayercount);
-	//  buf.WriteByte(info->dedicatedserver);
-	//  buf.WriteString(info->gamedata);
-	//  buf.WriteString(info->gamedescription);
-	//  buf.WriteString(info->gametags);
-	//  buf.WriteInt(info->heartbeatinterval);
-	//  buf.WriteString(info->mapname);
-	//  buf.WriteInt(info->maxplayercount);
-	//  buf.WriteString(info->moddir);
-	//  buf.WriteByte(info->passwordprotected);
-	//  buf.WriteString(info->product);
-	//  buf.WriteString(info->region);
-	//  buf.WriteString(info->servername);
-	//  buf.Transmit();
 }
 }

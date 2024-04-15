@@ -1239,6 +1239,8 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_ConfigString( CS_AUTORECORDSTATE, cgs.configStrings[CS_AUTORECORDSTATE] );
 
 	CG_DemocamInit();
+	
+	CG_initPlayer();
 }
 
 /*

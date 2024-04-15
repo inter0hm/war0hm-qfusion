@@ -169,6 +169,8 @@ struct steam_rpc_pkt_s {
 
 		struct auth_session_ticket_recv_s auth_session;
 
+		struct buffer_rpc_s persona_name;
+
 		struct steam_id_rpc_s open_overlay;
 		struct steam_id_rpc_s steam_id;
 		struct server_info_req_s server_info;
@@ -185,6 +187,7 @@ struct steam_rpc_pkt_s {
 
 STEAM_EVT(persona_changes) {
 	STEAM_SHIM_COMMON()
+	uint64_t steamID;
 	uint32_t avatar_changed: 1;
 	//uint32_t name_change : 1;
 	//uint32_t status_change: 1;

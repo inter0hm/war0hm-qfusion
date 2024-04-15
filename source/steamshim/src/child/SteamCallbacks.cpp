@@ -58,6 +58,7 @@ void SteamCallbacks::OnPersonaStateChange(PersonaStateChange_t *pCallback)
     persona_changes_evt_s evt;
     evt.cmd = EVT_PERSONA_CHANGED;
 	evt.avatar_changed = pCallback->m_nChangeFlags & k_EPersonaChangeAvatar;
+    evt.steamID = pCallback->m_ulSteamID; 
     write_packet(GPipeWrite, &evt, sizeof(struct persona_changes_evt_s));
 } 
 

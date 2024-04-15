@@ -275,9 +275,6 @@ typedef struct
 		int *selected, int *firstKey );
 	unsigned int ( *IN_SupportedDevices )( void );
 
-	// steam.h
-	void ( *Steam_RequestAvatar )(uint64_t steamid, int size);
-
 	struct steam_import_s steam_import;
 } cgame_import_t;
 
