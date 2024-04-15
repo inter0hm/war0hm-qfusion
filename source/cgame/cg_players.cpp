@@ -245,7 +245,7 @@ static void CG_CallbackRequestAvatar(uint64_t steamid, uint8_t *avatar){
 }
 static void CG_RPC_cb_requestAvatar( void *self, struct steam_rpc_pkt_s *rec )
 {
-	assert(rec->common.cmd == RPC_REQUEST_STEAM_ID);
+	assert(rec->common.cmd == RPC_REQUEST_AVATAR);
 	cg_clientInfo_t *target = (cg_clientInfo_t *)self;
 	for( int i = 0; i < gs.maxclients; i++ ) {
 		cg_clientInfo_t *ci = &cgs.clientInfo[i];

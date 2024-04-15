@@ -211,9 +211,14 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 				case STEAM_AVATAR_LARGE:
 					handle = SteamFriends()->GetLargeFriendAvatar( (uint64)req->avatar_req.steamID );
 					break;
+				default:
+					recv->width = 0;
+					recv->height = 0;
+					goto fail_avatar_image;
 			}
 			SteamUtils()->GetImageSize( handle, &recv->width, &recv->height );
 			SteamUtils()->GetImageRGBA( handle, recv->buf, STEAM_MAX_AVATAR_SIZE );
+		fail_avatar_image:
 			const uint32_t size = ( recv->width * recv->height * 4 ) + sizeof( steam_avatar_recv_s );
 			assert( size <= sizeof( buffer ) );
 			writePipe( GPipeWrite, &size, sizeof( uint32_t ) );
