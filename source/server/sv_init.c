@@ -20,8 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server.h"
 #include "../qcommon/steam.h"
-
 #include "../qcommon/sys_library.h"
+#include "../steamshim/src/mod_steam.h"
 
 server_constant_t svc;              // constant server info (trully persistant since sv_init)
 server_static_t	svs;                // persistant server info
