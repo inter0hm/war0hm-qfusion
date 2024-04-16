@@ -1004,7 +1004,7 @@ void SV_Init( void )
 
 	SV_Web_Init();
 
-	if (Steam_Active()) {
+	if (STEAMSHIM_active()) {
 		if (!dedicated->integer)
 			Cvar_ForceSet( "sv_useSteamAuth", "1" );
 	} else {

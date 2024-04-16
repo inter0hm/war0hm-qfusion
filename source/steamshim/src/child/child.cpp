@@ -73,8 +73,8 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 		case RPC_AUTHSESSION_TICKET: {
 			struct auth_session_ticket_recv_s recv;
 			prepared_rpc_packet( &req->common, &recv );
-			GSteamUser->GetAuthSessionTicket( recv.ticket, AUTH_TICKET_MAXSIZE, &recv.pcbTicket);
-			write_packet( GPipeWrite, &recv, sizeof( struct auth_session_ticket_recv_s ));
+			GSteamUser->GetAuthSessionTicket( recv.ticket, AUTH_TICKET_MAXSIZE, &recv.pcbTicket );
+			write_packet( GPipeWrite, &recv, sizeof( struct auth_session_ticket_recv_s ) );
 			break;
 		}
 		case RPC_PERSONA_NAME: {
@@ -176,9 +176,9 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			break;
 		}
 		case RPC_SET_RICH_PRESENCE: {
-			char* str[2] = { 0 };
+			char *str[2] = { 0 };
 			if( unpack_string_array_null( (char *)req->rich_presence.buf, size - sizeof( struct buffer_rpc_s ), str, 2 ) ) {
-				SteamFriends()->SetRichPresence( str[0], str[1]);
+				SteamFriends()->SetRichPresence( str[0], str[1] );
 			}
 			struct steam_rpc_shim_common_s recv;
 			prepared_rpc_packet( &req->common, &recv );
@@ -201,6 +201,11 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			struct steam_avatar_recv_s *recv = (struct steam_avatar_recv_s *)buffer;
 			prepared_rpc_packet( &req->common, recv );
 			int handle;
+
+			// will recieve the avatar in a persona request cb
+			if( SteamFriends()->RequestUserInformation( (uint64)req->avatar_req.steamID, false ) ) {
+				goto fail_avatar_image;
+			}
 			switch( req->avatar_req.size ) {
 				case STEAM_AVATAR_SMALL:
 					handle = SteamFriends()->GetSmallFriendAvatar( (uint64)req->avatar_req.steamID );
@@ -250,7 +255,7 @@ static void processCommands()
 			std::this_thread::sleep_for( std::chrono::microseconds( 1000 ) );
 			continue;
 		}
-		continue_processing:
+	continue_processing:
 
 		if( packet.size > STEAM_PACKED_RESERVE_SIZE - sizeof( uint32_t ) ) {
 			// the packet is larger then the reserved size
@@ -258,13 +263,12 @@ static void processCommands()
 		}
 
 		if( cursor < packet.size + sizeof( uint32_t ) ) {
-			
 			continue;
 		}
 
 		// readPipe(GPipeRead, &packet, size );
 		if( packet.common.cmd >= RPC_BEGIN && packet.common.cmd < RPC_END ) {
-			dbgprintf( "process packet: %lu %lu\n", packet.rpc_payload.common.cmd, packet.rpc_payload.common.sync );
+			// dbgprintf( "process packet: %lu %lu\n", packet.rpc_payload.common.cmd, packet.rpc_payload.common.sync );
 			processRPC( &packet.rpc_payload, packet.size );
 		}
 
@@ -352,7 +356,6 @@ static int initPipes( void )
 
 int main( int argc, char **argv )
 {
-	//std::this_thread::sleep_for( std::chrono::microseconds( 5000) );
 #ifndef _WIN32
 	signal( SIGPIPE, SIG_IGN );
 

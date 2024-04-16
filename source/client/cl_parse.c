@@ -1238,7 +1238,7 @@ static void CL_RPC_cb_steamAuth( void *self, struct steam_rpc_pkt_s *rec ){
 }
 
 static void CL_SteamAuth(){
-	if (Steam_Active())
+	if (STEAMSHIM_active())
 	{
 		// ticket needs to be generated on demand each time we join a server
 		//SteamAuthTicket_t *ticket = Steam_GetAuthSessionTicketBlocking();

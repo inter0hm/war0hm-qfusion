@@ -516,7 +516,7 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect )
 		return;
 
 	// clean up remaining auth tickets or clients will fail to auth later
-	if (Steam_Active()){
+	if (STEAMSHIM_active()){
 		client_t *cl;
 		int i;
 		for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ )

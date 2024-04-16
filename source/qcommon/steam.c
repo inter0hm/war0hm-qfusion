@@ -51,10 +51,3 @@ void Steam_Shutdown( void )
 	STEAMSHIM_deinit();
 }
 
-/*
-* Steam_Active
-*/
-int Steam_Active(){
-	return STEAMSHIM_alive();
-}
-

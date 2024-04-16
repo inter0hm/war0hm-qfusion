@@ -211,21 +211,9 @@ void STEAMSHIM_deinit( void )
 #endif
 }
 
-static inline int isAlive( void )
-{
+bool STEAMSHIM_active() {
 	return ( ( GPipeRead != NULLPIPE ) && ( GPipeWrite != NULLPIPE ) );
-}
-
-static inline int isDead( void )
-{
-	return !isAlive();
-}
-
-int STEAMSHIM_alive( void )
-{
-	return isAlive();
-}
-
+} 
 
 int STEAMSHIM_sendRPC( void *packet, uint32_t size, void *self, STEAMSHIM_rpc_handle rpc, uint32_t *sync )
 {

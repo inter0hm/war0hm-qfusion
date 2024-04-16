@@ -2252,7 +2252,7 @@ static void CL_InitLocal( void )
 	uint32_t syncIndex = 0;
 
 	if ( !CL_IsNameValid(name->string) ){
-		if ( Steam_Active() ){
+		if ( STEAMSHIM_active() ){
 			struct steam_rpc_shim_common_s request;
 			request.cmd = RPC_REQUEST_STEAM_ID;
 			STEAMSHIM_sendRPC( &request, sizeof( struct steam_rpc_shim_common_s ), name, CL_RPC_cb_persona, &syncIndex );
@@ -2261,7 +2261,7 @@ static void CL_InitLocal( void )
 		}
 	}
 
-	if (Steam_Active()){
+	if (STEAMSHIM_active()){
 		struct steam_rpc_shim_common_s request;
 		request.cmd = RPC_REQUEST_STEAM_ID;
   	cvar_t *steam_id = Cvar_Get( "steam_id", "", CVAR_USERINFO | CVAR_READONLY );
@@ -3023,7 +3023,7 @@ static void CL_CheckForUpdate( void )
 
 	if( !cl_checkForUpdate->integer )
 		return;
-	if( Steam_Active() )
+	if( STEAMSHIM_active() )
 		return;
 
 	if( updateRemoteData )
@@ -3247,7 +3247,7 @@ void CL_Init( void )
 
 	ML_Init();
 
-	if (Steam_Active()) {
+	if (STEAMSHIM_active()) {
 		struct steam_rpc_shim_common_s req;
 		req.cmd = RPC_REQUEST_LAUNCH_COMMAND;
 		STEAMSHIM_sendRPC(&req, sizeof(struct steam_rpc_shim_common_s), NULL, CL_RPC_cb_commandLine, NULL);

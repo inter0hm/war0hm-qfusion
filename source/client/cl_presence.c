@@ -513,7 +513,7 @@ static cl_presence_state_t cl_presence_state;
 
 void UpdatePresenceIfChanged( RichPresence presence )
 {
-	if( memcmp( &cl_presence_state.steam_old_presence, &presence, sizeof( presence ) ) != 0 && Steam_Active()) {
+	if( memcmp( &cl_presence_state.steam_old_presence, &presence, sizeof( presence ) ) != 0 && STEAMSHIM_active()) {
 		char rpc_packet[sizeof( struct buffer_rpc_s ) + 256];
 		struct buffer_rpc_s *req = (struct buffer_rpc_s *)rpc_packet;
 		req->cmd = RPC_SET_RICH_PRESENCE;
@@ -609,7 +609,7 @@ static const char *CL_PlayerStatus( snapshot_t *frame )
 
 void CL_UpdatePresence( void )
 {
-	if( cl_presence_state.discord_initialized || Steam_Active() ) {
+	if( cl_presence_state.discord_initialized || STEAMSHIM_active() ) {
 		unsigned int now = Sys_Milliseconds();
 		if( cl_presence_state.next_update <= now ) {
 			// Discord rate limit is 15s, but this has been tested and is fine!
