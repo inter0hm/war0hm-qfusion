@@ -297,6 +297,104 @@ static const gl_extension_func_t gl_ext_get_program_binary_ARB_funcs[] =
 	,GL_EXTENSION_FUNC_EXT(NULL,NULL)
 };
 
+static const gl_extension_func_t gl_core_functions_32[] = { 
+	GL_EXTENSION_FUNC( TexImage3D ),
+	GL_EXTENSION_FUNC( TexSubImage3D ),
+
+	GL_EXTENSION_FUNC( BindFramebuffer ),
+	GL_EXTENSION_FUNC( BindAttribLocation ),
+
+	GL_EXTENSION_FUNC( ShaderSource ),
+
+	GL_EXTENSION_FUNC( DrawArraysInstanced ),
+	GL_EXTENSION_FUNC( DrawElementsInstanced ),
+	GL_EXTENSION_FUNC( VertexAttribDivisor ),
+
+	GL_EXTENSION_FUNC( VertexAttribPointer ),
+	GL_EXTENSION_FUNC( EnableVertexAttribArray ),
+	GL_EXTENSION_FUNC( DisableVertexAttribArray ),
+	GL_EXTENSION_FUNC( BindAttribLocation ),
+	GL_EXTENSION_FUNC( GetActiveAttrib ),
+	GL_EXTENSION_FUNC( GetAttribLocation ),
+
+	GL_EXTENSION_FUNC( DeleteProgram ),
+	GL_EXTENSION_FUNC( DeleteShader ),
+	GL_EXTENSION_FUNC( DetachShader ),
+	GL_EXTENSION_FUNC( CreateShader ),
+	GL_EXTENSION_FUNC( ShaderSource ),
+	GL_EXTENSION_FUNC( CompileShader ),
+	GL_EXTENSION_FUNC( CreateProgram ),
+	GL_EXTENSION_FUNC( AttachShader ),
+	GL_EXTENSION_FUNC( LinkProgram ),
+	GL_EXTENSION_FUNC( UseProgram ),
+	GL_EXTENSION_FUNC( ValidateProgram ),
+	GL_EXTENSION_FUNC( Uniform1f ),
+	GL_EXTENSION_FUNC( Uniform2f ),
+	GL_EXTENSION_FUNC( Uniform3f ),
+	GL_EXTENSION_FUNC( Uniform4f ),
+	GL_EXTENSION_FUNC( Uniform1i ),
+	GL_EXTENSION_FUNC( Uniform2i ),
+	GL_EXTENSION_FUNC( Uniform3i ),
+	GL_EXTENSION_FUNC( Uniform4i ),
+	GL_EXTENSION_FUNC( Uniform1fv ),
+	GL_EXTENSION_FUNC( Uniform2fv ),
+	GL_EXTENSION_FUNC( Uniform3fv ),
+	GL_EXTENSION_FUNC( Uniform4fv ),
+	GL_EXTENSION_FUNC( Uniform1iv ),
+	GL_EXTENSION_FUNC( Uniform2iv ),
+	GL_EXTENSION_FUNC( Uniform3iv ),
+	GL_EXTENSION_FUNC( Uniform4iv ),
+	GL_EXTENSION_FUNC( UniformMatrix2fv ),
+	GL_EXTENSION_FUNC( UniformMatrix3fv ),
+	GL_EXTENSION_FUNC( UniformMatrix4fv ),
+	GL_EXTENSION_FUNC( GetProgramiv ),
+	GL_EXTENSION_FUNC( GetShaderiv ),
+	GL_EXTENSION_FUNC( GetProgramInfoLog ),
+	GL_EXTENSION_FUNC( GetShaderInfoLog ),
+	GL_EXTENSION_FUNC( GetAttachedShaders ),
+	GL_EXTENSION_FUNC( GetUniformLocation ),
+	GL_EXTENSION_FUNC( GetActiveUniform ),
+	GL_EXTENSION_FUNC( GetUniformfv ),
+	GL_EXTENSION_FUNC( GetUniformiv ),
+	GL_EXTENSION_FUNC( GetShaderSource ),
+
+	GL_EXTENSION_FUNC( BindFragDataLocation ),
+
+	GL_EXTENSION_FUNC( GenFramebuffers ),
+	
+	GL_EXTENSION_FUNC( DebugMessageCallback ),
+
+	GL_EXTENSION_FUNC( BindBuffer ),
+	GL_EXTENSION_FUNC( DeleteBuffers ),
+	GL_EXTENSION_FUNC( GenBuffers ),
+	GL_EXTENSION_FUNC( BufferData ),
+	GL_EXTENSION_FUNC( BufferSubData ),
+
+	GL_EXTENSION_FUNC(IsRenderbuffer),
+ 	GL_EXTENSION_FUNC(BindRenderbuffer),
+ 	GL_EXTENSION_FUNC(DeleteRenderbuffers),
+ 	GL_EXTENSION_FUNC(GenRenderbuffers),
+ 	GL_EXTENSION_FUNC(RenderbufferStorage),
+ 	GL_EXTENSION_FUNC(GetRenderbufferParameteriv),
+ 	GL_EXTENSION_FUNC(IsFramebuffer),
+ 	GL_EXTENSION_FUNC(BindFramebuffer),
+ 	GL_EXTENSION_FUNC(DeleteFramebuffers),
+ 	GL_EXTENSION_FUNC(GenFramebuffers),
+	GL_EXTENSION_FUNC(CheckFramebufferStatus),
+	GL_EXTENSION_FUNC(FramebufferTexture2D),
+	GL_EXTENSION_FUNC(FramebufferRenderbuffer),
+	GL_EXTENSION_FUNC(GetFramebufferAttachmentParameteriv),
+	GL_EXTENSION_FUNC(GenerateMipmap),
+	
+	GL_EXTENSION_FUNC(ActiveTexture),
+	GL_EXTENSION_FUNC(ClientActiveTexture),
+
+	GL_EXTENSION_FUNC(CompressedTexImage2D),
+	GL_EXTENSION_FUNC(CompressedTexSubImage2D),
+
+	GL_EXTENSION_FUNC_EXT( NULL, NULL ) 
+};
+
 /* GL_EXT_framebuffer_object */
 static const gl_extension_func_t gl_ext_framebuffer_object_EXT_funcs[] =
 {
@@ -450,6 +548,109 @@ static bool R_TryLoadGLProcAddress(const gl_extension_func_t *funcs)
 	return true;
 }
 
+static void gl_callback(GLenum source,
+            GLenum type,
+            GLuint id,
+            GLenum severity,
+            GLsizei length,
+            const char*msg,
+            const void *userParam) {
+ char* _source;
+    char* _type;
+	char *_severity;
+
+	switch( source ) {
+		case GL_DEBUG_SOURCE_API:
+			_source = "API";
+			break;
+
+		case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+			_source = "WINDOW SYSTEM";
+			break;
+
+		case GL_DEBUG_SOURCE_SHADER_COMPILER:
+			_source = "SHADER COMPILER";
+			break;
+
+		case GL_DEBUG_SOURCE_THIRD_PARTY:
+			_source = "THIRD PARTY";
+			break;
+
+		case GL_DEBUG_SOURCE_APPLICATION:
+			_source = "APPLICATION";
+			break;
+
+		case GL_DEBUG_SOURCE_OTHER:
+			_source = "UNKNOWN";
+			break;
+
+		default:
+			_source = "UNKNOWN";
+			break;
+	}
+
+	switch( type ) {
+		case GL_DEBUG_TYPE_ERROR:
+			_type = "ERROR";
+			break;
+
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+			_type = "DEPRECATED BEHAVIOR";
+			break;
+
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+			_type = "UDEFINED BEHAVIOR";
+			break;
+
+		case GL_DEBUG_TYPE_PORTABILITY:
+			_type = "PORTABILITY";
+			break;
+
+		case GL_DEBUG_TYPE_PERFORMANCE:
+			_type = "PERFORMANCE";
+			break;
+
+		case GL_DEBUG_TYPE_OTHER:
+			_type = "OTHER";
+			break;
+
+		case GL_DEBUG_TYPE_MARKER:
+			_type = "MARKER";
+			break;
+
+		default:
+			_type = "UNKNOWN";
+			break;
+	}
+
+	switch( severity ) {
+		case GL_DEBUG_SEVERITY_HIGH:
+			_severity = "HIGH";
+			break;
+
+		case GL_DEBUG_SEVERITY_MEDIUM:
+			_severity = "MEDIUM";
+			break;
+
+		case GL_DEBUG_SEVERITY_LOW:
+			_severity = "LOW";
+			break;
+
+		case GL_DEBUG_SEVERITY_NOTIFICATION:
+			_severity = "NOTIFICATION";
+			break;
+
+		default:
+			_severity = "UNKNOWN";
+			break;
+	}
+	ri.Com_Printf("%d: %s of %s severity, raised from %s: %s\n",
+            id, _type, _severity, _source, msg);
+  if(severity == GL_DEBUG_SEVERITY_HIGH) {
+  	assert(false);
+  }
+}
+
 /*
 * R_RegisterGLExtensions
 */
@@ -457,76 +658,189 @@ static bool R_RegisterGLExtensions( void )
 {
 	memset( &glConfig.ext, 0, sizeof( glextinfo_t ) );
 
-	if( R_TryLoadGLProcAddress( gl_ext_vertex_buffer_object_ARB_funcs ) ) {
-		glConfig.ext.vertex_buffer_object = 1;
-	} else {
-		R_RegisterFatalExt( "gl_ext_vertex_buffer_object_ARB_funcs " );
-	}
+ // if( R_TryLoadGLProcAddress( gl_ext_vertex_buffer_object_ARB_funcs ) ) {
+ // 	glConfig.ext.vertex_buffer_object = 1;
+ // } else {
+ // 	R_RegisterFatalExt( "gl_ext_vertex_buffer_object_ARB_funcs " );
+ // }
 
-	if( R_TryLoadGLProcAddress( gl_ext_framebuffer_object_EXT_funcs ) ) {
-		glConfig.ext.framebuffer_object = 1;
-	} else {
-		R_RegisterFatalExt( "gl_ext_framebuffer_object_EXT_funcs" );
-	}
+ // if( R_TryLoadGLProcAddress( gl_ext_framebuffer_object_EXT_funcs ) ) {
+ // 	glConfig.ext.framebuffer_object = 1;
+ // } else {
+ // 	R_RegisterFatalExt( "gl_ext_framebuffer_object_EXT_funcs" );
+ // }
 
-	if( R_TryLoadGLProcAddress( gl_ext_multitexture_ARB_funcs ) ) {
+ // if( R_TryLoadGLProcAddress( gl_ext_multitexture_ARB_funcs ) ) {
+ // 	glConfig.ext.multitexture = 1;
+ // 	glConfig.ext.vertex_shader = 1;
+ // 	glConfig.ext.fragment_shader = 1;
+ // 	glConfig.ext.shader_objects = 1;
+ // 	glConfig.ext.shading_language_100 = 1;
+ // } else {
+ // 	R_RegisterFatalExt( "gl_ext_multitexture_ARB_funcs" );
+ // }
+
+ // if( R_TryLoadGLProcAddress( gl_ext_GLSL_ARB_funcs ) ) {
+ // 	glConfig.ext.GLSL = 1;
+ // } else {
+ // 	R_RegisterFatalExt( "gl_ext_GLSL_ARB_funcs" );
+ // }
+
+ // if( R_TryLoadGLProcAddress( gl_ext_blend_func_separate_EXT_funcs ) ) {
+ // 	glConfig.ext.blend_func_separate = 1;
+ // } else {
+ // 	R_RegisterFatalExt( "gl_ext_blend_func_separate_EXT_funcs" );
+ // }
+
+ // if( R_TryLoadGLProcAddress( gl_ext_GLSL_core_ARB_funcs ) ) {
+ // 	glConfig.ext.GLSL_core = 1;
+ // }
+
+ // if( R_TryLoadGLProcAddress( gl_ext_GLSL130_ARB_funcs ) ) {
+ // 	glConfig.ext.GLSL130 = 1;
+ // }
+ // 
+ // if( R_TryLoadGLProcAddress( gl_ext_draw_range_elements_EXT_funcs ) ) {
+ // 	glConfig.ext.draw_range_elements = 1;
+ // }
+
+ // if( R_TryLoadGLProcAddress( gl_ext_framebuffer_blit_EXT_funcs ) ) {
+ // 	glConfig.ext.framebuffer_blit = 1;
+ // }
+
+ // if( R_TryLoadGLProcAddress( gl_ext_texture_compression_ARB_funcs ) ) {
+ // 	glConfig.ext.texture_compression = 1;
+ // }
+
+ // if( R_TryLoadGLProcAddress( gl_ext_draw_instanced_ARB_funcs ) ) {
+ // 	glConfig.ext.draw_instanced = 1;
+ // }
+ // if( R_TryLoadGLProcAddress( gl_ext_instanced_arrays_ARB_funcs ) ) {
+ // 	glConfig.ext.instanced_arrays = 1;
+ // }
+
+ // if( R_TryLoadGLProcAddress( gl_ext_get_program_binary_ARB_funcs ) ) {
+ // 	glConfig.ext.get_program_binary = 1;
+ // }
+
+ // if( R_TryLoadGLProcAddress( gl_ext_texture3D_EXT_funcs ) ) {
+ // 	glConfig.ext.texture3D = 1;
+ // 	glConfig.ext.texture_array = 1;
+ // }
+
+	if( R_TryLoadGLProcAddress( gl_core_functions_32 ) ) {
+		qglDebugMessageCallback(gl_callback, NULL);
+
+
+		qglTexImage3DEXT = qglTexImage3D;
+		qglTexSubImage3DEXT = qglTexSubImage3D;
+		qglVertexAttribPointerARB = qglVertexAttribPointer;
+		qglEnableVertexAttribArrayARB = qglEnableVertexAttribArray;
+		qglDisableVertexAttribArrayARB = qglDisableVertexAttribArray;
+		qglBindAttribLocationARB = qglBindAttribLocation;
+		qglGetActiveAttribARB = qglGetActiveAttrib;
+		qglGetAttribLocationARB = qglGetAttribLocation;
+
+		qglBindFramebufferEXT = qglBindFramebuffer;
+		qglShaderSourceARB = qglShaderSource;
+	
+		qglDrawArraysInstancedARB = qglDrawArraysInstanced;
+		qglDrawElementsInstancedARB = qglDrawElementsInstanced;
+		qglVertexAttribDivisorARB = qglVertexAttribDivisor;
+
+		qglCompileShaderARB = qglCompileShader;
+
+		qglDeleteObjectARB = qglDeleteProgram;
+		// qglDeleteShader = qglDeleteShaderARB;
+		// qglDetachShader = qglDetachShaderARB;
+		// qglCreateShader = qglCreateShaderARB;
+		qglShaderSourceARB = qglShaderSource;
+		qglCompileShaderARB = qglCompileShader;
+		// qglCreateProgram = qglCreateProgramARB;
+		// qglAttachShader = qglAttachShaderARB;
+		qglLinkProgramARB = qglLinkProgram;
+		// qglUseProgram = qglUseProgramARB;
+		qglValidateProgramARB = qglValidateProgram;
+		qglUniform1fARB = qglUniform1f;
+		qglUniform2fARB = qglUniform2f;
+		qglUniform3fARB = qglUniform3f;
+		qglUniform4fARB = qglUniform4f;
+		qglUniform1iARB = qglUniform1i;
+		qglUniform2iARB = qglUniform2i;
+		qglUniform3iARB = qglUniform3i;
+		qglUniform4iARB = qglUniform4i;
+		qglUniform1fvARB = qglUniform1fv;
+		qglUniform2fvARB = qglUniform2fv;
+		qglUniform3fvARB = qglUniform3fv;
+		qglUniform4fvARB = qglUniform4fv;
+		qglUniform1ivARB = qglUniform1iv;
+		qglUniform2ivARB = qglUniform2iv;
+		qglUniform3ivARB = qglUniform3iv;
+		qglUniform4ivARB = qglUniform4iv;
+		qglUniformMatrix2fvARB = qglUniformMatrix2fv;
+		qglUniformMatrix3fvARB = qglUniformMatrix3fv;
+		qglUniformMatrix4fvARB = qglUniformMatrix4fv;
+		// qglGetProgramiv = qglGetProgramivARB;
+		// qglGetShaderiv = qglGetShaderivARB;
+		// qglGetProgramInfoLog = qglGetProgramInfoLogARB;
+		// qglGetShaderInfoLog = qglGetShaderInfoLogARB;
+		// qglGetAttachedShaders = qglGetAttachedShadersARB;
+		qglGetUniformLocationARB = qglGetUniformLocation;
+		qglGetActiveUniformARB = qglGetActiveUniform;
+		qglGetUniformfvARB = qglGetUniformfv;
+		qglGetUniformivARB = qglGetUniformiv;
+		qglGetShaderSourceARB = qglGetShaderSource;
+
+		qglGenFramebuffersEXT = qglGenFramebuffers;
+		qglBufferDataARB = qglBufferData;
+		qglBindBufferARB = qglBindBuffer;
+		qglDeleteBuffersARB = qglDeleteBuffers;
+		qglGenBuffersARB = qglGenBuffers;
+		qglBufferSubDataARB = qglBufferSubData;
+		
+		qglFramebufferTexture2DEXT = qglFramebufferTexture2D;
+
+		qglIsRenderbufferEXT = qglIsRenderbuffer;
+		qglBindRenderbufferEXT = qglBindRenderbuffer;
+		qglDeleteRenderbuffersEXT = qglDeleteRenderbuffers;
+		qglGenRenderbuffersEXT = qglGenRenderbuffers;
+		qglRenderbufferStorageEXT = qglRenderbufferStorage;
+		qglGetRenderbufferParameterivEXT = qglGetRenderbufferParameteriv;
+		qglIsFramebufferEXT = qglIsFramebuffer;
+		qglBindFramebufferEXT = qglBindFramebuffer;
+		qglDeleteFramebuffersEXT = qglDeleteFramebuffers;
+		qglGenFramebuffersEXT = qglGenFramebuffers;
+		qglCheckFramebufferStatusEXT = qglCheckFramebufferStatus;
+		qglFramebufferTexture2DEXT = qglFramebufferTexture2D;
+		qglFramebufferRenderbufferEXT = qglFramebufferRenderbuffer;
+		qglGetFramebufferAttachmentParameterivEXT = qglGetFramebufferAttachmentParameteriv;
+		qglGenerateMipmapEXT = qglGenerateMipmap;
+
+		qglActiveTextureARB = qglActiveTexture; 
+		qglClientActiveTextureARB = qglActiveTexture;
+
+		qglCompressedTexImage2DARB = qglCompressedTexImage2D;
+		qglCompressedTexSubImage2DARB = qglCompressedTexSubImage2D;
+
+		glConfig.ext.GLSL130 = 1;
+		glConfig.ext.blend_func_separate = 1;
 		glConfig.ext.multitexture = 1;
 		glConfig.ext.vertex_shader = 1;
 		glConfig.ext.fragment_shader = 1;
 		glConfig.ext.shader_objects = 1;
 		glConfig.ext.shading_language_100 = 1;
-	} else {
-		R_RegisterFatalExt( "gl_ext_multitexture_ARB_funcs" );
-	}
-
-	if( R_TryLoadGLProcAddress( gl_ext_GLSL_ARB_funcs ) ) {
-		glConfig.ext.GLSL = 1;
-	} else {
-		R_RegisterFatalExt( "gl_ext_GLSL_ARB_funcs" );
-	}
-
-	if( R_TryLoadGLProcAddress( gl_ext_blend_func_separate_EXT_funcs ) ) {
-		glConfig.ext.blend_func_separate = 1;
-	} else {
-		R_RegisterFatalExt( "gl_ext_blend_func_separate_EXT_funcs" );
-	}
-
-	if( R_TryLoadGLProcAddress( gl_ext_GLSL_core_ARB_funcs ) ) {
-		glConfig.ext.GLSL_core = 1;
-	}
-
-	if( R_TryLoadGLProcAddress( gl_ext_GLSL130_ARB_funcs ) ) {
-		glConfig.ext.GLSL130 = 1;
-	}
-	
-	if( R_TryLoadGLProcAddress( gl_ext_draw_range_elements_EXT_funcs ) ) {
-		glConfig.ext.draw_range_elements = 1;
-	}
-
-	if( R_TryLoadGLProcAddress( gl_ext_framebuffer_blit_EXT_funcs ) ) {
-		glConfig.ext.framebuffer_blit = 1;
-	}
-
-	if( R_TryLoadGLProcAddress( gl_ext_texture_compression_ARB_funcs ) ) {
-		glConfig.ext.texture_compression = 1;
-	}
-
-	if( R_TryLoadGLProcAddress( gl_ext_draw_instanced_ARB_funcs ) ) {
-		glConfig.ext.draw_instanced = 1;
-	}
-	if( R_TryLoadGLProcAddress( gl_ext_instanced_arrays_ARB_funcs ) ) {
-		glConfig.ext.instanced_arrays = 1;
-	}
-
-	if( R_TryLoadGLProcAddress( gl_ext_get_program_binary_ARB_funcs ) ) {
-		glConfig.ext.get_program_binary = 1;
-	}
-
-	if( R_TryLoadGLProcAddress( gl_ext_texture3D_EXT_funcs ) ) {
-		glConfig.ext.texture3D = 1;
-		glConfig.ext.texture_array = 1;
-	}
-
+		glConfig.ext.framebuffer_object = 1;
+ 		glConfig.ext.texture3D = 1;
+  	glConfig.ext.texture_array = 1;
+  	glConfig.ext.GLSL_core = 1;
+  	glConfig.ext.GLSL = 1;
+  	glConfig.ext.draw_range_elements = 1;
+  	glConfig.ext.framebuffer_blit = 1;
+  	glConfig.ext.texture_compression = 1;
+    glConfig.ext.vertex_buffer_object = 1;
+  } else {
+  	R_RegisterFatalExt( "gl_ext_multitexture_ARB_funcs" );
+  }
 	glConfig.ext.bgra = 1;
 	glConfig.ext.texture_filter_anisotropic = 1;
 	glConfig.ext.meminfo = 1;
