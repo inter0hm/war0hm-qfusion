@@ -841,7 +841,8 @@ static int SCR_DrawPlayerTab( const char **ptrptr, int team, int x, int y, int p
 		// draw the column value
 		if( pass && string[0] )
 		{
-			trap_SCR_DrawClampString( x + xoffset, y + yoffset + textoffset, string,
+			// offset text by 2px so it isn't up against the cell wall
+			trap_SCR_DrawClampString( x + 2 + xoffset, y + yoffset + textoffset, string,
 				x + xoffset, y + yoffset + textoffset,
 				x + xoffset + width, y + yoffset + height + textoffset, font, color );
 		}
