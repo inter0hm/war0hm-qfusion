@@ -21,7 +21,6 @@ freely, subject to the following restrictions:
 #include <cstdint>
 #include <cstring>
 #include <stdio.h>
-#include <thread>
 #define DEBUGPIPE 1
 #include "parent.h"
 #include "../steamshim.h"
@@ -137,13 +136,6 @@ static bool setEnvironmentVars(PipeType pipeChildRead, PipeType pipeChildWrite)
     return true;
 } 
 
-static void taskHeartbeat(){
-    while (true) {
-        Write1ByteMessage(SHIMCMD_PUMP);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    }
-}
-
 extern "C" {
   int STEAMSHIM_init(SteamshimOptions *options)
   {
@@ -198,10 +190,6 @@ extern "C" {
     closePipe(pipeChildWrite);
 
     pipeChildRead = pipeChildWrite = NULLPIPE;
-
-
-    std::thread task(taskHeartbeat);
-    task.detach();
 
 #ifndef _WIN32
       signal(SIGPIPE, SIG_IGN);
