@@ -18,27 +18,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#ifndef _WARFORK_VERSION_H_
+#define _WARFORK_VERSION_H_
 
+#define APPLICATION           "Warfork"
+#define APPLICATION_UTF8      "Warfork"
+#define DEFAULT_BASEGAME      "basewf"
 
-#ifndef APPLICATION
-#define APPLICATION						"Warfork"
-#endif
-
-#ifndef APPLICATION_UTF8
-#define APPLICATION_UTF8				"Warfork"
-#endif
-
-#define	DEFAULT_BASEGAME				"basewf"
-
-#ifndef APP_VERSION_MAJOR
-#define APP_VERSION_MAJOR				2
-#endif
-#ifndef APP_VERSION_MINOR				
-#define APP_VERSION_MINOR				1
-#endif
-#ifndef APP_VERSION_UPDATE							
-#define APP_VERSION_UPDATE			5
-#endif
+#define APP_VERSION_MAJOR     2
+#define APP_VERSION_MINOR     1
+#define APP_VERSION_UPDATE    5
 
 // storing this is not necessary
 //#define APP_VERSION_MAJOR_OFFSET 0
@@ -47,122 +36,66 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //#define APP_VERSION_MINOR_OFFSET 11
 //#define APP_VERSION_MINOR_BITS 0x7FF
 //
-//#define APP_VERSION_UPDATE_OFFSET 22 
+//#define APP_VERSION_UPDATE_OFFSET 22
 //#define APP_VERSION_UPDATE_BITS 0x3FF
 //
-//#define APP_VERSION						(APP_VERSION_MAJOR << APP_VERSION_MAJOR_OFFSET) | (APP_VERSION_MINOR << APP_VERSION_MINOR_OFFSET ) | (APP_VERSION_UPDATE << APP_VERSION_UPDATE_OFFSET)
+//#define APP_VERSION           (APP_VERSION_MAJOR << APP_VERSION_MAJOR_OFFSET) | (APP_VERSION_MINOR << APP_VERSION_MINOR_OFFSET ) | (APP_VERSION_UPDATE << APP_VERSION_UPDATE_OFFSET)
 //#endif
 
-#ifdef PUBLIC_BUILD
-#define APP_PROTOCOL_VERSION			26
-#else
-#define APP_PROTOCOL_VERSION			2400
-#endif
+
+
+#define APP_DEMO_PROTOCOL_VERSION_STR STR_TOSTR( APP_DEMO_PROTOCOL_VERSION )
+#define APP_DEMO_EXTENSION_STR        ".wfdz" APP_DEMO_PROTOCOL_VERSION_STR
+#define APP_URI_SCHEME                APPLICATION "://"
+#define APP_URI_PROTO_SCHEME          APPLICATION STR_TOSTR( APP_PROTOCOL_VERSION ) "://"
+#define APP_VERSION_STR               STR_TOSTR( APP_VERSION_MAJOR ) "." STR_TOSTR( APP_VERSION_MINOR ) "." STR_TOSTR( APP_VERSION_UPDATE )
+#define APP_VERSION_STR_MAJORMINOR    STR_TOSTR( APP_VERSION_MAJOR ) STR_TOSTR( APP_VERSION_MINOR )
+#define APP_PROTOCOL_VERSION_STR      STR_TOSTR( APP_PROTOCOL_VERSION )
 
 #ifdef PUBLIC_BUILD
-#define APP_DEMO_PROTOCOL_VERSION		22
+#define APP_PROTOCOL_VERSION      26
 #else
-#define APP_DEMO_PROTOCOL_VERSION		22
-#endif
-
-#ifndef APP_URL
-#define APP_URL                         "http://warfork.com/"
-#endif
-
-#ifndef APP_COPYRIGHT_OWNER
-#define APP_COPYRIGHT_OWNER				"Team Forbidden LLC"
-#endif
-
-#ifndef APP_SCREENSHOTS_PREFIX
-#define APP_SCREENSHOTS_PREFIX			"wf_"
-#endif
-
-#undef STR_HELPER
-#undef STR_TOSTR
-
-#define STR_HELPER( s )					# s
-#define STR_TOSTR( x )					STR_HELPER( x )
-
-#define APP_PROTOCOL_VERSION_STR		STR_TOSTR( APP_PROTOCOL_VERSION )
-#define APP_DEMO_PROTOCOL_VERSION_STR	STR_TOSTR( APP_DEMO_PROTOCOL_VERSION )
-#define APP_DEMO_EXTENSION_STR			".wfdz" APP_DEMO_PROTOCOL_VERSION_STR
-
-#define APP_URI_SCHEME					APPLICATION "://"
-#define APP_URI_PROTO_SCHEME			APPLICATION STR_TOSTR( APP_PROTOCOL_VERSION ) "://"
-
-#ifndef APP_VERSION_STR
-#define APP_VERSION_STR					STR_TOSTR( APP_VERSION_MAJOR ) "." STR_TOSTR( APP_VERSION_MINOR ) "." STR_TOSTR( APP_VERSION_UPDATE )
-#endif
-
-#ifndef APP_VERSION_STR_MAJORMINOR
-#define APP_VERSION_STR_MAJORMINOR		STR_TOSTR( APP_VERSION_MAJOR ) STR_TOSTR( APP_VERSION_MINOR )
+#define APP_PROTOCOL_VERSION      2400
 #endif
 
 #ifdef PUBLIC_BUILD
-#define APP_MATCHMAKER_URL              "https://warfork.com:1338"
-#define APP_MATCHMAKER_WEB_URL          "https://warfork.com/wfmm/"
+#define APP_DEMO_PROTOCOL_VERSION   22
 #else
-#define APP_MATCHMAKER_URL              "http://warfork.com:1337"
-#define APP_MATCHMAKER_WEB_URL          "http://warfork.com/wfmm/"
-#endif
-
-#ifndef APP_UI_BASEPATH
-#define APP_UI_BASEPATH					"ui/porkui"
-#endif
-
-#ifndef APP_STARTUP_COLOR
-#define APP_STARTUP_COLOR				0x1c1416
+#define APP_DEMO_PROTOCOL_VERSION   22
 #endif
 
 //
 // the following macros are only used by the windows resource file
 //
-#ifdef __GNUC__
+#define APP_VERSION_RC              APP_VERSION_MAJOR.APP_VERSION_MINOR
+#define APP_VERSION_RC_STR          STR_TOSTR( APP_VERSION_RC )
+#define APP_FILEVERSION_RC          APP_VERSION_MAJOR,APP_VERSION_MINOR,APP_VERSION_UPDATE,0
+#define APP_FILEVERSION_RC_STR      STR_TOSTR( APP_FILEVERSION_RC )
 
-#ifndef APP_VERSION_RC_STR
-#define APP_VERSION_RC_STR				STR_TOSTR( APP_VERSION_MAJOR ) "." STR_TOSTR( APP_VERSION_MINOR )
+
+
+#ifdef PUBLIC_BUILD
+#define APP_MATCHMAKER_URL        "https://warfork.com:1338"
+#define APP_MATCHMAKER_WEB_URL    "https://warfork.com/wfmm/"
+#else
+#define APP_MATCHMAKER_URL        "http://warfork.com:1337"
+#define APP_MATCHMAKER_WEB_URL    "http://warfork.com/wfmm/"
 #endif
+#define APP_URL                    "http://warfork.com/"
 
-#ifndef APP_FILEVERSION_RC_STR
-#define APP_FILEVERSION_RC_STR			STR_TOSTR( APP_VERSION_MAJOR ) "," STR_TOSTR( APP_VERSION_MINOR ) "," STR_TOSTR( APP_VERSION_UPDATE ) ",0"
-#endif
+#define APP_UI_BASEPATH       "ui/porkui"
+#define APP_STARTUP_COLOR     0x1c1416
+#define APP_STEAMID           671610
+#define APP_SCREENSHOTS_PREFIX     "wf_"
+#define APP_COPYRIGHT_OWNER        "Team Forbidden LLC"
+#define APP_DEFAULT_LANGUAGE  "en"
+#define APP_ICO_ICON          "../../icons/warfork.ico"
+#define APP_DEMO_ICO_ICON     "../../icons/warfork-demo.ico"
+#define APP_XPM_ICON          "../../icons/warfork256x256.xpm"
+#define APP_HOME_UNIX_DIR_FS  "warfork-2.1"
+#define APP_HOME_OSX_DIR_FS   "warfork-2.1"
+#define APP_HOME_WIN_DIR_FS   "Warfork 2.1"
 
-#else // __GNUC__
 
-#ifndef APP_VERSION_RC
-#define APP_VERSION_RC					APP_VERSION_MAJOR.APP_VERSION_MINOR
-#endif
 
-#ifndef APP_VERSION_RC_STR
-#define APP_VERSION_RC_STR				STR_TOSTR( APP_VERSION_RC )
-#endif
-
-#ifndef APP_FILEVERSION_RC
-#define APP_FILEVERSION_RC				APP_VERSION_MAJOR,APP_VERSION_MINOR,APP_VERSION_UPDATE,0
-#endif
-
-#ifndef APP_FILEVERSION_RC_STR
-#define APP_FILEVERSION_RC_STR			STR_TOSTR( APP_FILEVERSION_RC )
-#endif
-
-#endif // __GNUC__
-
-#ifndef APP_DEFAULT_LANGUAGE
-#define APP_DEFAULT_LANGUAGE			"en"
-#endif
-
-#ifndef APP_ICO_ICON
-#define APP_ICO_ICON 					"../../icons/warfork.ico"
-#endif
-
-#ifndef APP_DEMO_ICO_ICON
-#define APP_DEMO_ICO_ICON 				"../../icons/warfork-demo.ico"
-#endif
-
-#ifndef APP_XPM_ICON
-#define APP_XPM_ICON 					"../../icons/warfork256x256.xpm"
-#endif
-
-#ifndef APP_STEAMID
-#define APP_STEAMID						671610
 #endif
