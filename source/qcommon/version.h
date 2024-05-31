@@ -21,6 +21,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef _WARFORK_VERSION_H_
 #define _WARFORK_VERSION_H_
 
+#undef STR_HELPER
+#undef STR_TOSTR
+
+#define STR_HELPER( s )                 # s
+#define STR_TOSTR( x )                  STR_HELPER( x )
+
 #define APPLICATION           "Warfork"
 #define APPLICATION_UTF8      "Warfork"
 #define DEFAULT_BASEGAME      "basewf"
@@ -71,8 +77,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define APP_VERSION_RC_STR          STR_TOSTR( APP_VERSION_RC )
 #define APP_FILEVERSION_RC          APP_VERSION_MAJOR,APP_VERSION_MINOR,APP_VERSION_UPDATE,0
 #define APP_FILEVERSION_RC_STR      STR_TOSTR( APP_FILEVERSION_RC )
-
-
 
 #ifdef PUBLIC_BUILD
 #define APP_MATCHMAKER_URL        "https://warfork.com:1338"
