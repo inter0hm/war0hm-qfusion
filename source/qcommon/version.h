@@ -98,14 +98,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define APP_VERSION_STR_MAJORMINOR		STR_TOSTR( APP_VERSION_MAJOR ) STR_TOSTR( APP_VERSION_MINOR )
 #endif
 
-#ifndef APP_UPDATE_URL
-#define APP_UPDATE_URL                  "http://warfork.com/update/"
-#define APP_SERVER_UPDATE_DIRECTORY     "autoupdate/" STR_TOSTR ( APP_VERSION_MAJOR ) "." STR_TOSTR ( APP_VERSION_MINOR ) "/"
-#define APP_SERVER_UPDATE_FILE			"filelist.txt"
-#define APP_CLIENT_UPDATE_FILE			"warfork_last_version.txt"
-#define APP_CLIENT_ANNOUNCEMENT_FILE	"warfork_announcement.txt"
-#endif
-
 #ifdef PUBLIC_BUILD
 #define APP_MATCHMAKER_URL              "https://warfork.com:1338"
 #define APP_MATCHMAKER_WEB_URL          "https://warfork.com/wfmm/"
