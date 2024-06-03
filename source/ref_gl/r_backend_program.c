@@ -1222,9 +1222,7 @@ static void RB_RenderMeshGLSL_Shadowmap( const shaderpass_t *pass, r_glslfeat_t 
 {
 	int scissor[4] = {INT_MAX, INT_MAX, INT_MIN, INT_MIN};
 	int old_scissor[4] = {0};
-	shadowGroup_t *group = NULL;
-	shadowGroup_t *shadowGroups[GLSL_SHADOWMAP_LIMIT] = {0};
-
+	shadowGroup_t *shadowGroups[GLSL_SHADOWMAP_LIMIT];
 	if( r_shadows_pcf->integer )
 		programFeatures |= GLSL_SHADER_SHADOWMAP_PCF;
 	if( r_shadows_dither->integer )
@@ -1238,13 +1236,13 @@ static void RB_RenderMeshGLSL_Shadowmap( const shaderpass_t *pass, r_glslfeat_t 
 		maxShadows = GLSL_SHADOWMAP_LIMIT;
 
 	int numShadows = 0;
-	while( numShadows < rsc.numShadowGroups && numShadows < maxShadows )
+	for(size_t i = 0; i < rsc.numShadowGroups && numShadows < maxShadows; i++)
 	{
 		vec3_t bbox[8];
 		vec_t *visMins, *visMaxs;
 		int groupScissor[4] = { 0, 0, 0, 0 };
 
-		group = rsc.shadowGroups + numShadows;
+		shadowGroup_t *group = rsc.shadowGroups + i;
 		if( !( rb.currentShadowBits & group->bit ) ) {
 			continue;
 		}
