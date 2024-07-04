@@ -537,6 +537,7 @@ void UpdatePresenceIfChanged( RichPresence presence )
 			const size_t bufferLen = pack_cstr_null_terminated( (char *)req->buf, 256, pairs, 2 );
 			STEAMSHIM_sendRPC( req, bufferLen + sizeof( struct buffer_rpc_s ), NULL, NULL, NULL);
 		}
+
 		cl_presence_state.steam_old_presence = presence;
 	}
 
