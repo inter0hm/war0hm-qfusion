@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "compression.h"
 #include "mem.h"
 
+
 #define MAX_NUM_ARGVS	50
 
 static bool	dynvars_initialized = false;
@@ -78,8 +79,6 @@ unsigned int time_after_game;
 unsigned int time_before_ref;
 unsigned int time_after_ref;
 
-// debug/performance counter vars
-int c_pointcontents, c_traces, c_brush_traces;
 
 /*
 ==============================================================
@@ -230,6 +229,7 @@ void Com_Printf( const char *format, ... )
 	va_start( argptr, format );
 	Q_vsnprintfz( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
+
 
 	QMutex_Lock( com_print_mutex );
 
@@ -880,8 +880,6 @@ void Qcommon_Init( int argc, char **argv )
 	NET_Init();
 	Netchan_Init();
 
-	Com_Autoupdate_Init();
-
 	CM_Init();
 
 	Com_ScriptModule_Init();
@@ -1042,13 +1040,11 @@ void Qcommon_Shutdown( void )
 	NET_Shutdown();
 	Key_Shutdown();
 
-	Com_Autoupdate_Shutdown();
-
 
 	Qcommon_ShutdownCommands();
 	Memory_ShutdownCommands();
 
-	Mem_DumpMemoryReport();
+	// Mem_DumpMemoryReport();
 	Com_CloseConsoleLog( true, true );
 
    Qcommon_ShutdownCvarDescriptions();

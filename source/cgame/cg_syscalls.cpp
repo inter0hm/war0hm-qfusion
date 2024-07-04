@@ -17,6 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+#define REF_DEFINE_INTERFACE_IMPL 1
+#include "../ref_base/ref_mod.h"
+
 
 #include "cg_local.h"
 
@@ -31,6 +34,8 @@ extern "C" QF_DLL_EXPORT cgame_export_t *GetCGameAPI( cgame_import_t *import )
 {
 	static cgame_export_t globals;
 
+
+	Q_ImportRefModule(&import->ref_import);
 	CGAME_IMPORT = *import;
 
 	globals.API = CG_API;

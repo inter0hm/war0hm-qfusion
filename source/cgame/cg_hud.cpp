@@ -209,7 +209,7 @@ static int CG_GetFPS( const void *parameter )
 	if( cg_showFPS->integer == 1 )
 	{
 		// FIXME: this should be removed once the API no longer locked
-		fps = (int)trap_R_GetAverageFramerate();
+		fps = (int)RF_GetAverageFramerate();
 		if( fps < 1 )
 			fps = 1;
 		return fps;
@@ -1131,7 +1131,7 @@ static void CG_DrawObituaries( int x, int y, int align, struct qfontface_s *font
 		trap_SCR_DrawStringWidth( x + xoffset + icon_size, y + yoffset + line_height / 2, ALIGN_LEFT_MIDDLE,
 		                          COM_RemoveColorTokensExt( obr->victim, true ), ( width - icon_size ) / 2, font, teamcolor );
 
-		trap_R_DrawStretchPic( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size,
+		RF_DrawStretchPic( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size,
 		                       icon_size, 0, 0, 1, 1, colorWhite, pic );
 
 		yoffset += line_height;
@@ -1369,20 +1369,20 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 				if( selected_weapon )
 				{
 					if( customWeaponSelectPic )
-						trap_R_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorTrans, trap_R_RegisterPic( customWeaponSelectPic ) );
+						RF_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorTrans, R_RegisterPic( customWeaponSelectPic ) );
 					else
-						trap_R_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorTrans, CG_MediaShader( cgs.media.shaderSelect ) );
+						RF_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorTrans, CG_MediaShader( cgs.media.shaderSelect ) );
 				}
 				if( customWeaponPics[i] )
-					trap_R_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorWhite, trap_R_RegisterPic( customWeaponPics[i] ) );
+					RF_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorWhite, R_RegisterPic( customWeaponPics[i] ) );
 				else
-					trap_R_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorWhite, CG_GetWeaponIcon( WEAP_GUNBLADE + i ) );
+					RF_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorWhite, CG_GetWeaponIcon( WEAP_GUNBLADE + i ) );
 			}
 			else
 				if( customNoGunWeaponPics[i] )
-					trap_R_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorWhite, trap_R_RegisterPic( customNoGunWeaponPics[i] ) );
+					RF_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorWhite, R_RegisterPic( customNoGunWeaponPics[i] ) );
 				else
-					trap_R_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorWhite, CG_MediaShader( cgs.media.shaderNoGunWeaponIcon[i] ) );
+					RF_DrawStretchPic( curx, cury, curw, curh, 0, 0, 1, 1, colorWhite, CG_MediaShader( cgs.media.shaderNoGunWeaponIcon[i] ) );
 		}
 		j++;
 	}
@@ -1507,9 +1507,9 @@ static void CG_DrawWeaponCrossQuarter( int ammopass, int quarter, int x, int y, 
 	if( !ammopass && CG_IsWeaponSelected( WEAP_GUNBLADE + w[0] ) )
 	{
 		if( customWeaponSelectPic )
-			trap_R_DrawStretchPic( x, y, iw, ih, 0.0f, 0.0f, 1.0f, 1.0f, colorTrans, trap_R_RegisterPic( customWeaponSelectPic ) );
+			RF_DrawStretchPic( x, y, iw, ih, 0.0f, 0.0f, 1.0f, 1.0f, colorTrans, R_RegisterPic( customWeaponSelectPic ) );
 		else
-			trap_R_DrawStretchPic( x, y, iw, ih, 0.0f, 0.0f, 1.0f, 1.0f, colorTrans, CG_MediaShader( cgs.media.shaderSelect ) );
+			RF_DrawStretchPic( x, y, iw, ih, 0.0f, 0.0f, 1.0f, 1.0f, colorTrans, CG_MediaShader( cgs.media.shaderSelect ) );
 	}
 
 	for( i = 0; i < count; i++ )
@@ -1517,9 +1517,9 @@ static void CG_DrawWeaponCrossQuarter( int ammopass, int quarter, int x, int y, 
 		if( !ammopass )
 		{
 			if( customWeaponPics[w[i]] )
-				trap_R_DrawStretchPic( x, y, iw, ih, 0.0f, 0.0f, 1.0f, 1.0f, color, trap_R_RegisterPic( customWeaponPics[w[i]] ) );
+				RF_DrawStretchPic( x, y, iw, ih, 0.0f, 0.0f, 1.0f, 1.0f, color, R_RegisterPic( customWeaponPics[w[i]] ) );
 			else
-				trap_R_DrawStretchPic( x, y, iw, ih, 0.0f, 0.0f, 1.0f, 1.0f, color, CG_GetWeaponIcon( WEAP_GUNBLADE + w[i] ) );
+				RF_DrawStretchPic( x, y, iw, ih, 0.0f, 0.0f, 1.0f, 1.0f, color, CG_GetWeaponIcon( WEAP_GUNBLADE + w[i] ) );
 		}
 
 		if( ammopass && w[i] /* don't show 1 for charged gunblade */ && cg.predictedPlayerState.inventory[AMMO_GUNBLADE + w[i]] )
@@ -1873,7 +1873,7 @@ static bool CG_LFuncDrawPicVar( struct cg_layoutnode_s *commandnode, struct cg_l
 	Q_snprintfz( filenm, sizeof( filenm ), filefmt, filenr );
 	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
 	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( filenm ) );
+	RF_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, R_RegisterPic( filenm ) );
 	return true;
 }
 
@@ -1888,7 +1888,7 @@ static bool CG_LFuncDrawPicByIndex( struct cg_layoutnode_s *commandnode, struct 
 		{
 			x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
 			y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-			trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( cgs.configStrings[CS_IMAGES+value] ) );
+			RF_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, R_RegisterPic( cgs.configStrings[CS_IMAGES+value] ) );
 			return true;
 		}
 	}
@@ -1907,7 +1907,7 @@ static bool CG_LFuncDrawPicByItemIndex( struct cg_layoutnode_s *commandnode, str
 		return false;
 	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
 	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( item->icon ) );
+	RF_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, R_RegisterPic( item->icon ) );
 	return true;
 }
 
@@ -1917,7 +1917,7 @@ static bool CG_LFuncDrawPicByName( struct cg_layoutnode_s *commandnode, struct c
 
 	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
 	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) ) );
+	RF_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, R_RegisterPic( CG_GetStringArg( &argumentnode ) ) );
 	return true;
 }
 
@@ -1930,14 +1930,14 @@ static bool CG_LFuncDrawSubPicByName( struct cg_layoutnode_s *commandnode, struc
 	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
 	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
 
-	shader = trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) );
+	shader = R_RegisterPic( CG_GetStringArg( &argumentnode ) );
 
 	s1 = CG_GetNumericArg( &argumentnode );
 	t1 = CG_GetNumericArg( &argumentnode );
 	s2 = CG_GetNumericArg( &argumentnode );
 	t2 = CG_GetNumericArg( &argumentnode );
 
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, s1, t1, s2, t2, layout_cursor_color, shader );
+	RF_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, s1, t1, s2, t2, layout_cursor_color, shader );
 	return true;
 }
 
@@ -1950,11 +1950,11 @@ static bool CG_LFuncDrawRotatedPicByName( struct cg_layoutnode_s *commandnode, s
 	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
 	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
 
-	shader = trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) );
+	shader = R_RegisterPic( CG_GetStringArg( &argumentnode ) );
 
 	angle = CG_GetNumericArg( &argumentnode );
 
-	trap_R_DrawRotatedStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, angle, layout_cursor_color, shader );
+	RF_DrawRotatedStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, angle, layout_cursor_color, shader );
 	return true;
 }
 
@@ -1981,7 +1981,7 @@ static bool CG_LFuncDrawModelByName( struct cg_layoutnode_s *commandnode, struct
 
 	model = CG_RegisterModel( CG_GetStringArg( &argumentnode ) );
 	shadername = CG_GetStringArg( &argumentnode );
-	shader = Q_stricmp( shadername, "NULL" ) ? trap_R_RegisterPic( shadername ) : NULL;
+	shader = Q_stricmp( shadername, "NULL" ) ? R_RegisterPic( shadername ) : NULL;
 	CG_DrawHUDModel( layout_cursor_x, layout_cursor_y, layout_cursor_align, layout_cursor_width, layout_cursor_height, model, shader, layout_cursor_rotation[YAW] );
 	return true;
 }
@@ -2556,7 +2556,7 @@ static bool CG_LFuncDrawPicBar( struct cg_layoutnode_s *commandnode, struct cg_l
 
 	CG_DrawHUDRect( layout_cursor_x, layout_cursor_y, layout_cursor_align,
 	               layout_cursor_width, layout_cursor_height, value, maxvalue,
-	               layout_cursor_color, trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) ) );
+	               layout_cursor_color, R_RegisterPic( CG_GetStringArg( &argumentnode ) ) );
 	return true;
 }
 
@@ -2570,7 +2570,7 @@ static bool CG_LFuncDrawWeaponIcon( struct cg_layoutnode_s *commandnode, struct 
 
 	x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_align, layout_cursor_width );
 	y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_align, layout_cursor_height );
-	trap_R_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, CG_GetWeaponIcon( weapon ) );
+	RF_DrawStretchPic( x, y, layout_cursor_width, layout_cursor_height, 0, 0, 1, 1, layout_cursor_color, CG_GetWeaponIcon( weapon ) );
 	return true;
 }
 
@@ -2758,7 +2758,7 @@ static bool CG_LFuncDrawChat( struct cg_layoutnode_s *commandnode, struct cg_lay
 
 	padding_x = (int)( CG_GetNumericArg( &argumentnode ) )*cgs.vidWidth/800;
 	padding_y = (int)( CG_GetNumericArg( &argumentnode ) )*cgs.vidHeight/600;
-	shader = trap_R_RegisterPic( CG_GetStringArg( &argumentnode ) );
+	shader = R_RegisterPic( CG_GetStringArg( &argumentnode ) );
 
 	CG_DrawChat( &cg.chat, layout_cursor_x, layout_cursor_y, layout_cursor_font_name, CG_GetLayoutCursorFont(), layout_cursor_font_size,
 		layout_cursor_width, layout_cursor_height, padding_x, padding_y, layout_cursor_color, shader );
@@ -4591,7 +4591,7 @@ static char *CG_LoadHUDFile( char *path )
 				{
 					if( developer->integer )
 						CG_Printf( "HUD: INFO: Precaching image '%s'\n", token );
-					trap_R_RegisterPic( token );
+					R_RegisterPic( token );
 				}
 				else
 				{

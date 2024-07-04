@@ -179,11 +179,11 @@ void CG_ConfigString( int i, const char *s )
 	}
 	else if( i >= CS_IMAGES && i < CS_IMAGES+MAX_IMAGES )
 	{
-		cgs.imagePrecache[i-CS_IMAGES] = trap_R_RegisterPic( cgs.configStrings[i] );
+		cgs.imagePrecache[i-CS_IMAGES] = R_RegisterPic( cgs.configStrings[i] );
 	}
 	else if( i >= CS_SKINFILES && i < CS_SKINFILES+MAX_SKINFILES )
 	{
-		cgs.skinPrecache[i-CS_SKINFILES] = trap_R_RegisterSkinFile( cgs.configStrings[i] );
+		cgs.skinPrecache[i-CS_SKINFILES] = R_RegisterSkinFile( cgs.configStrings[i] );
 	}
 	else if( i >= CS_LIGHTS && i < CS_LIGHTS+MAX_LIGHTSTYLES )
 	{

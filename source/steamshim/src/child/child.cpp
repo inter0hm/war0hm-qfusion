@@ -214,7 +214,10 @@ static void processCommands()
     if (time_since_last_pump != 0){
         time_t delta = time(NULL) - time_since_last_pump;
         if (delta > 5) // we haven't gotten a pump in 5 seconds, safe to assume the main process is either dead or unresponsive and we can terminate
+        {
+            dbgprintf("Child terminating from timeout.\n");
             return;
+        }
     }
 
     if (!buf.Recieve())
@@ -226,8 +229,10 @@ static void processCommands()
 
         ShimCmd cmd = (ShimCmd)buf.ReadByte();
 
-        if (!processCommand(buf, cmd, evlen))
+        if (!processCommand(buf, cmd, evlen)) {
+            dbgprintf("Child terminating in processCommand .\n");
             return; // we were told to exit
+        }
     } else {
         std::this_thread::sleep_for(std::chrono::microseconds(1000));
     }

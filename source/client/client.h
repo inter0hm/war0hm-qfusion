@@ -18,6 +18,7 @@
 
  */
 // client.h -- primary header for client
+#include "../ref_base/ref_mod.h"
 
 #include "../qcommon/qcommon.h"
 #include "../ref_base/r_public.h"
@@ -30,6 +31,7 @@
 #include "input.h"
 #include "keys.h"
 #include "console.h"
+
 
 typedef struct shader_s shader_t;
 typedef struct qfontface_s qfontface_t;
