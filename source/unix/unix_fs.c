@@ -243,9 +243,11 @@ const char *Sys_FS_GetHomeDirectory( void )
 
 		if( base ) {
 #ifdef __MACOSX__
-			Q_snprintfz( home, sizeof( home ), "%s/%s" APP_HOME_OSX_DIR_FS , base, local );
+			Q_snprintfz( home, sizeof( home ), "%s/%s%s-%d.%d", base, local, APPLICATION,
+				APP_VERSION_MAJOR, APP_VERSION_MINOR );
 #else
-			Q_snprintfz( home, sizeof( home ), "%s/%s" APP_HOME_UNIX_DIR_FS , base, local);
+			Q_snprintfz( home, sizeof( home ), "%s/%s%c%s-%d.%d", base, local, tolower( *( (const char *)APPLICATION ) ),
+				( (const char *)APPLICATION ) + 1, APP_VERSION_MAJOR, APP_VERSION_MINOR );
 #endif
 		}
 #endif

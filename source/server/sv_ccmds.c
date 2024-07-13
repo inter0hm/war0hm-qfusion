@@ -99,6 +99,48 @@ static void SV_AutoUpdateComplete_f( void )
 }
 
 /*
+* SV_AutoUpdateFromWeb
+*/
+void SV_AutoUpdateFromWeb( bool checkOnly )
+{
+	if( checkOnly ) {
+		Com_Autoupdate_Run( true, NULL );
+		return;
+	}
+
+	Cvar_ForceSet( "sv_lastAutoUpdate", va( "%i", (int)Com_DaysSince1900() ) );
+	Com_Autoupdate_Run( false, &SV_AutoUpdateComplete_f );
+}
+
+/*
+* SV_AutoUpdate_f
+*/
+static void SV_AutoUpdate_f( void )
+{
+	if( !sv_pure->integer )
+	{
+		Com_Printf( "Autoupdate is only available for pure servers\n" );
+		return;
+	}
+
+	SV_AutoUpdateFromWeb( false );
+}
+
+/*
+* SV_AutoUpdateCheck_f
+*/
+static void SV_AutoUpdateCheck_f( void )
+{
+	if( !sv_pure->integer )
+	{
+		Com_Printf( "Autoupdate is only available for pure servers\n" );
+		return;
+	}
+
+	SV_AutoUpdateFromWeb( true );
+}
+
+/*
 * SV_Map_f
 * 
 * User command to change the map
@@ -386,6 +428,13 @@ void SV_InitOperatorCommands( void )
 	Cmd_AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
 
 	Cmd_AddCommand( "purelist", SV_PureList_f );
+
+	if( dedicated->integer )
+	{
+		Cmd_AddCommand( "autoupdate", SV_AutoUpdate_f );
+		Cmd_AddCommand( "autoupdatecheck", SV_AutoUpdateCheck_f );
+	}
+
 	Cmd_AddCommand( "cvarcheck", SV_CvarCheck_f );
 
 	Cmd_SetCompletionFunc( "map", SV_MapComplete_f );

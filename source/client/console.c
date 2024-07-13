@@ -1073,7 +1073,8 @@ void Con_DrawConsole( void )
 	newtime = localtime( &long_time );
 
 #ifdef PUBLIC_BUILD
-	Q_snprintfz( version, sizeof( version ), "%02d:%02d %s v"APP_VERSION_STR, newtime->tm_hour, newtime->tm_min, APPLICATION);
+	Q_snprintfz( version, sizeof( version ), "%02d:%02d %s v%4.2f", newtime->tm_hour, newtime->tm_min,
+		APPLICATION, APP_VERSION );
 #else
 	Q_snprintfz( version, sizeof( version ), "%02d:%02d %s v%4.2f rev:%s", newtime->tm_hour, newtime->tm_min,
 		APPLICATION, APP_VERSION, revisioncvar->string );
