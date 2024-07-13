@@ -104,12 +104,10 @@ static void SV_AutoUpdateComplete_f( void )
 void SV_AutoUpdateFromWeb( bool checkOnly )
 {
 	if( checkOnly ) {
-		Com_Autoupdate_Run( true, NULL );
 		return;
 	}
 
 	Cvar_ForceSet( "sv_lastAutoUpdate", va( "%i", (int)Com_DaysSince1900() ) );
-	Com_Autoupdate_Run( false, &SV_AutoUpdateComplete_f );
 }
 
 /*

@@ -2994,92 +2994,6 @@ static void CL_CheckForUpdateHeaderCb( const char *buf, void *privatep )
 	}
 }
 
-/*
-* CL_CheckForUpdate
-* 
-* retrieve a file with the last version umber on a web server, compare with current version
-* display a message box in case the user need to update
-*/
-static void CL_CheckForUpdate( void )
-{
-#ifdef PUBLIC_BUILD
-#define HTTP_HEADER_SIZE	128
-
-	char url[MAX_STRING_CHARS];
-	char *resolution;
-	char *campaign;
-	int campaignSize;
-	char *profileId;
-	int profileIdSize;
-	int headerNum = 0;
-	const char *headers[] = { 
-		NULL, NULL, 
-		NULL, NULL, 
-		NULL, NULL, 
-		NULL, NULL, 
-		NULL, NULL, 
-		NULL, NULL, 
-		NULL };
-
-	if( !cl_checkForUpdate->integer )
-		return;
-	if( Steam_Active() )
-		return;
-
-	if( updateRemoteData )
-		return; // still not done with the previous iteration?..
-
-	// step one get the last version file
-	Com_Printf( "Checking for " APPLICATION " update.\n" );
-
-	Q_snprintfz( url, sizeof( url ), "%s%s", APP_UPDATE_URL, APP_CLIENT_UPDATE_FILE );
-
-	updateRemoteDataSize = 1;
-	updateRemoteData = Mem_ZoneMalloc( 1 );
-	*updateRemoteData = '\0';
-
-	// send screen resolution in UA-pixels header
-	resolution = Mem_TempMalloc( HTTP_HEADER_SIZE );
-	Q_snprintfz( resolution, HTTP_HEADER_SIZE, "%ix%i", viddef.width, viddef.height );
-	headers[headerNum++] = "UA-pixels";
-	headers[headerNum++] = resolution;
-
-	// send campaign ID
-	campaign = NULL;
-	campaignSize = FS_LoadBaseFile( "campaign.txt", (void **)&campaign, NULL, 0 );
-	if( campaignSize > 0 ) {
-		headers[headerNum++] = "X-Campaign";
-		headers[headerNum++] = campaign;
-	}
-
-	// send profile ID
-	profileId = NULL;
-	profileIdSize = FS_LoadFile( TRACKING_PROFILE_ID, (void **)&profileId, NULL, 0 );
-	if( profileIdSize > 0 ) {
-		headers[headerNum++] = "X-Profile-Id";
-		headers[headerNum++] = Q_strlwr( profileId );
-	}
-
-	// send language
-	headers[headerNum++] = "X-Lang";
-	headers[headerNum++] = L10n_GetUserLanguage();
-
-	headerNum += CL_AddSessionHttpRequestHeaders( url, &headers[headerNum] );
-
-	CL_AsyncStreamRequest( url, headers, 15, 0, CL_CheckForUpdateReadCb, CL_CheckForUpdateDoneCb, 
-		CL_CheckForUpdateHeaderCb, NULL, false );
-
-	Mem_TempFree( resolution );
-
-	if( campaign ) {
-		FS_FreeBaseFile( campaign );
-	}
-	if( profileId ) {
-		FS_FreeBaseFile( profileId );
-	}
-#endif
-}
-
 //============================================================================
 
 /*
@@ -3239,7 +3153,6 @@ void CL_Init( void )
 	CL_UIModule_ForceMenuOn();
 
 	// check for update
-	CL_CheckForUpdate();
 
 	CL_InitServerList();
 
