@@ -1289,6 +1289,7 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg )
 				edictnum = ( client - svs.clients ) + 1;
 				ent = EDICT_NUM( edictnum );
 
+				Com_Printf("Client %s "S_COLOR_WHITE "authenticated with steamid %llu\n", client->name, client->steamid);
 				ge->ClientAuth( ent, client->steamid);
 				
 			}

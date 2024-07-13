@@ -30,7 +30,15 @@ const size_t NUM_SOUND_EXTENSIONS = sizeof( SOUND_EXTENSIONS ) / sizeof( SOUND_E
 const char *IMAGE_EXTENSIONS[] = { ".tga", ".jpg", ".png", ".ktx" }; // .ktx must be the last extension
 const size_t NUM_IMAGE_EXTENSIONS = sizeof( IMAGE_EXTENSIONS ) / sizeof( IMAGE_EXTENSIONS[0] );
 
-//============================================================================
+const char* extensionTGA = ".tga";
+const char* extensionJPG = ".jpg";
+const char* extensionPNG = ".png";
+const char* extensionWAL = ".wal";
+const char* extensionKTX = ".ktx";
+const char* extensionWAV = ".wav";
+const char* extensionOGG = ".ogg";
+const char* extensionPCX = ".pcx";
+
 
 /*
 * COM_SanitizeFilePath

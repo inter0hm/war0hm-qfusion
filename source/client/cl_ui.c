@@ -17,10 +17,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+//#define REF_DEFINE_INTERFACE_IMPL 1
+//#include "../ref_base/ref_mod.h"
 
 #include "client.h"
 #include "../ui/ui_public.h"
 #include "../qcommon/asyncstream.h"
+
 
 // Structure containing functions exported from user interface DLL
 static ui_export_t *uie;
@@ -116,7 +119,7 @@ static void CL_UIModule_AsyncStream_Shutdown( void )
 * CL_UIModule_R_RegisterWorldModel
 */
 static void CL_UIModule_R_RegisterWorldModel( const char *model ) {
-	re.RegisterWorldModel( model, NULL );
+	RF_RegisterWorldModel( model, NULL );
 }
 
 #define UI_L10N_DOMAIN	"ui"
@@ -179,6 +182,7 @@ void CL_UIModule_Init( void )
 	import.Error = CL_UIModule_Error;
 	import.Print = CL_UIModule_Print;
 	import.fsImport = &default_fs_imports_s;
+	import.refImport = RF_Forward_Mod();
 
 	import.Dynvar_Create = Dynvar_Create;
 	import.Dynvar_Destroy = Dynvar_Destroy;
@@ -226,35 +230,7 @@ void CL_UIModule_Init( void )
 	import.IN_ShowSoftKeyboard = IN_ShowSoftKeyboard;
 	import.IN_SupportedDevices = IN_SupportedDevices;
 
-	import.R_ClearScene = re.ClearScene;
-	import.R_AddEntityToScene = re.AddEntityToScene;
-	import.R_AddLightToScene = re.AddLightToScene;
-	import.R_AddPolyToScene = re.AddPolyToScene;
-	import.R_RenderScene = re.RenderScene;
-	import.R_EndFrame = re.EndFrame;
 	import.R_RegisterWorldModel = CL_UIModule_R_RegisterWorldModel;
-	import.R_ModelBounds = re.ModelBounds;
-	import.R_ModelFrameBounds = re.ModelFrameBounds;
-	import.R_RegisterModel = re.RegisterModel;
-	import.R_RegisterPic = re.RegisterPic;
-	import.R_RegisterRawPic = re.RegisterRawPic;
-	import.R_RegisterLevelshot = re.RegisterLevelshot;
-	import.R_RegisterSkin = re.RegisterSkin;
-	import.R_RegisterSkinFile = re.RegisterSkinFile;
-	import.R_RegisterVideo = re.RegisterVideo;
-	import.R_LerpTag = re.LerpTag;
-	import.R_DrawStretchPic = re.DrawStretchPic;
-	import.R_DrawRotatedStretchPic = re.DrawRotatedStretchPic;
-	import.R_DrawStretchPoly = re.DrawStretchPoly;
-	import.R_TransformVectorToScreen = re.TransformVectorToScreen;
-	import.R_Scissor = re.Scissor;
-	import.R_GetScissor = re.GetScissor;
-	import.R_ResetScissor = re.ResetScissor;
-	import.R_GetShaderDimensions = re.GetShaderDimensions;
-	import.R_SkeletalGetNumBones = re.SkeletalGetNumBones;
-	import.R_SkeletalGetBoneInfo = re.SkeletalGetBoneInfo;
-	import.R_SkeletalGetBonePose = re.SkeletalGetBonePose;
-	import.R_GetShaderCinematic = re.GetShaderCinematic;
 
 	import.S_RegisterSound = CL_SoundModule_RegisterSound;
 	import.S_StartLocalSound = CL_SoundModule_StartLocalSound;

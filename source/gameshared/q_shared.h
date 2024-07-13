@@ -301,7 +301,15 @@ void Info_CleanValue( const char *in, char *out, size_t outsize );
 
 float Q_GainForAttenuation( int model, float maxdistance, float refdistance, float dist, float attenuation );
 
-//=============================================
+extern const char* extensionTGA;
+extern const char* extensionJPG;
+extern const char* extensionPNG;
+extern const char* extensionWAL;
+extern const char* extensionKTX;
+extern const char* extensionWAV;
+extern const char* extensionPCX;
+extern const char* extensionOGG;
+
 
 extern const char *SOUND_EXTENSIONS[];
 extern const size_t NUM_SOUND_EXTENSIONS;

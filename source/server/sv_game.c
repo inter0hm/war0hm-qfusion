@@ -322,7 +322,14 @@ static void SV_AddPureShader( const char *name )
 
 	if( !COM_FileExtension( tempname ) )
 	{
-		extension = FS_FirstExtension( tempname, IMAGE_EXTENSIONS, NUM_IMAGE_EXTENSIONS );
+		const char *extensions[] = {
+			extensionTGA,
+			extensionJPG,
+			extensionPNG,
+			extensionWAL,
+			extensionPCX, 
+		};
+		extension = FS_FirstExtension( tempname, extensions, Q_ARRAY_COUNT(extensions));
 		if( !extension )
 			return;
 

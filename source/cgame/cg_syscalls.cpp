@@ -20,6 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../gameshared/q_arch.h"
 #define STEAM_DEFINE_INTERFACE_IMPL 
 #include "../steamshim/src/mod_steam.h"
+#define REF_DEFINE_INTERFACE_IMPL 1
+#include "../ref_base/ref_mod.h"
+
 
 #include "cg_local.h"
 
@@ -35,6 +38,8 @@ extern "C" QF_DLL_EXPORT cgame_export_t *GetCGameAPI( cgame_import_t *import )
 {
 	static cgame_export_t globals;
 
+
+	Q_ImportRefModule(&import->ref_import);
 	CGAME_IMPORT = *import;
 	Q_ImportSteamModule( &import->steam_import );
 

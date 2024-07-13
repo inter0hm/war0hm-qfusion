@@ -66,8 +66,6 @@ typedef struct glsl_program_s
 					ViewOrigin,
 					ViewAxis,
 
-					MirrorSide,
-
 					Viewport,
 
 					LightDir,
@@ -2131,8 +2129,6 @@ void RP_UpdateViewUniforms( int elem,
 		qglUniform4ivARB( program->loc.Viewport, 1, viewport );
 	}
 
-	if( program->loc.MirrorSide >= 0 )
-		qglUniform1fARB( program->loc.MirrorSide, mirrorSide );
 	if( program->loc.builtin.MirrorSide >= 0 )
 		qglUniform1fARB( program->loc.builtin.MirrorSide, mirrorSide );
 }
@@ -2517,8 +2513,6 @@ static void RP_GetUniformLocations( glsl_program_t *program )
 	program->loc.ViewOrigin = qglGetUniformLocationARB( program->object, "u_ViewOrigin" );
 	program->loc.ViewAxis = qglGetUniformLocationARB( program->object, "u_ViewAxis" );
 
-	program->loc.MirrorSide = qglGetUniformLocationARB( program->object, "u_MirrorSide" );
-
 	program->loc.Viewport = qglGetUniformLocationARB( program->object, "u_Viewport" );
 
 	program->loc.LightDir = qglGetUniformLocationARB( program->object, "u_LightDir" );
@@ -2734,11 +2728,9 @@ static void RP_BindAttrbibutesLocations( glsl_program_t *program )
 		qglBindAttribLocationARB( program->object, VATTRIB_INSTANCE_XYZS, "a_InstancePosAndScale" );
 	}
 
-#ifndef GL_ES_VERSION_2_0
 	if( glConfig.shadingLanguageVersion >= 130 ) {
 		qglBindFragDataLocation( program->object, 0, "qf_FragColor" );
 	}
-#endif
 }
 
 /*

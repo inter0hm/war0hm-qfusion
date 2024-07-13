@@ -20,6 +20,8 @@ file(GLOB TV_SERVER_SOURCES
 	"../qcommon/autoupdate.c"
     "../qcommon/cm_main.c"
     "../qcommon/cm_q3bsp.c"
+    "../qcommon/cm_q1bsp.c"
+    "../qcommon/cm_q2bsp.c"
     "../qcommon/cm_trace.c"
 	"../qcommon/compression.c"
     "../qcommon/bsp.c"

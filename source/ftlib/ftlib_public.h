@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef _FTLIB_PUBLIC_H_
 #define _FTLIB_PUBLIC_H_
 
+#include "../ref_base/ref_mod.h"
+
 // ftlib_public.h - font provider subsystem
 
 #define	FTLIB_API_VERSION			11
@@ -87,6 +89,7 @@ typedef struct
 	void ( *Sys_UnloadLibrary )( void **lib );
 
 	// renderer
+	struct ref_import_s refImport;
 	struct shader_s *( *R_RegisterPic )( const char *name );
 	struct shader_s * ( *R_RegisterRawPic )( const char *name, int width, int height, uint8_t *data, int samples );
 	struct shader_s * ( *R_RegisterRawAlphaMask )( const char *name, int width, int height, uint8_t *data );
