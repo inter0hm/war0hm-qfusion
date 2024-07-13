@@ -238,7 +238,7 @@ static void CG_CallbackRequestAvatar(uint64_t steamid, uint8_t *avatar){
 	for (int i = 0; i < gs.maxclients; i++){
 		cg_clientInfo_t *ci = &cgs.clientInfo[i];
 		if (ci->steamid == steamid){
-			ci->avatar = trap_R_RegisterRawPic(va("avatar-%llu", ci->steamid), 32, 32, avatar, 4);
+			ci->avatar = R_RegisterRawPic(va("avatar-%llu", ci->steamid), 32, 32, avatar, 4);
 			return;
 		}
 	}
@@ -254,7 +254,7 @@ static void CG_RPC_cb_requestAvatar( void *self, struct steam_rpc_pkt_s *rec )
 	for( int i = 0; i < gs.maxclients; i++ ) {
 		cg_clientInfo_t *ci = &cgs.clientInfo[i];
 		if( ci == target ) {
-			ci->avatar = trap_R_RegisterRawPic( va( "avatar-%llu", ci->steamid ), rec->avatar_recv.width, rec->avatar_recv.height, rec->avatar_recv.buf, 4 );
+			ci->avatar = R_RegisterRawPic( va( "avatar-%llu", ci->steamid ), rec->avatar_recv.width, rec->avatar_recv.height, rec->avatar_recv.buf, 4 );
 			return;
 		}
 	}
