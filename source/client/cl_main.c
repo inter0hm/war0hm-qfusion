@@ -2748,7 +2748,9 @@ void CL_Frame( int realmsec, int gamemsec )
 	CL_AdjustServerTime( gamemsec );
 	CL_UserInputFrame();
 	CL_NetFrame( realmsec, gamemsec );
-	STEAMSHIM_dispatch();
+	if (STEAMSHIM_active()) {
+		STEAMSHIM_dispatch();
+	}
 	CL_MM_Frame();
 	
 	if( cls.state == CA_CINEMATIC )
