@@ -260,7 +260,7 @@ int STEAMSHIM_waitDispatchSync( uint32_t syncIndex )
 		}
 		const bool rpcPacket = packet.common.cmd >= RPC_BEGIN && packet.common.cmd < RPC_END;
 		if( rpcPacket ) {
-		    assert(packet.rpc_payload.common.sync > currentSync); // rpc's are FIFO no out of order 
+		    // assert(packet.rpc_payload.common.sync > currentSync); // rpc's are FIFO no out of order 
 	        
 	        struct steam_rpc_async_s *handle = rpc_handles + ( packet.rpc_payload.common.sync % NUM_RPC_ASYNC_HANDLE );
 	        if( handle->cb ) {

@@ -473,6 +473,25 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 	cls.mv = false;
 }
 
+
+static void CB_P2P_Connect( void *self, struct steam_rpc_pkt_s *rec ){
+	printf("P2P Connect success: %d\n", rec->p2p_connect_recv.success);
+}
+
+static void CL_ConnectP2P_f() {
+	if (Cmd_Argc() < 2) {
+		Com_Printf("Usage: %s <steamid64>\n", Cmd_Argv(0));
+		return;
+	}
+
+	uint64_t steamid = atoll(Cmd_Argv(1));
+
+	struct p2p_connect_req_s req;
+	req.cmd = RPC_P2P_CONNECT;
+	req.steamID = steamid;
+	STEAMSHIM_sendRPC(&req, sizeof req, NULL, CB_P2P_Connect, NULL);
+}
+
 /*
 * CL_Connect_Cmd_f
 */
@@ -2306,6 +2325,7 @@ static void CL_InitLocal( void )
 	Cmd_AddCommand( "quit", CL_Quit_f );
 	Cmd_AddCommand( "inducegamecrashforrealz", CL_Crash_f );
 	Cmd_AddCommand( "connect", CL_Connect_f );
+	Cmd_AddCommand( "connectp2p", CL_ConnectP2P_f );
 #if defined(TCP_ALLOW_CONNECT) && defined(TCP_ALLOW_CONNECT_CLIENT)
 	Cmd_AddCommand( "tcpconnect", CL_TCPConnect_f );
 #endif

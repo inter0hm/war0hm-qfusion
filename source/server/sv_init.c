@@ -311,6 +311,11 @@ static void SV_SpawnServer( const char *server, bool devmap )
 	Com_Printf( "-------------------------------------\n" );
 }
 
+
+static void CL_RPC_cb_listenp2p( void *self, struct steam_rpc_pkt_s *rec ){
+	printf("listened succesful %llu\n", rec->p2p_listen_recv.steamID);
+}
+
 /*
 * SV_InitGame
 * A brand new game has been started
@@ -368,6 +373,12 @@ void SV_InitGame( void )
 		if( !NET_OpenSocket( &svs.socket_loopback, SOCKET_LOOPBACK, &address, true ) )
 			Com_Error( ERR_FATAL, "Couldn't open loopback socket: %s\n", NET_ErrorString() );
 	}
+
+
+	struct steam_rpc_shim_common_s listenreq;
+	listenreq.cmd = RPC_P2P_LISTEN;
+	uint32_t sync;
+	STEAMSHIM_sendRPC(&listenreq, sizeof listenreq, NULL, CL_RPC_cb_listenp2p, &sync);
 
 	if( dedicated->integer || sv_maxclients->integer > 1 )
 	{

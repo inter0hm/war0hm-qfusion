@@ -62,6 +62,8 @@ enum steam_cmd_s {
 	RPC_UPDATE_SERVERINFO_PRODUCT,
 	RPC_UPDATE_SERVERINFO_REGION,
 	RPC_UPDATE_SERVERINFO_SERVERNAME,
+	RPC_P2P_LISTEN,
+	RPC_P2P_CONNECT,
 
 	RPC_AUTHSESSION_TICKET,
 
@@ -155,6 +157,25 @@ STEAM_RPC_RECV( steam_result )
 	int result;
 };
 
+STEAM_RPC_REQ ( p2p_connect )
+{
+	STEAM_RPC_SHIM_COMMON()
+	uint64_t steamID;
+};
+
+STEAM_RPC_RECV( p2p_connect )
+{
+	STEAM_RPC_SHIM_COMMON()
+	bool success;
+};
+
+STEAM_RPC_RECV( p2p_listen )
+{
+	STEAM_RPC_SHIM_COMMON()
+	bool success;
+	uint64_t steamID;
+};
+
 struct steam_rpc_pkt_s {
 	union {
 		struct steam_rpc_shim_common_s common;
@@ -168,6 +189,11 @@ struct steam_rpc_pkt_s {
 		struct buffer_rpc_s rich_presence;
 
 		struct auth_session_ticket_recv_s auth_session;
+
+		struct p2p_connect_req_s p2p_connect;
+		struct p2p_connect_req_s p2p_listen;
+		struct p2p_connect_recv_s p2p_connect_recv;
+		struct p2p_listen_recv_s p2p_listen_recv;
 
 		struct buffer_rpc_s persona_name;
 

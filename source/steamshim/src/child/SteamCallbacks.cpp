@@ -20,6 +20,8 @@ freely, subject to the following restrictions:
 
 
 #include "steam/isteamfriends.h"
+#include "steam/isteamgameserver.h"
+#include "steam/isteamnetworkingsockets.h"
 #include "steam/isteamuser.h"
 #include "steam/steam_api.h"
 #include "steam/steam_gameserver.h"
@@ -29,16 +31,76 @@ freely, subject to the following restrictions:
 #include "../steamshim_private.h"
 #include "../steamshim.h"
 #include <cstdint>
+#include "steam/steamnetworkingtypes.h"
 #include "write_utils.h"
 
 
 SteamCallbacks::SteamCallbacks()
     : m_CallbackCreateBeacon( this, &SteamCallbacks::OnCreateBeacon ),
     m_CallbackPersonaStateChange( this, &SteamCallbacks::OnPersonaStateChange),
-    m_CallbackGameRichPresenceJoinRequested( this, &SteamCallbacks::OnGameJoinRequested)
+    m_CallbackGameRichPresenceJoinRequested( this, &SteamCallbacks::OnGameJoinRequested),
+    m_CallbackSteamNetConnectionStatusChanged( this, &SteamCallbacks::OnSteamNetConnectionStatusChanged),
+    m_CallbackSteamNetConnectionStatusChanged_SV( this, &SteamCallbacks::OnSteamNetConnectionStatusChanged_SV),
+    m_CallbackSteamServersConnectedSV( this, &SteamCallbacks::OnSteamServersConnected_SV),
+    m_CallbackPolicyResponse( this, &SteamCallbacks::OnPolicyResponse_SV)
 {
 }
 
+void SteamCallbacks::OnSteamServersConnected_SV(SteamServersConnected_t *pCallback)
+{
+    printf("SteamServersConnected_t\n");
+}
+
+void SteamCallbacks::OnPolicyResponse_SV(GSPolicyResponse_t *pCallback)
+{
+    printf("VAC enabled: %d\n", pCallback->m_bSecure);
+
+    uint64_t steamID = SteamGameServer()->GetSteamID().ConvertToUint64();
+
+    struct p2p_listen_recv_s recv;
+    prepared_rpc_packet( &GCurrent_p2p_listen_request.common, &recv );
+    recv.steamID = steamID;
+    recv.success = true;
+    write_packet( GPipeWrite, &recv, sizeof recv );
+}
+
+void SteamCallbacks::OnSteamNetConnectionStatusChanged(SteamNetConnectionStatusChangedCallback_t *pCallback)
+{
+    printf("SteamNetConnectionStatusChangedCallback_t\n");
+    printf("status: %llu\n", pCallback->m_info.m_eState);
+    if (pCallback->m_info.m_eState == k_ESteamNetworkingConnectionState_Connected) {
+
+		struct p2p_connect_recv_s recv;
+		prepared_rpc_packet( &GCurrent_p2p_connect_request.common, &recv );
+		recv.success = true;
+		write_packet( GPipeWrite, &recv, sizeof( steam_id_rpc_s ) );
+    }
+}
+
+void SteamCallbacks::OnSteamNetConnectionStatusChanged_SV(SteamNetConnectionStatusChangedCallback_t *pCallback)
+{
+    HSteamNetConnection conn = pCallback->m_hConn;
+    SteamNetConnectionInfo_t info = pCallback->m_info;
+
+    ESteamNetworkingConnectionState old = pCallback->m_eOldState;
+
+
+    if (info.m_hListenSocket && old == k_ESteamNetworkingConnectionState_None && info.m_eState == k_ESteamNetworkingConnectionState_Connecting)
+    {
+        printf("New connection\n");
+        EResult res = SteamGameServerNetworkingSockets()->AcceptConnection(pCallback->m_hConn);
+        if (res != k_EResultOK)
+        {
+            printf("Failed to accept connection\n");
+            SteamGameServerNetworkingSockets()->CloseConnection(conn, k_ESteamNetConnectionEnd_AppException_Generic, "Failed to accept connection", false);
+            return;
+        }
+        // for (int i = 0; i < 10; i++)
+        // SteamGameServerNetworkingSockets()->SendMessageToConnection(conn, "HELLO", 5, k_nSteamNetworkingSend_UnreliableNoDelay, nullptr);
+    }
+
+    printf("connection status: %llu\n", pCallback->m_info.m_eState);
+}
 
 void SteamCallbacks::OnCreateBeacon(UserStatsReceived_t *pCallback)
 {

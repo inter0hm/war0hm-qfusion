@@ -18,6 +18,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
+#include <arpa/inet.h>
 #include <cassert>
 #include <chrono>
 #include <cstddef>
@@ -32,14 +33,24 @@ freely, subject to the following restrictions:
 #include "ServerBrowser.h"
 #include "child_private.h"
 #include "steam/isteamfriends.h"
+#include "steam/isteamgameserver.h"
 #include "steam/isteammatchmaking.h"
+#include "steam/isteamnetworking.h"
+#include "steam/isteamnetworkingsockets.h"
+#include "steam/isteamnetworkingutils.h"
 #include "steam/isteamutils.h"
 #include "steam/steam_api.h"
+#include "steam/steam_api_common.h"
 #include "steam/steam_gameserver.h"
 #include "steam/steamclientpublic.h"
 
 #include "../packet_utils.h"
+#include "steam/steamnetworkingtypes.h"
 #include "write_utils.h"
+
+
+struct steam_rpc_pkt_s GCurrent_p2p_connect_request;
+struct steam_rpc_pkt_s GCurrent_p2p_listen_request;
 
 static bool GRunServer = false;
 static bool GRunClient = false;
@@ -60,8 +71,9 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 	switch( req->common.cmd ) {
 		case RPC_PUMP: {
 			time( &time_since_last_pump );
-			if( GRunServer )
+			if( GRunServer ) {
 				SteamGameServer_RunCallbacks();
+			}
 			if( GRunClient )
 				SteamAPI_RunCallbacks();
 			struct steam_rpc_shim_common_s recv;
@@ -188,6 +200,20 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			GSteamGameServer->EndAuthSession( (uint64)req->end_auth_session.id );
 			break;
 		}
+		case RPC_P2P_LISTEN: {
+			SteamGameServer()->LogOnAnonymous();
+			SteamGameServerNetworkingSockets()->CreateListenSocketP2P(0, 0, nullptr);
+			memcpy(&GCurrent_p2p_listen_request, req, sizeof(steam_rpc_pkt_s));
+			break;
+		}
+		case RPC_P2P_CONNECT: {
+			SteamNetworkingIdentity id;
+			CSteamID steamID = CSteamID((uint64)req->p2p_connect.steamID);
+			id.SetSteamID(steamID);
+			SteamNetworkingSockets()->ConnectP2P(id, 0, 0, nullptr);
+			memcpy(&GCurrent_p2p_connect_request, req, sizeof(steam_rpc_pkt_s));
+			break;
+		}
 		case RPC_REQUEST_STEAM_ID: {
 			struct steam_id_rpc_s recv;
 			prepared_rpc_packet( &req->common, &recv );
@@ -283,8 +309,15 @@ static void processCommands()
 	}
 }
 
+void SteamNetConnectionStatusChangedCallback(SteamNetConnectionStatusChangedCallback_t* pInfo) {
+	printf("SteamNetConnectionStatusChangedCallback_t\n");
+}
+
+HSteamNetConnection gconn = k_HSteamNetConnection_Invalid;
 static bool initSteamworks( PipeType fd )
 {
+	GSteamCallbacks = new SteamCallbacks();
+
 	if( GRunClient ) {
 		// this can fail for many reasons:
 		//  - you forgot a steam_appid.txt in the current working directory.
@@ -303,23 +336,34 @@ static bool initSteamworks( PipeType fd )
 		GServerBrowser = new ServerBrowser();
 
 		GServerBrowser->RefreshInternetServers();
+
+		SteamNetworkingUtils()->InitRelayNetworkAccess();
+		//
+		// SteamNetworkingIdentity id;
+		// id.SetSteamID(CSteamID((uint64)  90200374387181574));
+		//
+		// gconn = SteamNetworkingSockets()->ConnectP2P(id, 0, 0, nullptr);
+
 	}
 
 	if( GRunServer ) {
-		// this will fail if port is in use
-		if( !SteamGameServer_Init( 0, 27015, 27016, eServerModeAuthenticationAndSecure, "0.0.0.0" ) )
-			return 0;
+
+		// AFAIK you have to do a full server init if you want to use any of the steam utils, even though we never use this port
+		if( !SteamGameServer_Init( 0, 0, 0, eServerModeAuthenticationAndSecure, "1.0.0.0" ) )
+			printf("port in use, ignoring\n");
+
 		GSteamGameServer = SteamGameServer();
 		if( !GSteamGameServer )
 			return 0;
 
-		GSteamGameServer->LogOnAnonymous();
+		// GSLT can be used but seems to do nothing currently?
+		// SteamGameServer()->LogOnAnonymous();
+
+		GSteamGameServer->SetAdvertiseServerActive( true );
 	}
 
-	GSteamCallbacks = new SteamCallbacks();
 	return 1;
 }
-
 static void deinitSteamworks()
 {
 	if( GRunServer ) {
@@ -379,7 +423,17 @@ int main( int argc, char **argv )
 		writePipe( GPipeWrite, &failure, sizeof failure );
 		fail( "Failed to initialize Steamworks" );
 	}
-
+	// if (!gcansend) continue;
+	// 		SteamNetworkingMessage_t* msgs[32];
+	// 		int n = SteamNetworkingSockets()->ReceiveMessagesOnConnection(gconn, msgs, 32);
+	//
+	// 		for (int i = 0; i < n; i++) {
+	// 			uint32 size = msgs[i]->GetSize();
+	// 			printf("Received message %i\n", size);
+	// 			uint8* data = new uint8[size];
+	// 			memcpy(data, msgs[i]->GetData(), size);
+	//
+	// 			printf("Data: %s\n", data);
 	char success = 1;
 	writePipe( GPipeWrite, &success, sizeof success );
 
