@@ -225,6 +225,7 @@ typedef struct
 	socket_t socket_loopback;
 	socket_t socket_udp;
 	socket_t socket_udp6;
+	socket_t socket_sdr;
 #ifdef TCP_SUPPORT
 	socket_t socket_tcp;
 #endif

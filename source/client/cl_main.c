@@ -416,6 +416,17 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 		cls.socket = &cls.socket_loopback;
 		cls.reliable = false;
 		break;
+	case SOCKET_SDR:
+		cls.socket = &cls.socket_sdr;
+		cls.socket->address = *address;
+		cls.socket->type = SOCKET_SDR;
+		cls.socket->open = true;
+		cls.socket->remoteAddress = *address;
+		cls.socket->connected = true;
+		cls.socket->server = false;
+		cls.socket->handle = 0;
+		cls.reliable = false;
+		break;
 
 	case SOCKET_UDP:
 		cls.socket = ( address->type == NA_IP6 ?  &cls.socket_udp6 :  &cls.socket_udp );
@@ -476,6 +487,13 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 
 static void CB_P2P_Connect( void *self, struct steam_rpc_pkt_s *rec ){
 	printf("P2P Connect success: %d\n", rec->p2p_connect_recv.success);
+
+	netadr_t serveraddress;
+	NET_InitAddress( &serveraddress, NA_IP );
+
+
+	NET_SteamidToAddress( rec->p2p_connect_recv.steamID, &serveraddress );
+	CL_Connect( "p2p server test", SOCKET_SDR, &serveraddress, "");
 }
 
 static void CL_ConnectP2P_f() {
@@ -1439,6 +1457,7 @@ void CL_ReadPackets( void )
 	{
 		&cls.socket_loopback,
 		&cls.socket_udp,
+		&cls.socket_sdr,
 		&cls.socket_udp6,
 #ifdef TCP_ALLOW_CONNECT
 		&cls.socket_tcp

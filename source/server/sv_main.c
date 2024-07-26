@@ -178,6 +178,27 @@ static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg )
 	return true;
 }
 
+static struct {
+	uint32_t handle;
+	uint64_t steamid;
+} p2p_handles[64] = { 0 };
+
+static void SV_P2P_NewConnection( void *self, struct steam_evt_pkt_s *evt) {
+	struct p2p_new_connection_evt_s *p2p = &evt->p2p_new_connection;
+	Com_Printf( "New P2P connection from %llu, %d\n", p2p->steamID , p2p->handle);
+
+	// find a free slot
+	for( int i = 0; i < 64; i++ )
+	{
+		if( p2p_handles[i].handle == 0 )
+		{
+			p2p_handles[i].handle = p2p->handle;
+			p2p_handles[i].steamid = p2p->steamID;
+			break;
+		}
+	}
+}
+
 /*
 * SV_ReadPackets
 */
@@ -368,6 +389,53 @@ static void SV_ReadPackets( void )
 					SV_ParseClientMessage( cl, &msg );
 				}
 			}
+		}
+	}
+
+	// handle p2p messages
+	for (int i = 0; i < 64; i++) {
+		if (p2p_handles[i].handle == 0) {
+			continue;
+		}
+
+		struct recv_messages_req_s req;
+		req.cmd = RPC_P2P_RECV_MESSAGES;
+		req.handle = p2p_handles[i].handle;
+		struct recv_messages_recv_s *recv = (struct recv_messages_recv_s*)STEAMSHIM_sendRPCSync(&req, sizeof req);
+
+
+		NET_SteamidToAddress(p2p_handles[i].steamid, &address);
+		size_t offset = 0;
+
+
+		socket->address = address;
+		socket->type = SOCKET_SDR;
+		socket->handle = p2p_handles[i].handle;
+		socket->server = false;
+		socket->open = true;
+		socket->connected = true;
+
+		for (int j = 0; j < recv->count; j++) {
+			Com_Printf("Received message %d\n", recv->messageinfo[j].count);
+
+			msg_t msg;
+			MSG_Init(&msg, recv->buffer+offset, recv->messageinfo[j].count);
+			msg.cursize = recv->messageinfo[j].count;
+			MSG_BeginReading(&msg);
+
+			if( *(int *)msg.data == -1 )
+			{
+				SV_ConnectionlessPacket( socket, &address, &msg );
+				continue;
+			}
+
+				if( SV_ProcessPacket( &cl->netchan, &msg ) ) // this is a valid, sequenced packet, so process it
+				{
+					cl->lastPacketReceivedTime = svs.realtime;
+				}
+
+
+			offset += recv->messageinfo[j].count;
 		}
 	}
 }
@@ -1010,6 +1078,9 @@ void SV_Init( void )
 	} else {
 		Cvar_ForceSet( "sv_useSteamAuth", "0" );
 	}
+
+	// Register net callback
+	STEAMSHIM_subscribeEvent(EVT_P2P_NEW_CONNECTION, NULL, SV_P2P_NewConnection);
 
 	sv_initialized = true;
 }

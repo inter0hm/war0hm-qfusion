@@ -118,6 +118,11 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 			client->individual_socket = false;
 			client->socket.open = false;
 			break;
+		case SOCKET_SDR:
+				client->reliable = false;
+				client->individual_socket = true;
+				client->socket = *socket;
+				break;
 
 		default:
 			assert( false );
