@@ -215,6 +215,33 @@ bool STEAMSHIM_active() {
 	return ( ( GPipeRead != NULLPIPE ) && ( GPipeWrite != NULLPIPE ) );
 } 
 
+union { struct steam_rpc_pkt_s packet; char maxsize[999]; } sync_stored_packet;
+
+static void CB_RPCSyncHandler( void *self, struct steam_rpc_pkt_s *packet )
+{
+	memcpy( &sync_stored_packet, packet, sizeof( sync_stored_packet ) );
+}
+
+// do NOT call this inside the handler of an async RPC
+struct steam_rpc_pkt_s *STEAMSHIM_sendRPCSync(void *packet, uint32_t size)
+{
+	uint32_t syncIndex;
+	if( STEAMSHIM_sendRPC( packet, size, NULL, CB_RPCSyncHandler, &syncIndex ) < 0 ) {
+		return NULL;
+	}
+
+
+	while( 1 ) {
+		STEAMSHIM_dispatch();
+
+		if( sync_stored_packet.packet.common.sync == syncIndex ) {
+
+			if ( ((struct recv_messages_recv_s*)&sync_stored_packet.packet)->count > 0 )
+			return &sync_stored_packet.packet;
+		}
+	}
+}
+
 int STEAMSHIM_sendRPC( void *packet, uint32_t size, void *self, STEAMSHIM_rpc_handle rpc, uint32_t *sync )
 {
 	uint32_t syncIndex = ++SyncToken;
