@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2023 coolelectronics
+Copyright (C) 2023 velziee
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -62,8 +62,11 @@ enum steam_cmd_s {
 	RPC_UPDATE_SERVERINFO_PRODUCT,
 	RPC_UPDATE_SERVERINFO_REGION,
 	RPC_UPDATE_SERVERINFO_SERVERNAME,
+
 	RPC_P2P_LISTEN,
 	RPC_P2P_CONNECT,
+	RPC_P2P_SEND_MESSAGE,
+	RPC_P2P_RECV_MESSAGES,
 
 	RPC_AUTHSESSION_TICKET,
 
@@ -176,6 +179,32 @@ STEAM_RPC_RECV( p2p_listen )
 	uint64_t steamID;
 };
 
+STEAM_RPC_REQ ( send_message )
+{
+	STEAM_RPC_SHIM_COMMON()
+	int messageReliability;
+	uint32_t handle;
+	int count;
+	char buffer[];
+};
+
+STEAM_RPC_REQ ( recv_messages )
+{
+	STEAM_RPC_SHIM_COMMON()
+	uint32_t handle;
+};
+
+STEAM_RPC_RECV ( recv_messages )
+{
+	STEAM_RPC_SHIM_COMMON()
+	uint32_t handle; // -1 for the client->server handle
+	int count;
+	struct {
+		int count;
+	} messageinfo[32];
+	char buffer[];
+};
+
 struct steam_rpc_pkt_s {
 	union {
 		struct steam_rpc_shim_common_s common;
@@ -194,6 +223,10 @@ struct steam_rpc_pkt_s {
 		struct p2p_connect_req_s p2p_listen;
 		struct p2p_connect_recv_s p2p_connect_recv;
 		struct p2p_listen_recv_s p2p_listen_recv;
+
+		struct send_message_req_s send_message;
+		struct recv_messages_req_s recv_messages;
+		struct recv_messages_recv_s recv_messages_recv;
 
 		struct buffer_rpc_s persona_name;
 

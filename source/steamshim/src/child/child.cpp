@@ -52,6 +52,8 @@ freely, subject to the following restrictions:
 struct steam_rpc_pkt_s GCurrent_p2p_connect_request;
 struct steam_rpc_pkt_s GCurrent_p2p_listen_request;
 
+HSteamNetConnection GClientToServerConn = 0;
+
 static bool GRunServer = false;
 static bool GRunClient = false;
 
@@ -210,8 +212,53 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			SteamNetworkingIdentity id;
 			CSteamID steamID = CSteamID((uint64)req->p2p_connect.steamID);
 			id.SetSteamID(steamID);
-			SteamNetworkingSockets()->ConnectP2P(id, 0, 0, nullptr);
+			GClientToServerConn = SteamNetworkingSockets()->ConnectP2P(id, 0, 0, nullptr);
 			memcpy(&GCurrent_p2p_connect_request, req, sizeof(steam_rpc_pkt_s));
+			break;
+		}
+		case RPC_P2P_SEND_MESSAGE: {
+			if (req->send_message.handle == 0) {
+				// 0 is the c2s connection, and we must be on the client
+				SteamNetworkingSockets()->SendMessageToConnection(GClientToServerConn, req->send_message.buffer, req->send_message.count, req->send_message.messageReliability, nullptr);
+				break;
+			}
+
+			// .. otherwise we must be on the server, sending to a client
+			SteamGameServerNetworkingSockets()->SendMessageToConnection(req->send_message.handle, req->send_message.buffer, req->send_message.count, req->send_message.messageReliability, nullptr);
+			break;
+		}
+		case RPC_P2P_RECV_MESSAGES: {
+			SteamNetworkingMessage_t* msgs[32];
+			int n;
+
+			if (req->send_message.handle == 0) {
+				n = SteamNetworkingSockets()->ReceiveMessagesOnConnection(GClientToServerConn, msgs, 32);
+				if (n > 1) {
+					printf("Received %i messages\n", n);
+				}
+			} else {
+				n = SteamGameServerNetworkingSockets()->ReceiveMessagesOnConnection(req->send_message.handle, msgs, 32);
+			}
+
+			size_t total = 0;
+			for (int i = 0; i < n; i++) {
+				total += msgs[i]->GetSize();
+			}
+
+			auto recv = (struct recv_messages_recv_s *)malloc(sizeof(struct recv_messages_recv_s) + total);
+			recv->handle = req->send_message.handle;
+			recv->count = n;
+
+			size_t offset = 0;
+
+			for (int i = 0; i < n; i++) {
+				recv->messageinfo[i].count = msgs[i]->GetSize();
+				memcpy(recv->buffer + offset, msgs[i]->GetData(), msgs[i]->GetSize());
+				offset += msgs[i]->GetSize();
+			}
+
+			prepared_rpc_packet(&req->common, recv);
+			write_packet(GPipeWrite, recv, sizeof(struct recv_messages_recv_s) + total);
 			break;
 		}
 		case RPC_REQUEST_STEAM_ID: {
