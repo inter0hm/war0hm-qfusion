@@ -74,6 +74,8 @@ enum steam_cmd_s {
 	EVT_BEGIN = RPC_END,
 	EVT_PERSONA_CHANGED = EVT_BEGIN,
 	EVT_GAME_JOIN,
+	EVT_P2P_NEW_CONNECTION,
+	EVT_P2P_LOST_CONNECTION,
 	EVT_END,
 	CMD_LEN
 };
@@ -170,6 +172,7 @@ STEAM_RPC_RECV( p2p_connect )
 {
 	STEAM_RPC_SHIM_COMMON()
 	bool success;
+	uint64_t steamID;
 };
 
 STEAM_RPC_RECV( p2p_listen )
@@ -197,6 +200,7 @@ STEAM_RPC_REQ ( recv_messages )
 STEAM_RPC_RECV ( recv_messages )
 {
 	STEAM_RPC_SHIM_COMMON()
+	uint64_t steamID;
 	uint32_t handle; // -1 for the client->server handle
 	int count;
 	struct {
@@ -259,11 +263,25 @@ STEAM_EVT(join_request) {
 	char rgchConnect[256];
 };
 
+STEAM_EVT(p2p_new_connection) {
+	STEAM_SHIM_COMMON()
+	uint64_t steamID;
+	uint32_t handle;
+};
+
+STEAM_EVT(p2p_lost_connection) {
+	STEAM_SHIM_COMMON()
+	uint64_t steamID;
+	uint32_t handle;
+};
+
 struct steam_evt_pkt_s {
 	union {
 		struct steam_shim_common_s common;
 		struct join_request_evt_s join_request;
 		struct persona_changes_evt_s persona_changed;
+		struct p2p_new_connection_evt_s p2p_new_connection;
+		struct p2p_lost_connection_evt_s p2p_lost_connection;
 	};
 };
 

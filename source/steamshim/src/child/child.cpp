@@ -231,13 +231,23 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			SteamNetworkingMessage_t* msgs[32];
 			int n;
 
-			if (req->send_message.handle == 0) {
-				n = SteamNetworkingSockets()->ReceiveMessagesOnConnection(GClientToServerConn, msgs, 32);
-				if (n > 1) {
+			uint64_t steamid;
+			if (req->recv_messages.handle == 0) {
+				SteamNetConnectionInfo_t info;
+				SteamNetworkingSockets()->GetConnectionInfo(GClientToServerConn, &info);
+				steamid = info.m_identityRemote.GetSteamID().ConvertToUint64();
+
+				n = SteamNetworkingSockets()->ReceiveMessagesOnConnection(GClientToServerConn, msgs, 1);
+				if (n > 1)
 					printf("Received %i messages\n", n);
-				}
 			} else {
-				n = SteamGameServerNetworkingSockets()->ReceiveMessagesOnConnection(req->send_message.handle, msgs, 32);
+				SteamNetConnectionInfo_t info;
+				SteamGameServerNetworkingSockets()->GetConnectionInfo(req->recv_messages.handle, &info);
+				steamid = info.m_identityRemote.GetSteamID().ConvertToUint64();
+
+				n = SteamGameServerNetworkingSockets()->ReceiveMessagesOnConnection(req->recv_messages.handle, msgs, 1);
+				if (n > 1)
+				printf("Received %i messages\n", n);
 			}
 
 			size_t total = 0;
@@ -246,7 +256,8 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			}
 
 			auto recv = (struct recv_messages_recv_s *)malloc(sizeof(struct recv_messages_recv_s) + total);
-			recv->handle = req->send_message.handle;
+			recv->steamID = steamid;
+			recv->handle = req->recv_messages.handle;
 			recv->count = n;
 
 			size_t offset = 0;
@@ -256,6 +267,7 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 				memcpy(recv->buffer + offset, msgs[i]->GetData(), msgs[i]->GetSize());
 				offset += msgs[i]->GetSize();
 			}
+
 
 			prepared_rpc_packet(&req->common, recv);
 			write_packet(GPipeWrite, recv, sizeof(struct recv_messages_recv_s) + total);

@@ -162,11 +162,19 @@ bool STEAMSHIM_active() {
 	return ( ( GPipeRead != NULLPIPE ) && ( GPipeWrite != NULLPIPE ) );
 } 
 
-union { struct steam_rpc_pkt_s packet; char maxsize[999]; } sync_stored_packet;
+union { struct steam_rpc_pkt_s packet; char maxsize[60000]; } sync_stored_packet;
 
 static void CB_RPCSyncHandler( void *self, struct steam_rpc_pkt_s *packet )
 {
-	memcpy( &sync_stored_packet, packet, sizeof( sync_stored_packet ) );
+	size_t size = sizeof( steam_rpc_pkt_s );
+
+	if (packet->common.cmd == RPC_P2P_RECV_MESSAGES) {
+		for (size_t i = 0; i < packet->recv_messages_recv.count; i++) {
+			size += packet->recv_messages_recv.messageinfo[i].count;
+		}
+	}
+
+	memcpy( &sync_stored_packet, packet, size );
 }
 
 // do NOT call this inside the handler of an async RPC
@@ -182,8 +190,6 @@ struct steam_rpc_pkt_s *STEAMSHIM_sendRPCSync(void *packet, uint32_t size)
 		STEAMSHIM_dispatch();
 
 		if( sync_stored_packet.packet.common.sync == syncIndex ) {
-
-			if ( ((struct recv_messages_recv_s*)&sync_stored_packet.packet)->count > 0 )
 			return &sync_stored_packet.packet;
 		}
 	}
@@ -242,7 +248,7 @@ int STEAMSHIM_waitDispatchSync( uint32_t syncIndex )
 	        }
 		    currentSync = packet.rpc_payload.common.sync;
 		} else if( packet.common.cmd >= EVT_BEGIN && packet.common.cmd < EVT_END ) {
-			struct event_subscriber_s *handle = evt_handles + ( EVT_BEGIN - packet.common.cmd );
+			struct event_subscriber_s *handle = evt_handles + ( packet.common.cmd - EVT_BEGIN );
 			for(size_t i = 0; i < handle->numSubscribers; i++) {
 			    handle->handles[i].cb(handle->handles[i].self, &packet.evt_payload);
 			}

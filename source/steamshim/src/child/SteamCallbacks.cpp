@@ -73,6 +73,7 @@ void SteamCallbacks::OnSteamNetConnectionStatusChanged(SteamNetConnectionStatusC
 		struct p2p_connect_recv_s recv;
 		prepared_rpc_packet( &GCurrent_p2p_connect_request.common, &recv );
 		recv.success = true;
+		recv.steamID = pCallback->m_info.m_identityRemote.GetSteamID64();
 		write_packet( GPipeWrite, &recv, sizeof( steam_id_rpc_s ) );
     }
 }
@@ -88,6 +89,7 @@ void SteamCallbacks::OnSteamNetConnectionStatusChanged_SV(SteamNetConnectionStat
     if (info.m_hListenSocket && old == k_ESteamNetworkingConnectionState_None && info.m_eState == k_ESteamNetworkingConnectionState_Connecting)
     {
         printf("New connection\n");
+        printf("id: %llu\n", info.m_identityRemote.GetSteamID64());
         EResult res = SteamGameServerNetworkingSockets()->AcceptConnection(pCallback->m_hConn);
         if (res != k_EResultOK)
         {
@@ -95,8 +97,12 @@ void SteamCallbacks::OnSteamNetConnectionStatusChanged_SV(SteamNetConnectionStat
             SteamGameServerNetworkingSockets()->CloseConnection(conn, k_ESteamNetConnectionEnd_AppException_Generic, "Failed to accept connection", false);
             return;
         }
-        // for (int i = 0; i < 10; i++)
-        // SteamGameServerNetworkingSockets()->SendMessageToConnection(conn, "HELLO", 5, k_nSteamNetworkingSend_UnreliableNoDelay, nullptr);
+
+        struct p2p_new_connection_evt_s evt;
+        evt.cmd = EVT_P2P_NEW_CONNECTION;
+        evt.steamID = info.m_identityRemote.GetSteamID64();
+        evt.handle = conn;
+        write_packet(GPipeWrite, &evt, sizeof(struct p2p_new_connection_evt_s));
     }
 
     printf("connection status: %llu\n", pCallback->m_info.m_eState);
