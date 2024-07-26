@@ -21,7 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon.h"
 
 #include "sys_net.h"
-
+#include "../steamshim/src/parent/parent.h"
+#include "../steamshim/src/mod_steam.h"
 #ifdef _WIN32
 #include "../win32/winquake.h"
 #else
@@ -1000,6 +1001,28 @@ int NET_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message )
 	case SOCKET_UDP:
 		return NET_UDP_GetPacket( socket, address, message );
 
+	case SOCKET_SDR:
+		struct recv_messages_req_s req;
+		req.cmd = RPC_P2P_RECV_MESSAGES;
+		req.handle = socket->handle;
+		struct recv_messages_recv_s *recv = (struct recv_messages_recv_s*)STEAMSHIM_sendRPCSync(&req, sizeof req);
+		if (recv->count == 0)
+			return 0;
+
+		uint8_t *data = (uint8_t*)malloc(recv->messageinfo[0].count);
+
+		message->readcount = 0;
+		message->maxsize = recv->messageinfo[0].count;
+		message->compressed = 0;
+		message->cursize = recv->messageinfo[0].count;
+		memcpy(data, recv->buffer, recv->messageinfo[0].count);
+		message->data = data;
+
+
+		NET_SteamidToAddress(recv->steamID, address);
+
+		return 1;
+
 #ifdef TCP_SUPPORT
 	case SOCKET_TCP:
 		return NET_TCP_GetPacket( socket, address, message );
@@ -1065,6 +1088,18 @@ bool NET_SendPacket( const socket_t *socket, const void *data, size_t length, co
 
 	case SOCKET_UDP:
 		return NET_UDP_SendPacket( socket, data, length, address );
+	case SOCKET_SDR:
+		struct send_message_req_s *req = (struct send_message_req_s*)malloc(sizeof(struct send_message_req_s) + length);
+		req->cmd = RPC_P2P_SEND_MESSAGE;
+		req->messageReliability = 8; // reliable tcp
+		req->count = length;
+		req->handle = socket->handle;
+		memcpy(req->buffer, data, length);
+
+		STEAMSHIM_sendRPC(req, sizeof (struct send_message_req_s) + length, NULL, NULL, NULL);
+
+		return 1;
+
 
 #ifdef TCP_SUPPORT
 	case SOCKET_TCP:
@@ -1156,6 +1191,7 @@ char *NET_AddressToString( const netadr_t *a )
 */
 bool NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b )
 {
+	return true;
 	if( a->type != b->type )
 		return false;
 
@@ -1423,6 +1459,23 @@ static bool StringToSockaddress( const char *s, struct sockaddr_storage *sadr )
 	}
 
 	return false;
+}
+
+
+// Create a (hopefully) unique address 
+bool NET_SteamidToAddress(uint64_t steamid, netadr_t *address) {
+
+	// only the lower 32 bits are significant
+	uint32_t accountid = steamid & 0xFFFFFFFF;
+
+	address->type = NA_IP;
+	address->address.ipv4.ip[0] = accountid & 0xFF;
+	address->address.ipv4.ip[1] = (accountid >> 8) & 0xFF;
+	address->address.ipv4.ip[2] = (accountid >> 16) & 0xFF;
+	address->address.ipv4.ip[3] = (accountid >> 24) & 0xFF;
+	address->address.ipv4.port = 44400;
+
+	return true;
 }
 
 /*
@@ -1756,6 +1809,9 @@ void NET_CloseSocket( socket_t *socket )
 	case SOCKET_UDP:
 		NET_UDP_CloseSocket( socket );
 		break;
+	case SOCKET_SDR:
+		// can't currently close it.. just ignore
+		break;
 
 #ifdef TCP_SUPPORT
 	case SOCKET_TCP:
@@ -1819,6 +1875,8 @@ void NET_Sleep( int msec, socket_t *sockets[] )
 #endif
 			assert( sockets[i]->handle > 0 );
 			FD_SET( (unsigned)sockets[i]->handle, &fdset ); // network socket
+			break;
+		case SOCKET_SDR:
 			break;
 
 		default:
