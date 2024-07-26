@@ -69,59 +69,6 @@ int STEAMSHIM_dispatch()
 	return STEAMSHIM_waitDispatchSync( syncIndex );
 }
 
-//static SteamshimEvent *ProcessEvent()
-//{
-//	static SteamshimEvent event;
-//	// make sure this is static, since it needs to persist between pumps
-//	static PipeBuffer buf;
-//
-//	if( !buf.Recieve() )
-//		return NULL;
-//
-//	if( !buf.hasmsg )
-//		return NULL;
-//
-//	volatile unsigned int msglen = buf.ReadInt();
-//
-//	char type = buf.ReadByte();
-//	event.type = (SteamshimEventType)type;
-//
-//	switch( type ) {
-//		case EVT_CL_STEAMIDRECIEVED: {
-//			event.cl_steamidrecieved = buf.ReadLong();
-//		} break;
-//		case EVT_CL_PERSONANAMERECIEVED: {
-//			char *string = buf.ReadString();
-//			event.cl_personanamerecieved = string;
-//		} break;
-//		case EVT_CL_AUTHSESSIONTICKETRECIEVED: {
-//			long long pcbTicket = buf.ReadLong();
-//			event.cl_authsessionticketrecieved.pcbTicket = pcbTicket;
-//			void *ticket = buf.ReadData( AUTH_TICKET_MAXSIZE );
-//			memcpy( event.cl_authsessionticketrecieved.pTicket, ticket, AUTH_TICKET_MAXSIZE );
-//		} break;
-//		case EVT_SV_AUTHSESSIONVALIDATED: {
-//			int result = buf.ReadInt();
-//			event.sv_authsessionvalidated = result;
-//		} break;
-//		case EVT_CL_AVATARRECIEVED: {
-//			event.cl_avatarrecieved.steamid = buf.ReadLong();
-//			event.cl_avatarrecieved.avatar = (uint8_t *)buf.ReadData( STEAM_AVATAR_SIZE );
-//		} break;
-//		case EVT_CL_GAMEJOINREQUESTED: {
-//			event.cl_gamejoinrequested.steamIDFriend = buf.ReadLong();
-//			char *string = (char *)buf.ReadString();
-//			event.cl_gamejoinrequested.connectString = string;
-//		} break;
-//		case EVT_CL_COMMANDLINERECIEVED: {
-//			char *string = (char *)buf.ReadString();
-//			event.cl_commandlinerecieved = string;
-//		} break;
-//	}
-//
-//	return &event;
-//}
-
 static bool setEnvironmentVars( PipeType pipeChildRead, PipeType pipeChildWrite )
 {
 	char buf[64];
@@ -320,7 +267,7 @@ void STEAMSHIM_subscribeEvent( uint32_t id, void *self, STEAMSHIM_evt_handle evt
 {
     assert(evt);
 	assert( id >= EVT_BEGIN && id < EVT_END );
-	struct event_subscriber_s *handle = evt_handles + ( EVT_BEGIN - id );
+	struct event_subscriber_s *handle = evt_handles + ( id - EVT_BEGIN );
 	assert( handle->numSubscribers < NUM_EVT_HANDLE );
 	size_t subIndex = handle->numSubscribers++;
 	handle->handles[subIndex].self = self;
