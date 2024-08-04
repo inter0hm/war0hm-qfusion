@@ -404,6 +404,20 @@ static int NET_UDP_GetPacket( const socket_t *socket, netadr_t *address, msg_t *
 	return 1;
 }
 
+static bool NET_SDR_SendPacket( const socket_t *socket, const void *data, size_t length, const netadr_t *address ) {
+	struct send_message_req_s *req = (struct send_message_req_s*)malloc(sizeof(struct send_message_req_s) + length);
+	req->cmd = RPC_P2P_SEND_MESSAGE;
+	req->messageReliability = 8; // reliable tcp
+	req->count = length;
+	req->handle = socket->handle;
+	memcpy(req->buffer, data, length);
+
+	STEAMSHIM_sendRPC(req, sizeof (struct send_message_req_s) + length, NULL, NULL, NULL);
+	free(req);
+
+	return 1;
+}
+
 /*
 * NET_UDP_SendPacket
 */
@@ -1091,18 +1105,7 @@ bool NET_SendPacket( const socket_t *socket, const void *data, size_t length, co
 	case SOCKET_UDP:
 		return NET_UDP_SendPacket( socket, data, length, address );
 	case SOCKET_SDR:
-		struct send_message_req_s *req = (struct send_message_req_s*)malloc(sizeof(struct send_message_req_s) + length);
-		req->cmd = RPC_P2P_SEND_MESSAGE;
-		req->messageReliability = 8; // reliable tcp
-		req->count = length;
-		req->handle = socket->handle;
-		memcpy(req->buffer, data, length);
-
-		STEAMSHIM_sendRPC(req, sizeof (struct send_message_req_s) + length, NULL, NULL, NULL);
-
-		return 1;
-
-
+		return NET_SDR_SendPacket( socket, data, length, address );
 #ifdef TCP_SUPPORT
 	case SOCKET_TCP:
 		return NET_TCP_SendPacket( socket, data, length );
@@ -1193,7 +1196,6 @@ char *NET_AddressToString( const netadr_t *a )
 */
 bool NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b )
 {
-	return true;
 	if( a->type != b->type )
 		return false;
 
