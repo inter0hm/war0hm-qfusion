@@ -392,7 +392,7 @@ static void SV_ReadPackets( void )
 		}
 	}
 
-	// handle p2p messages
+	// handle p2p messages that haven't been assigned to a client yet
 	for (int i = 0; i < 64; i++) {
 		if (p2p_handles[i].handle == 0) {
 			continue;
@@ -428,16 +428,11 @@ static void SV_ReadPackets( void )
 				SV_ConnectionlessPacket( socket, &address, &msg );
 				continue;
 			}
-
-				if( SV_ProcessPacket( &cl->netchan, &msg ) ) // this is a valid, sequenced packet, so process it
-				{
-					cl->lastPacketReceivedTime = svs.realtime;
-				}
-
-
+			
 			offset += recv->messageinfo[j].count;
 		}
 	}
+
 }
 
 /*
