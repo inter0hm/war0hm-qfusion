@@ -338,6 +338,27 @@ static bool NET_SocketMakeNonBlocking( socket_handle_t handle )
 	return true;
 }
 
+static int NET_SDR_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message ) {
+	struct recv_messages_req_s req;
+	req.cmd = RPC_P2P_RECV_MESSAGES;
+	req.handle = socket->handle;
+	struct recv_messages_recv_s *recv = (struct recv_messages_recv_s*)STEAMSHIM_sendRPCSync(&req, sizeof req);
+	if (recv->count == 0)
+		return 0;
+
+	message->readcount = 0;
+
+	int size = recv->messageinfo[0].count;
+	if (size > message->maxsize)
+		size = message->maxsize;
+	message->cursize = size;
+
+	memcpy(message->data, recv->buffer, size);
+	NET_SteamidToAddress(recv->steamID, address);
+
+	return 1;
+}
+
 /*
 * NET_UDP_GetPacket
 */
@@ -1002,26 +1023,7 @@ int NET_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message )
 		return NET_UDP_GetPacket( socket, address, message );
 
 	case SOCKET_SDR:
-		struct recv_messages_req_s req;
-		req.cmd = RPC_P2P_RECV_MESSAGES;
-		req.handle = socket->handle;
-		struct recv_messages_recv_s *recv = (struct recv_messages_recv_s*)STEAMSHIM_sendRPCSync(&req, sizeof req);
-		if (recv->count == 0)
-			return 0;
-
-		uint8_t *data = (uint8_t*)malloc(recv->messageinfo[0].count);
-
-		message->readcount = 0;
-		message->maxsize = recv->messageinfo[0].count;
-		message->compressed = 0;
-		message->cursize = recv->messageinfo[0].count;
-		memcpy(data, recv->buffer, recv->messageinfo[0].count);
-		message->data = data;
-
-
-		NET_SteamidToAddress(recv->steamID, address);
-
-		return 1;
+		return NET_SDR_GetPacket( socket, address, message );
 
 #ifdef TCP_SUPPORT
 	case SOCKET_TCP:
