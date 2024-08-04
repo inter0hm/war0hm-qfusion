@@ -203,9 +203,19 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			break;
 		}
 		case RPC_P2P_LISTEN: {
-			SteamGameServer()->LogOnAnonymous();
-			SteamGameServerNetworkingSockets()->CreateListenSocketP2P(0, 0, nullptr);
-			memcpy(&GCurrent_p2p_listen_request, req, sizeof(steam_rpc_pkt_s));
+			ISteamGameServer *gameServer = SteamGameServer();
+			ISteamNetworkingSockets *networkSocket = SteamGameServerNetworkingSockets();
+			if( gameServer && networkSocket ) {
+				gameServer->LogOnAnonymous();
+				networkSocket->CreateListenSocketP2P( 0, 0, nullptr );
+				memcpy( &GCurrent_p2p_listen_request, req, sizeof( steam_rpc_pkt_s ) );
+			} else {
+				struct p2p_listen_recv_s recv;
+				prepared_rpc_packet( &req->common, &recv );
+				recv.success = false;
+				recv.steamID = 0;
+				write_packet( GPipeWrite, &recv, sizeof( p2p_listen_recv_s ) );
+			}
 			break;
 		}
 		case RPC_P2P_CONNECT: {
