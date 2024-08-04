@@ -162,13 +162,17 @@ bool STEAMSHIM_active() {
 	return ( ( GPipeRead != NULLPIPE ) && ( GPipeWrite != NULLPIPE ) );
 } 
 
-union { struct steam_rpc_pkt_s packet; char maxsize[60000]; } sync_stored_packet;
+union { 
+	struct steam_rpc_pkt_s packet;
+	char maxsize[sizeof(struct steam_rpc_pkt_s) + SDR_MAX_MESSAGE_SIZE];
+} sync_stored_packet;
 
 static void CB_RPCSyncHandler( void *self, struct steam_rpc_pkt_s *packet )
 {
 	size_t size = sizeof( steam_rpc_pkt_s );
 
-	if (packet->common.cmd == RPC_P2P_RECV_MESSAGES) {
+	// this is a flexible-sized message
+	if (packet->common.cmd == RPC_P2P_RECV_MESSAGES && packet->recv_messages_recv.count > 0) {
 		for (size_t i = 0; i < packet->recv_messages_recv.count; i++) {
 			size += packet->recv_messages_recv.messageinfo[i].count;
 		}

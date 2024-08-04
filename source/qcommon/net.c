@@ -339,6 +339,7 @@ static bool NET_SocketMakeNonBlocking( socket_handle_t handle )
 }
 
 static int NET_SDR_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message ) {
+	assert(socket&&socket->open&&socket->type==SOCKET_SDR);
 	struct recv_messages_req_s req;
 	req.cmd = RPC_P2P_RECV_MESSAGES;
 	req.handle = socket->handle;
@@ -540,6 +541,18 @@ static void NET_UDP_CloseSocket( socket_t *socket )
 	Sys_NET_SocketClose( socket->handle );
 	socket->handle = 0;
 	socket->open = false;
+}
+
+static void NET_SDR_CloseSocket( socket_t *socket ) {
+	if( !socket->open )
+		return;
+
+	struct p2p_disconnect_req_s req;
+	req.cmd = RPC_P2P_DISCONNECT;
+	req.handle = socket->handle;
+	STEAMSHIM_sendRPC(&req, sizeof req, NULL, NULL, NULL);
+	socket->open = false;
+	socket->handle = 0;
 }
 
 //=============================================================================
@@ -1814,7 +1827,7 @@ void NET_CloseSocket( socket_t *socket )
 		NET_UDP_CloseSocket( socket );
 		break;
 	case SOCKET_SDR:
-		// can't currently close it.. just ignore
+		NET_SDR_CloseSocket( socket );
 		break;
 
 #ifdef TCP_SUPPORT

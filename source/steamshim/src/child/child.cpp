@@ -53,6 +53,7 @@ struct steam_rpc_pkt_s GCurrent_p2p_connect_request;
 struct steam_rpc_pkt_s GCurrent_p2p_listen_request;
 
 HSteamNetConnection GClientToServerConn = 0;
+HSteamNetConnection GListenSocket = 0;
 
 static bool GRunServer = false;
 static bool GRunClient = false;
@@ -207,7 +208,7 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			ISteamNetworkingSockets *networkSocket = SteamGameServerNetworkingSockets();
 			if( gameServer && networkSocket ) {
 				gameServer->LogOnAnonymous();
-				networkSocket->CreateListenSocketP2P( 0, 0, nullptr );
+				GListenSocket = networkSocket->CreateListenSocketP2P( 0, 0, nullptr );
 				memcpy( &GCurrent_p2p_listen_request, req, sizeof( steam_rpc_pkt_s ) );
 			} else {
 				struct p2p_listen_recv_s recv;
@@ -218,6 +219,9 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			}
 			break;
 		}
+		case RPC_P2P_CLOSE_LISTEN: {
+			SteamGameServerNetworkingSockets()->CloseListenSocket(GListenSocket); 
+	 	}
 		case RPC_P2P_CONNECT: {
 			SteamNetworkingIdentity id;
 			CSteamID steamID = CSteamID((uint64)req->p2p_connect.steamID);
@@ -226,7 +230,16 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			memcpy(&GCurrent_p2p_connect_request, req, sizeof(steam_rpc_pkt_s));
 			break;
 		}
+		case RPC_P2P_DISCONNECT: {
+			if (req->p2p_disconnect.handle == 0) {
+				SteamNetworkingSockets()->CloseConnection(GClientToServerConn, 0, nullptr, false);
+			} else {
+				SteamGameServerNetworkingSockets()->CloseConnection(req->p2p_disconnect.handle, 0, nullptr, false);
+			}
+		 	break;
+	 	}
 		case RPC_P2P_SEND_MESSAGE: {
+		 	 assert(req->send_message.count < SDR_MAX_MESSAGE_SIZE);
 			if (req->send_message.handle == 0) {
 				// 0 is the c2s connection, and we must be on the client
 				SteamNetworkingSockets()->SendMessageToConnection(GClientToServerConn, req->send_message.buffer, req->send_message.count, req->send_message.messageReliability, nullptr);
@@ -248,16 +261,12 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 				steamid = info.m_identityRemote.GetSteamID().ConvertToUint64();
 
 				n = SteamNetworkingSockets()->ReceiveMessagesOnConnection(GClientToServerConn, msgs, 1);
-				if (n > 1)
-					printf("Received %i messages\n", n);
 			} else {
 				SteamNetConnectionInfo_t info;
 				SteamGameServerNetworkingSockets()->GetConnectionInfo(req->recv_messages.handle, &info);
 				steamid = info.m_identityRemote.GetSteamID().ConvertToUint64();
 
 				n = SteamGameServerNetworkingSockets()->ReceiveMessagesOnConnection(req->recv_messages.handle, msgs, 1);
-				if (n > 1)
-				printf("Received %i messages\n", n);
 			}
 
 			size_t total = 0;
