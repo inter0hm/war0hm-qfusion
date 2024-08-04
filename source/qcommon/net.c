@@ -365,6 +365,7 @@ static void NET_SDR_ConsumePacket(void* self, struct steam_rpc_pkt_s* rpc) {
 }
 
 static int NET_SDR_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message ) {
+  assert(socket&&socket->open&&socket->type==SOCKET_SDR);
 	struct recv_messages_req_s req;
 	req.cmd = RPC_P2P_RECV_MESSAGES;
 	req.handle = socket->handle;
@@ -417,6 +418,20 @@ static int NET_UDP_GetPacket( const socket_t *socket, netadr_t *address, msg_t *
 
 	message->readcount = 0;
 	message->cursize = ret;
+
+	return 1;
+}
+
+static bool NET_SDR_SendPacket( const socket_t *socket, const void *data, size_t length, const netadr_t *address ) {
+	struct send_message_req_s *req = (struct send_message_req_s*)malloc(sizeof(struct send_message_req_s) + length);
+	req->cmd = RPC_P2P_SEND_MESSAGE;
+	req->messageReliability = 8; // reliable tcp
+	req->count = length;
+	req->handle = socket->handle;
+	memcpy(req->buffer, data, length);
+
+	STEAMSHIM_sendRPC(req, sizeof (struct send_message_req_s) + length, NULL, NULL, NULL);
+	free(req);
 
 	return 1;
 }
@@ -543,6 +558,18 @@ static void NET_UDP_CloseSocket( socket_t *socket )
 	Sys_NET_SocketClose( socket->handle );
 	socket->handle = 0;
 	socket->open = false;
+}
+
+static void NET_SDR_CloseSocket( socket_t *socket ) {
+	if( !socket->open )
+		return;
+
+	struct p2p_disconnect_req_s req;
+	req.cmd = RPC_P2P_DISCONNECT;
+	req.handle = socket->handle;
+	STEAMSHIM_sendRPC(&req, sizeof req, NULL, NULL, NULL);
+	socket->open = false;
+	socket->handle = 0;
 }
 
 //=============================================================================
@@ -1108,18 +1135,7 @@ bool NET_SendPacket( const socket_t *socket, const void *data, size_t length, co
 	case SOCKET_UDP:
 		return NET_UDP_SendPacket( socket, data, length, address );
 	case SOCKET_SDR:
-		struct send_message_req_s *req = (struct send_message_req_s*)malloc(sizeof(struct send_message_req_s) + length);
-		req->cmd = RPC_P2P_SEND_MESSAGE;
-		req->messageReliability = 8; // reliable tcp
-		req->count = length;
-		req->handle = socket->handle;
-		memcpy(req->buffer, data, length);
-
-		STEAMSHIM_sendRPC(req, sizeof (struct send_message_req_s) + length, NULL, NULL, NULL);
-
-		return 1;
-
-
+		return NET_SDR_SendPacket( socket, data, length, address );
 #ifdef TCP_SUPPORT
 	case SOCKET_TCP:
 		return NET_TCP_SendPacket( socket, data, length );
@@ -1210,7 +1226,6 @@ char *NET_AddressToString( const netadr_t *a )
 */
 bool NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b )
 {
-	return true;
 	if( a->type != b->type )
 		return false;
 
@@ -1829,7 +1844,7 @@ void NET_CloseSocket( socket_t *socket )
 		NET_UDP_CloseSocket( socket );
 		break;
 	case SOCKET_SDR:
-		// can't currently close it.. just ignore
+		NET_SDR_CloseSocket( socket );
 		break;
 
 #ifdef TCP_SUPPORT

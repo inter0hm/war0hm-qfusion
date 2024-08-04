@@ -26,6 +26,7 @@ freely, subject to the following restrictions:
 #define STEAM_AVATAR_SIZE (128*128*4)
 #define PIPEMESSAGE_MAX (STEAM_AVATAR_SIZE + 64)
 #define AUTH_TICKET_MAXSIZE 1024
+#define SDR_MAX_MESSAGE_SIZE 32768
 typedef struct {
   char pTicket[AUTH_TICKET_MAXSIZE];
   long long pcbTicket;
@@ -64,7 +65,11 @@ enum steam_cmd_s {
 	RPC_UPDATE_SERVERINFO_SERVERNAME,
 
 	RPC_P2P_LISTEN,
+	RPC_P2P_CLOSE_LISTEN,
+
 	RPC_P2P_CONNECT,
+	RPC_P2P_DISCONNECT,
+
 	RPC_P2P_SEND_MESSAGE,
 	RPC_P2P_RECV_MESSAGES,
 
@@ -175,6 +180,18 @@ STEAM_RPC_RECV( p2p_connect )
 	uint64_t steamID;
 };
 
+STEAM_RPC_REQ( p2p_disconnect )
+{
+	STEAM_RPC_SHIM_COMMON()
+	uint32_t handle;
+};
+
+STEAM_RPC_REQ ( p2p_listen )
+{
+	STEAM_RPC_SHIM_COMMON()
+	uint64_t steamID;
+};
+
 STEAM_RPC_RECV( p2p_listen )
 {
 	STEAM_RPC_SHIM_COMMON()
@@ -224,6 +241,7 @@ struct steam_rpc_pkt_s {
 		struct auth_session_ticket_recv_s auth_session;
 
 		struct p2p_connect_req_s p2p_connect;
+		struct p2p_disconnect_req_s p2p_disconnect;
 		struct p2p_connect_req_s p2p_listen;
 		struct p2p_connect_recv_s p2p_connect_recv;
 		struct p2p_listen_recv_s p2p_listen_recv;
