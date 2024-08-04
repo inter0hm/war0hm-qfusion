@@ -411,7 +411,7 @@ static void SV_ReadPackets( void )
 		socket->address = address;
 		socket->type = SOCKET_SDR;
 		socket->handle = p2p_handles[i].handle;
-		socket->server = false;
+		socket->server = true;
 		socket->open = true;
 		socket->connected = true;
 
