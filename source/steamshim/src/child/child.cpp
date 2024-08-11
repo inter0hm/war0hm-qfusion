@@ -37,6 +37,7 @@ freely, subject to the following restrictions:
 #include "steam/isteamnetworking.h"
 #include "steam/isteamnetworkingsockets.h"
 #include "steam/isteamnetworkingutils.h"
+#include "steam/isteamuser.h"
 #include "steam/isteamutils.h"
 #include "steam/steam_api.h"
 #include "steam/steam_api_common.h"
@@ -291,6 +292,43 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			write_packet(GPipeWrite, recv, sizeof(struct recv_messages_recv_s) + total);
 			break;
 		}
+		case RPC_GETVOICE: {
+
+			uint32 size;
+			SteamUser()->GetAvailableVoice(&size);
+			if (size == 0) {
+				break;
+			}
+
+			uint8_t buffer[1024];
+
+			SteamUser()->GetVoice(true, buffer, sizeof buffer, &size);
+
+			auto recv = (struct getvoice_recv_s *)malloc(sizeof(struct getvoice_recv_s) + size);
+			recv->count = size;
+			memcpy(recv->buffer, buffer, size);
+
+			prepared_rpc_packet(&req->common, recv);
+			write_packet(GPipeWrite, recv, sizeof(struct getvoice_recv_s) + size);
+
+			break;
+	 	}
+	 	case RPC_DECOMPRESS_VOICE: {
+			uint8 m_ubUncompressedVoice[ 22000 ];
+
+	 	 	auto recv = (struct decompress_voice_recv_s *)malloc(sizeof(struct decompress_voice_recv_s) + sizeof(m_ubUncompressedVoice));
+
+	 	 	uint32 size = 0;
+	 	 	uint32 optimalSampleRate = 11025;// SteamUser()->GetVoiceOptimalSampleRate();
+	 		EVoiceResult e = SteamUser()->DecompressVoice(req->decompress_voice.buffer, req->decompress_voice.count, m_ubUncompressedVoice, sizeof m_ubUncompressedVoice, &size, optimalSampleRate);
+	 		if (e != 0) printf("DecompressVoice failed: %d\n", e);
+	 		memcpy(recv->buffer, m_ubUncompressedVoice, size);
+	 		recv->count = size;
+
+	 		prepared_rpc_packet(&req->common, recv);
+	 		write_packet(GPipeWrite, recv, sizeof(struct decompress_voice_recv_s) + size);
+	 	 	break;
+	 	 }
 		case RPC_REQUEST_STEAM_ID: {
 			struct steam_id_rpc_s recv;
 			prepared_rpc_packet( &req->common, &recv );
@@ -415,11 +453,8 @@ static bool initSteamworks( PipeType fd )
 		GServerBrowser->RefreshInternetServers();
 
 		SteamNetworkingUtils()->InitRelayNetworkAccess();
-		//
-		// SteamNetworkingIdentity id;
-		// id.SetSteamID(CSteamID((uint64)  90200374387181574));
-		//
-		// gconn = SteamNetworkingSockets()->ConnectP2P(id, 0, 0, nullptr);
+
+		SteamUser()->StartVoiceRecording();
 
 	}
 

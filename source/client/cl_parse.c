@@ -1485,6 +1485,15 @@ void CL_ParseServerMessage( msg_t *msg )
 				}
 			}
 			break;
+		case svc_voice:
+			{
+				int size = MSG_ReadShort( msg );
+				uint8_t voiceData[22000];
+				MSG_ReadData( msg, voiceData, size );
+
+				CL_SoundModule_PositionedRawSamples(-9999, 200, 0, size / 2 , 11025, 2, 1, voiceData);
+				break;
+			}
 		}
 	}
 

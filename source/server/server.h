@@ -296,6 +296,8 @@ typedef struct
 	char *motd;
 
 	void *wakelock;
+
+	uint64_t steamid;
 } server_static_t;
 
 typedef struct

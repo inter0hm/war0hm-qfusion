@@ -247,6 +247,7 @@ enum svc_ops_e
 	svc_servercs,			//tmp jalfixme : send reliable commands as unreliable
 	svc_frame,
 	svc_demoinfo,
+	svc_voice,
 	svc_extension			// for future expansion
 };
 
@@ -263,6 +264,7 @@ enum clc_ops_e
 	clc_svcack,
 	clc_clientcommand,      // [string] message
 	clc_extension,
+	clc_voice,
 	clc_steamauth,
 };
 

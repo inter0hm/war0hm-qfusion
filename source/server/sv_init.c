@@ -313,6 +313,7 @@ static void SV_SpawnServer( const char *server, bool devmap )
 
 
 static void CL_RPC_cb_listenp2p( void *self, struct steam_rpc_pkt_s *rec ){
+	svs.steamid = rec->p2p_listen_recv.steamID;
 	printf("listened succesful %llu\n", rec->p2p_listen_recv.steamID);
 }
 

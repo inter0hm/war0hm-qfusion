@@ -75,6 +75,9 @@ enum steam_cmd_s {
 
 	RPC_AUTHSESSION_TICKET,
 
+	RPC_GETVOICE,
+	RPC_DECOMPRESS_VOICE,
+
 	RPC_END,
 	EVT_BEGIN = RPC_END,
 	EVT_PERSONA_CHANGED = EVT_BEGIN,
@@ -226,6 +229,23 @@ STEAM_RPC_RECV ( recv_messages )
 	char buffer[];
 };
 
+STEAM_RPC_RECV(getvoice) {
+	STEAM_RPC_SHIM_COMMON()
+	uint32_t count;
+	uint8_t buffer[];
+};
+
+STEAM_RPC_REQ(decompress_voice) {
+	STEAM_RPC_SHIM_COMMON()
+	uint32_t count;
+	uint8_t buffer[];
+};
+STEAM_RPC_RECV(decompress_voice) {
+	STEAM_RPC_SHIM_COMMON()
+	uint32_t count;
+	uint8_t buffer[];
+};
+
 struct steam_rpc_pkt_s {
 	union {
 		struct steam_rpc_shim_common_s common;
@@ -249,6 +269,10 @@ struct steam_rpc_pkt_s {
 		struct send_message_req_s send_message;
 		struct recv_messages_req_s recv_messages;
 		struct recv_messages_recv_s recv_messages_recv;
+
+		struct getvoice_recv_s getvoice_recv;
+		struct decompress_voice_req_s decompress_voice;
+		struct decompress_voice_recv_s decompress_voice_recv;
 
 		struct buffer_rpc_s persona_name;
 

@@ -2695,6 +2695,31 @@ void CL_SendMessagesToServer( bool sendNow )
 	}
 }
 
+static void CB_RPC_DecompressVoice( void *self, struct steam_rpc_pkt_s *rec )
+{
+	uint8_t data[22000 + 1000];
+	msg_t msg;
+	MSG_Init(&msg, data, sizeof(data));
+	MSG_WriteByte(&msg, clc_voice);
+	MSG_WriteShort(&msg, rec->decompress_voice_recv.count);
+	MSG_WriteData(&msg, rec->decompress_voice_recv.buffer, rec->decompress_voice_recv.count);
+	if (cls.state == CA_ACTIVE)
+	CL_Netchan_Transmit(&msg);
+}
+
+static void CB_RPC_GetVoice( void *self, struct steam_rpc_pkt_s *rec )
+{
+
+	struct decompress_voice_req_s *req = (struct decompress_voice_req_s *)malloc(sizeof(struct decompress_voice_req_s) + rec->getvoice_recv.count);
+
+	req->cmd = RPC_DECOMPRESS_VOICE;
+	req->count = rec->getvoice_recv.count;
+
+	memcpy(req->buffer, rec->getvoice_recv.buffer, rec->getvoice_recv.count);
+
+	STEAMSHIM_sendRPC(req, sizeof(struct decompress_voice_req_s) + rec->getvoice_recv.count, NULL, CB_RPC_DecompressVoice, NULL);
+}
+
 /*
 * CL_NetFrame
 */
@@ -2894,6 +2919,10 @@ void CL_Frame( int realmsec, int gamemsec )
 		if( cls.demo.avi_video )
 			RF_WriteAviFrame( frame, cl_demoavi_scissor->integer );
 	}
+
+	struct steam_rpc_shim_common_s request;
+	request.cmd = RPC_GETVOICE;
+	STEAMSHIM_sendRPC(&request, sizeof request, NULL, CB_RPC_GetVoice, NULL);
 
 	// update audio
 	if( cls.state != CA_ACTIVE )

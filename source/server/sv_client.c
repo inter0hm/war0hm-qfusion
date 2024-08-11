@@ -1299,6 +1299,26 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg )
 				
 			}
 			break;
+			case clc_voice:
+			{
+				int voiceDataSize = MSG_ReadShort(msg);
+				uint8_t voiceData[22000];
+				MSG_ReadData(msg, voiceData, voiceDataSize);
+
+				for (int i = 0; i < sv_maxclients->integer; i++)
+				{
+					client_t *cl = svs.clients + i;
+					if (cl->state >= CS_SPAWNED && cl->state != CS_ZOMBIE)
+					{
+						SV_InitClientMessage(cl, &tmpMessage, NULL, 0);
+						MSG_WriteByte(&tmpMessage, svc_voice);
+						MSG_WriteShort(&tmpMessage, voiceDataSize);
+						MSG_CopyData(&tmpMessage, voiceData, voiceDataSize);
+						SV_SendMessageToClient(cl, &tmpMessage);
+					}
+				}
+				break;
+			}
 		}
 	}
 }
