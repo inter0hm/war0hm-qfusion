@@ -84,6 +84,8 @@ cvar_t *cl_downloads_from_web_timeout;
 cvar_t *cl_download_allow_modules;
 cvar_t *cl_checkForUpdate;
 
+cvar_t *cl_enablevoice;
+
 
 static char cl_nextString[MAX_STRING_CHARS];
 static char cl_connectChain[MAX_STRING_CHARS];
@@ -2279,6 +2281,8 @@ static void CL_InitLocal( void )
 	cl_download_allow_modules = Cvar_Get( "cl_download_allow_modules", "1", CVAR_ARCHIVE );
 	cl_checkForUpdate =	Cvar_Get( "cl_checkForUpdate", "1", CVAR_ARCHIVE );
 
+	cl_enablevoice = Cvar_Get( "cl_enablevoice", "1", CVAR_ARCHIVE );
+
 	//
 	// userinfo
 	//
@@ -2695,29 +2699,22 @@ void CL_SendMessagesToServer( bool sendNow )
 	}
 }
 
-static void CB_RPC_DecompressVoice( void *self, struct steam_rpc_pkt_s *rec )
+static void CB_RPC_GetVoice( void *self, struct steam_rpc_pkt_s *rec )
 {
-	uint8_t data[22000 + 1000];
+	uint8_t data[VOICE_BUFFER_MAX + 1000];
 	msg_t msg;
 	MSG_Init(&msg, data, sizeof(data));
 	MSG_WriteByte(&msg, clc_voice);
-	MSG_WriteShort(&msg, rec->decompress_voice_recv.count);
-	MSG_WriteData(&msg, rec->decompress_voice_recv.buffer, rec->decompress_voice_recv.count);
-	if (cls.state == CA_ACTIVE)
+	MSG_WriteShort(&msg, rec->getvoice_recv.count);
+	MSG_WriteData(&msg, rec->getvoice_recv.buffer, rec->getvoice_recv.count);
 	CL_Netchan_Transmit(&msg);
+
 }
 
-static void CB_RPC_GetVoice( void *self, struct steam_rpc_pkt_s *rec )
-{
-
-	struct decompress_voice_req_s *req = (struct decompress_voice_req_s *)malloc(sizeof(struct decompress_voice_req_s) + rec->getvoice_recv.count);
-
-	req->cmd = RPC_DECOMPRESS_VOICE;
-	req->count = rec->getvoice_recv.count;
-
-	memcpy(req->buffer, rec->getvoice_recv.buffer, rec->getvoice_recv.count);
-
-	STEAMSHIM_sendRPC(req, sizeof(struct decompress_voice_req_s) + rec->getvoice_recv.count, NULL, CB_RPC_DecompressVoice, NULL);
+static void CL_SendVoiceData() {
+	struct steam_rpc_shim_common_s request;
+	request.cmd = RPC_GETVOICE;
+	STEAMSHIM_sendRPC(&request, sizeof request, NULL, CB_RPC_GetVoice, NULL);
 }
 
 /*
@@ -2920,9 +2917,8 @@ void CL_Frame( int realmsec, int gamemsec )
 			RF_WriteAviFrame( frame, cl_demoavi_scissor->integer );
 	}
 
-	struct steam_rpc_shim_common_s request;
-	request.cmd = RPC_GETVOICE;
-	STEAMSHIM_sendRPC(&request, sizeof request, NULL, CB_RPC_GetVoice, NULL);
+	if (cls.state == CA_ACTIVE)
+		CL_SendVoiceData();
 
 	// update audio
 	if( cls.state != CA_ACTIVE )

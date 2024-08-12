@@ -1313,6 +1313,28 @@ static void CL_ParseServerCommand( msg_t *msg )
 	Com_Printf( "Unknown server command: %s\n", s );
 }
 
+static void CB_RPC_DecompressVoice( void *self, struct steam_rpc_pkt_s *rec )
+{
+	int bytes_per_sample = 2;
+	CL_SoundModule_PositionedRawSamples(-9999, 100, 0, rec->decompress_voice_recv.count / bytes_per_sample, VOICE_SAMPLE_RATE, bytes_per_sample, 1, rec->decompress_voice_recv.buffer);
+}
+
+static void CL_ParseVoiceData( msg_t *msg ) {
+	int client = MSG_ReadShort( msg );
+	// need some way to mute players...
+
+	int size = MSG_ReadShort( msg );
+	if (size > VOICE_BUFFER_MAX) return;
+
+	struct decompress_voice_req_s *req = (struct decompress_voice_req_s *)malloc(sizeof(struct decompress_voice_req_s) + size);
+
+	req->cmd = RPC_DECOMPRESS_VOICE;
+	req->count = size;
+	MSG_ReadData( msg, req->buffer, size );
+
+	STEAMSHIM_sendRPC(req, sizeof(struct decompress_voice_req_s) + size, NULL, CB_RPC_DecompressVoice, NULL);
+}
+
 /*
 =====================================================================
 
@@ -1487,11 +1509,8 @@ void CL_ParseServerMessage( msg_t *msg )
 			break;
 		case svc_voice:
 			{
-				int size = MSG_ReadShort( msg );
-				uint8_t voiceData[22000];
-				MSG_ReadData( msg, voiceData, size );
-
-				CL_SoundModule_PositionedRawSamples(-9999, 200, 0, size / 2 , 11025, 2, 1, voiceData);
+				if (cl_enablevoice->integer == 1)
+					CL_ParseVoiceData( msg );
 				break;
 			}
 		}

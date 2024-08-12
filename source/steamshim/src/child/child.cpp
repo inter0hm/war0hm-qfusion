@@ -293,7 +293,6 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			break;
 		}
 		case RPC_GETVOICE: {
-
 			uint32 size;
 			SteamUser()->GetAvailableVoice(&size);
 			if (size == 0) {
@@ -314,15 +313,15 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			break;
 	 	}
 	 	case RPC_DECOMPRESS_VOICE: {
-			uint8 m_ubUncompressedVoice[ 22000 ];
+			static uint8 decompressed[ VOICE_BUFFER_MAX ];
 
-	 	 	auto recv = (struct decompress_voice_recv_s *)malloc(sizeof(struct decompress_voice_recv_s) + sizeof(m_ubUncompressedVoice));
+	 	 	auto recv = (struct decompress_voice_recv_s *)malloc(sizeof(struct decompress_voice_recv_s) + sizeof(decompressed));
 
 	 	 	uint32 size = 0;
-	 	 	uint32 optimalSampleRate = 11025;// SteamUser()->GetVoiceOptimalSampleRate();
-	 		EVoiceResult e = SteamUser()->DecompressVoice(req->decompress_voice.buffer, req->decompress_voice.count, m_ubUncompressedVoice, sizeof m_ubUncompressedVoice, &size, optimalSampleRate);
+	 	 	uint32 optimalSampleRate = 11025;
+	 		EVoiceResult e = SteamUser()->DecompressVoice(req->decompress_voice.buffer, req->decompress_voice.count, decompressed, sizeof decompressed, &size, optimalSampleRate);
 	 		if (e != 0) printf("DecompressVoice failed: %d\n", e);
-	 		memcpy(recv->buffer, m_ubUncompressedVoice, size);
+	 		memcpy(recv->buffer, decompressed, size);
 	 		recv->count = size;
 
 	 		prepared_rpc_packet(&req->common, recv);

@@ -358,6 +358,8 @@ extern cvar_t *cl_downloads_from_web;
 extern cvar_t *cl_downloads_from_web_timeout;
 extern cvar_t *cl_download_allow_modules;
 
+extern cvar_t *cl_enablevoice;
+
 // delta from this if not from a previous frame
 extern entity_state_t cl_baselines[MAX_EDICTS];
 

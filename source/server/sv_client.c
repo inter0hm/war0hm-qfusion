@@ -1302,7 +1302,13 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg )
 			case clc_voice:
 			{
 				int voiceDataSize = MSG_ReadShort(msg);
-				uint8_t voiceData[22000];
+				uint8_t voiceData[VOICE_BUFFER_MAX];
+				if (voiceDataSize > VOICE_BUFFER_MAX)
+				{
+					Com_Printf("SV_ParseClientMessage: voice data too large\n");
+					SV_DropClient(client, DROP_TYPE_GENERAL, "%s", "Error: Voice data too large");
+					return;
+				}
 				MSG_ReadData(msg, voiceData, voiceDataSize);
 
 				for (int i = 0; i < sv_maxclients->integer; i++)
@@ -1312,6 +1318,7 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg )
 					{
 						SV_InitClientMessage(cl, &tmpMessage, NULL, 0);
 						MSG_WriteByte(&tmpMessage, svc_voice);
+						MSG_WriteShort(&tmpMessage, i);
 						MSG_WriteShort(&tmpMessage, voiceDataSize);
 						MSG_CopyData(&tmpMessage, voiceData, voiceDataSize);
 						SV_SendMessageToClient(cl, &tmpMessage);

@@ -33,6 +33,8 @@ typedef struct {
 } SteamAuthTicket_t;
 
 
+#define VOICE_SAMPLE_RATE 11025
+#define VOICE_BUFFER_MAX  22000
 #define STEAM_MAX_AVATAR_SIZE ( 128 * 128 * 4 )
 #define STEAM_AUTH_TICKET_MAXSIZE 1024
 
