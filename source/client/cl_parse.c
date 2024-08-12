@@ -1324,6 +1324,11 @@ static void CL_ParseVoiceData( msg_t *msg ) {
 	// need some way to mute players...
 
 	int size = MSG_ReadShort( msg );
+	if (cl_enablevoice->integer != 1) {
+		MSG_SkipData(msg, size);
+		return;
+	}
+
 	if (size > VOICE_BUFFER_MAX) return;
 
 	struct decompress_voice_req_s *req = (struct decompress_voice_req_s *)malloc(sizeof(struct decompress_voice_req_s) + size);
@@ -1509,8 +1514,7 @@ void CL_ParseServerMessage( msg_t *msg )
 			break;
 		case svc_voice:
 			{
-				if (cl_enablevoice->integer == 1)
-					CL_ParseVoiceData( msg );
+				CL_ParseVoiceData( msg );
 				break;
 			}
 		}
