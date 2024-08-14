@@ -42,6 +42,9 @@ cvar_t *g_maxvelocity;
 cvar_t *g_gravity;
 
 cvar_t *sv_cheats;
+cvar_t *g_dashjump_cooldown;
+cvar_t *g_walljump_cooldown;
+cvar_t *g_walljump_failed_cooldown;
 cvar_t *sv_mm_enable;
 
 cvar_t *cm_mapHeader;
@@ -262,6 +265,9 @@ void G_Init( unsigned int seed, unsigned int framemsec, int protocol, const char
 
 	// latched vars
 	sv_cheats = trap_Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
+	g_dashjump_cooldown = trap_Cvar_Get( "g_dashjump_cooldown", "1000", CVAR_SERVERINFO | CVAR_LATCH );
+	g_walljump_cooldown = trap_Cvar_Get( "g_walljump_cooldown", "1300", CVAR_SERVERINFO | CVAR_LATCH );
+	g_walljump_failed_cooldown = trap_Cvar_Get( "g_walljump_failed_cooldown", "700", CVAR_SERVERINFO | CVAR_LATCH );
 	sv_mm_enable = trap_Cvar_Get( "sv_mm_enable", "0", CVAR_ARCHIVE | CVAR_NOSET | CVAR_SERVERINFO );
 
 	// hack in CVAR_SERVERINFO flag
