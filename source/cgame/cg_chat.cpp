@@ -256,7 +256,7 @@ parse_string:
 			if( pass )
 			{
 				// grab the last color token to carry it over to the next line
-				lastcolor = Q_ColorStrLastColor( lastcolor, tstr, j - s, NULL, NULL);
+				lastcolor = Q_ColorStrLastColor( lastcolor, tstr, j - s );
 			}
 
 			s = j;

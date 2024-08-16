@@ -65,7 +65,7 @@ static void Sys_AnsiColorPrint( const char *msg )
 		char c = *msg;
 		int colorindex;
 
-		int gc = Q_GrabCharFromColorString( &msg, &c, &colorindex, NULL, NULL );
+		int gc = Q_GrabCharFromColorString( &msg, &c, &colorindex );
 		if( gc == GRABCHAR_COLOR || (gc == GRABCHAR_CHAR && c == '\n') )
 		{
 			// First empty the buffer
