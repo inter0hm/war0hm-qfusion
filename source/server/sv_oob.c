@@ -21,10 +21,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server.h"
 #include "../matchmaker/mm_common.h"
 
+typedef enum {
+	MASTER_WARFORK = 0,
+	MASTER_DARKPLACES,
+	MASTER_STEAM,
+} master_type_t;
+
 typedef struct sv_master_s
 {
 	netadr_t address;
-	bool steam;
+	master_type_t type;
 } sv_master_t;
 
 static sv_master_t sv_masters[MAX_MASTERS];
@@ -49,7 +55,7 @@ extern cvar_t *sv_iplimit;
 * SV_AddMaster_f
 * Add a master server to the list
 */
-static void SV_AddMaster_f( char *address, bool steam )
+static void SV_AddMaster_f( char *address, master_type_t type )
 {
 	int i;
 
@@ -80,9 +86,9 @@ static void SV_AddMaster_f( char *address, bool steam )
 		}
 
 		if( NET_GetAddressPort( &master->address ) == 0 )
-			NET_SetAddressPort( &master->address, steam ? PORT_MASTER_STEAM : PORT_MASTER );
+			NET_SetAddressPort( &master->address, type == MASTER_STEAM ? PORT_MASTER_STEAM : PORT_MASTER );
 
-		master->steam = steam;
+		master->type = type;
 
 		Com_Printf( "Added new master server #%i at %s\n", i, NET_AddressToString( &master->address ) );
 		return;
@@ -198,15 +204,33 @@ void SV_MasterHeartbeat( void )
 
 			socket = ( master->address.type == NA_IP6 ? &svs.socket_udp6 : &svs.socket_udp );
 
-			if( master->steam )
-			{
-				uint8_t steamHeartbeat = 'q';
-				NET_SendPacket( socket, &steamHeartbeat, sizeof( steamHeartbeat ), &master->address );
-			}
-			else
-			{
-				// warning: "DarkPlaces" is a protocol name here, not a game name. Do not replace it.
-				Netchan_OutOfBandPrint( socket, &master->address, "heartbeat DarkPlaces\n" );
+			switch( master->type ) {
+				case MASTER_STEAM:
+				{
+					uint8_t steamHeartbeat = 'q';
+					NET_SendPacket( socket, &steamHeartbeat, sizeof( steamHeartbeat ), &master->address );
+					break;
+				}
+				case MASTER_DARKPLACES:
+				{
+					// warning: "DarkPlaces" is a protocol name here, not a game name. Do not replace it.
+					Netchan_OutOfBandPrint( socket, &master->address, "heartbeat DarkPlaces\n" );
+					break;
+				}
+				case MASTER_WARFORK: {
+					printf("Sending warfork heartbeat\n");
+					printf("Address: %s\n", NET_AddressToString( &master->address ));
+
+
+					MSG_Init(&tmpMessage, tmpMessageData, sizeof(tmpMessageData));
+					MSG_WriteByte(&tmpMessage, 1);
+					MSG_WriteString(&tmpMessage, "warfork"); // magic string
+					
+					MSG_WriteLong(&tmpMessage, svs.steamid);
+					MSG_WriteString(&tmpMessage, sv_hostname->string);
+
+					NET_SendPacket( socket, tmpMessageData, tmpMessage.cursize, &master->address );
+				}
 			}
 		}
 	}
@@ -233,7 +257,7 @@ void SV_MasterSendQuit( void )
 	{
 		sv_master_t *master = &sv_masters[i];
 
-		if( master->steam && ( master->address.type != NA_NOTRANSMIT ) )
+		if( master->type == MASTER_STEAM && ( master->address.type != NA_NOTRANSMIT ) )
 		{
 			socket_t *socket = ( master->address.type == NA_IP6 ? &svs.socket_udp6 : &svs.socket_udp );
 
@@ -1206,7 +1230,7 @@ bool SV_SteamServerQuery( const char *s, const socket_t *socket, const netadr_t 
 
 		for( i = 0; i < MAX_MASTERS; i++ )
 		{
-			if( sv_masters[i].steam && NET_CompareAddress( address, &sv_masters[i].address ) )
+			if( sv_masters[i].type == MASTER_STEAM && NET_CompareAddress( address, &sv_masters[i].address ) )
 			{
 				fromMaster = true;
 				break;
@@ -1271,7 +1295,7 @@ bool SV_SteamServerQuery( const char *s, const socket_t *socket, const netadr_t 
 			int i;
 			for( i = 0; i < MAX_MASTERS; i++ )
 			{
-				if( sv_masters[i].steam && NET_CompareAddress( address, &sv_masters[i].address ) )
+				if( sv_masters[i].type == MASTER_STEAM && NET_CompareAddress( address, &sv_masters[i].address ) )
 				{
 					Com_Printf( "Server is out of date and cannot be added to the Steam master servers.\n" );
 					printed = true;
