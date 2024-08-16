@@ -927,7 +927,11 @@ void Con_DrawChat( int x, int y, int width, struct qfontface_s *font )
 		SCR_DrawClampString( x - chat_prestep, y, s, x, y,
 			x + width, y + fontHeight, font, colorWhite, 0 );
 	}
-	cursorcolor = Q_ColorStrLastColor( ColorIndex( COLOR_WHITE ), s, -1 );
+
+	int ansicolorindex;
+	int bgcolorindex;
+	cursorcolor = Q_ColorStrLastColor( ColorIndex( COLOR_WHITE ), s, -1, &ansicolorindex, &bgcolorindex);
+	printf("aci: %d, bci: %d\n", ansicolorindex, bgcolorindex);
 	s[chat_linepos] = oldchar;
 	if( complen && chat_linepos < chat_bufferlen )
 	{
