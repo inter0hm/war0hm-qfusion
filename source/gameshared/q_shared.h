@@ -165,6 +165,8 @@ bool COM_ValidateConfigstring( const char *string );
 
 #define Q_COLOR_ESCAPE	'^'
 #define S_COLOR_ESCAPE	"^"
+#define Q_COLOR_ANSI_ESCAPE '&'
+#define S_COLOR_ANSI_ESCAPE "&"
 
 #define COLOR_BLACK		'0'
 #define COLOR_RED		'1'
@@ -230,12 +232,13 @@ void *Q_memset32( void *dest, int c, size_t dwords );
 #define GRABCHAR_END	0
 #define GRABCHAR_CHAR	1
 #define GRABCHAR_COLOR	2
-int Q_GrabCharFromColorString( const char **pstr, char *c, int *colorindex );
+#define GRABCHAR_ANSI 3
+int Q_GrabCharFromColorString( const char **pstr, char *c, int *colorindex, int *ansicolorindex, int *bgcolorindex );
 const char *COM_RemoveColorTokensExt( const char *str, bool draw );
 #define COM_RemoveColorTokens(in) COM_RemoveColorTokensExt(in,false)
 int COM_SanitizeColorString (const char *str, char *buf, int bufsize, int maxprintablechars, int startcolor);
 const char *Q_ColorStringTerminator( const char *str, int finalcolor );
-int Q_ColorStrLastColor( int previous, const char *s, int maxlen );
+int Q_ColorStrLastColor( int previous, const char *s, int maxlen, int *ansicolorindex, int *bgcolorindex  );
 
 size_t Q_WCharUtf8Length( wchar_t wc );
 size_t Q_WCharToUtf8( wchar_t wc, char *dest, size_t bufsize );
