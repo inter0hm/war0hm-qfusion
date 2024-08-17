@@ -1,5 +1,4 @@
-﻿
-textures/noir/null
+﻿textures/noir/null
 {
 
 }
