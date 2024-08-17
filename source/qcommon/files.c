@@ -642,8 +642,8 @@ bool FS_IsExplicitPurePak( const char *pakname, bool *wrongver )
 
 	// check version match
 	if( wrongver ) {
-		begin = pakbasename + pakbasename_len - strlen( APP_VERSION_STR_MAJORMINOR "pure" ) - extension_len;
-		*wrongver = begin < pakbasename || Q_strnicmp( begin,  APP_VERSION_STR_MAJORMINOR, strlen( APP_VERSION_STR_MAJORMINOR ) ) != 0;
+		begin = pakbasename + pakbasename_len - strlen( APP_PK3_VERSION "pure" ) - extension_len;
+		*wrongver = begin < pakbasename || Q_strnicmp( begin, APP_PK3_VERSION, strlen( APP_PK3_VERSION ) ) != 0;
 	}
 
 	return pure;
@@ -2756,8 +2756,6 @@ static pack_t *FS_LoadPK3File( const char *packfilename, bool silent )
 	// read manifest file if it's a module pk3
 	if( modulepack && manifestFilesize > 0 )
 		FS_ReadPackManifest( pack );
-
-	if( !silent ) Com_Printf( "Added pk3 file %s (%i files)\n", pack->filename, pack->numFiles );
 
 	return pack;
 
