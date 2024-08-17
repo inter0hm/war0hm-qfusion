@@ -25,6 +25,7 @@ freely, subject to the following restrictions:
 #include <ctime>
 #include <stdlib.h>
 #include <thread>
+#include <stdlib.h>
 
 #include "../os.h"
 #include "../steamshim.h"
