@@ -2945,82 +2945,6 @@ void CL_Frame( int realmsec, int gamemsec )
 }
 
 
-//============================================================================
-
-static char *updateRemoteData;
-static size_t updateRemoteDataSize;
-
-/*
-* CL_CheckForUpdateDoneCb
-*/
-static void CL_CheckForUpdateDoneCb( int status, const char *contentType, void *privatep )
-{
-	float local_version, net_version;
-
-	if( status != 200 )
-		goto done;
-
-	// got the file
-	// this look stupid but is the safe way to do it
-	local_version = atof( va( "%4.3f", APP_VERSION ) );
-	net_version = atof( updateRemoteData );
-
-	// we have the version
-	//Com_Printf("CheckForUpdate: local: %f net: %f\n", local_version, net_version);
-	if( net_version > local_version )
-	{
-		char cmd[1024];
-		char net_version_str[16], *s;
-
-		Q_snprintfz( net_version_str, sizeof( net_version_str ), "%4.3f", net_version );
-		s = net_version_str + strlen( net_version_str ) - 1;
-		while( *s == '0' ) s--;
-		if( *s == '.' && *( s+1 ) == '0' ) s++; // for whole version numbers
-		net_version_str[s-net_version_str+1] = '\0';
-
-		// you should update
-		Com_Printf( APPLICATION " version %s is available.\nVisit " APP_URL " for more information\n", net_version_str );
-		Q_snprintfz( cmd, sizeof( cmd ), "menu_modal modal_update version \"%s\" app \"" APPLICATION "\""
-			" url " "\"" APP_URL "\"", net_version_str );
-		Cbuf_ExecuteText( EXEC_APPEND, cmd );
-	}
-	else if( net_version == local_version )
-	{
-		Com_Printf( "Your %s version is up-to-date.\n", APPLICATION );
-	}
-
-done:
-	if( updateRemoteData )
-	{
-		Mem_Free( updateRemoteData );
-		updateRemoteData = NULL;
-		updateRemoteDataSize = 0;
-	}
-}
-
-/*
-* CL_CheckForUpdateReadCb
-*/
-static size_t CL_CheckForUpdateReadCb( const void *buf, size_t numb, float percentage, 
-	int status, const char *contentType, void *privatep )
-{
-	char *newbuf;
-
-	if( status < 0 || status >= 300 ) {
-		return 0;
-	}
-
-	newbuf = Mem_ZoneMalloc( updateRemoteDataSize + numb + 1 );
-	memcpy( newbuf, updateRemoteData, updateRemoteDataSize - 1 );
-	memcpy( newbuf + updateRemoteDataSize - 1, buf, numb );
-	newbuf[numb] = '\0'; // EOF
-
-	Mem_Free( updateRemoteData );
-	updateRemoteData = newbuf;
-	updateRemoteDataSize = updateRemoteDataSize + numb + 1;
-
-	return numb;
-}
 
 #define TRACKING_PROFILE_ID "profile.id"
 
@@ -3059,8 +2983,6 @@ static void CL_CheckForUpdateHeaderCb( const char *buf, void *privatep )
 		}
 	}
 }
-
-//============================================================================
 
 /*
 * CL_AsyncStream_Alloc
@@ -3217,8 +3139,6 @@ void CL_Init( void )
 
     CL_InitDiscord();
 	CL_UIModule_ForceMenuOn();
-
-	// check for update
 
 	CL_InitServerList();
 
