@@ -169,74 +169,6 @@ void SV_UpdateMaster( void )
 }
 
 /*
-* SV_MasterHeartbeat
-* Send a message to the master every few minutes to
-* let it know we are alive, and log information
-*/
-void SV_MasterHeartbeat( void )
-{
-	unsigned int time = Sys_Milliseconds();
-	int i;
-
-	if( svc.nextHeartbeat > time )
-		return;
-
-	svc.nextHeartbeat = time + HEARTBEAT_SECONDS * 1000;
-
-	if( !sv_public->integer || ( sv_maxclients->integer == 1 ) )
-		return;
-
-	// never go public when not acting as a game server
-	if( sv.state > ss_game )
-		return;
-
-	// send to group master
-	for( i = 0; i < MAX_MASTERS; i++ )
-	{
-		sv_master_t *master = &sv_masters[i];
-
-		if( master->address.type != NA_NOTRANSMIT )
-		{
-			socket_t *socket;
-
-			if( dedicated && dedicated->integer && sv_log_heartbeats->integer )
-				Com_Printf( "Sending heartbeat to %s\n", NET_AddressToString( &master->address ) );
-
-			socket = ( master->address.type == NA_IP6 ? &svs.socket_udp6 : &svs.socket_udp );
-
-			switch( master->type ) {
-				case MASTER_STEAM:
-				{
-					uint8_t steamHeartbeat = 'q';
-					NET_SendPacket( socket, &steamHeartbeat, sizeof( steamHeartbeat ), &master->address );
-					break;
-				}
-				case MASTER_DARKPLACES:
-				{
-					// warning: "DarkPlaces" is a protocol name here, not a game name. Do not replace it.
-					Netchan_OutOfBandPrint( socket, &master->address, "heartbeat DarkPlaces\n" );
-					break;
-				}
-				case MASTER_WARFORK: {
-					printf("Sending warfork heartbeat\n");
-					printf("Address: %s\n", NET_AddressToString( &master->address ));
-
-
-					MSG_Init(&tmpMessage, tmpMessageData, sizeof(tmpMessageData));
-					MSG_WriteByte(&tmpMessage, 1);
-					MSG_WriteString(&tmpMessage, "warfork"); // magic string
-					
-					MSG_WriteLong(&tmpMessage, svs.steamid);
-					MSG_WriteString(&tmpMessage, sv_hostname->string);
-
-					NET_SendPacket( socket, tmpMessageData, tmpMessage.cursize, &master->address );
-				}
-			}
-		}
-	}
-}
-
-/*
 * SV_MasterSendQuit
 * Notifies Steam master servers that the server is shutting down.
 */
@@ -619,6 +551,79 @@ static void SVC_GetStatusResponse( const socket_t *socket, const netadr_t *addre
 	SVC_SendInfoString( socket, address, "GetStatus", "statusResponse", true );
 }
 
+static void SV_SendWFHeartbeat( const socket_t *socket, const netadr_t *address )
+{
+	printf("Sending warfork heartbeat\n");
+	printf("Address: %s\n", NET_AddressToString( address ));
+
+	MSG_Init(&tmpMessage, tmpMessageData, sizeof(tmpMessageData));
+	MSG_WriteString(&tmpMessage, "warfork"); // magic string
+	MSG_WriteByte(&tmpMessage, 1); // advertise
+	MSG_WriteLongLong(&tmpMessage, svs.steamid);
+
+	char *info = SV_LongInfoString(false);
+	MSG_WriteString(&tmpMessage, info);
+
+	NET_SendPacket( socket, tmpMessageData, tmpMessage.cursize, address );
+}
+
+/*
+* SV_MasterHeartbeat
+* Send a message to the master every few minutes to
+* let it know we are alive, and log information
+*/
+void SV_MasterHeartbeat( void )
+{
+	unsigned int time = Sys_Milliseconds();
+	int i;
+
+	if( svc.nextHeartbeat > time )
+		return;
+
+	svc.nextHeartbeat = time + HEARTBEAT_SECONDS * 1000;
+
+	if( !sv_public->integer || ( sv_maxclients->integer == 1 ) )
+		return;
+
+	// never go public when not acting as a game server
+	if( sv.state > ss_game )
+		return;
+
+	// send to group master
+	for( i = 0; i < MAX_MASTERS; i++ )
+	{
+		sv_master_t *master = &sv_masters[i];
+
+		if( master->address.type != NA_NOTRANSMIT )
+		{
+			socket_t *socket;
+
+			if( dedicated && dedicated->integer && sv_log_heartbeats->integer )
+				Com_Printf( "Sending heartbeat to %s\n", NET_AddressToString( &master->address ) );
+
+			socket = ( master->address.type == NA_IP6 ? &svs.socket_udp6 : &svs.socket_udp );
+
+			switch( master->type ) {
+				case MASTER_STEAM:
+				{
+					uint8_t steamHeartbeat = 'q';
+					NET_SendPacket( socket, &steamHeartbeat, sizeof( steamHeartbeat ), &master->address );
+					break;
+				}
+				case MASTER_DARKPLACES:
+				{
+					// warning: "DarkPlaces" is a protocol name here, not a game name. Do not replace it.
+					Netchan_OutOfBandPrint( socket, &master->address, "heartbeat DarkPlaces\n" );
+					break;
+				}
+				case MASTER_WARFORK: {
+					SV_SendWFHeartbeat( socket, &master->address );
+					break;
+				}
+			}
+		}
+	}
+}
 
 /*
 * SVC_GetChallenge
