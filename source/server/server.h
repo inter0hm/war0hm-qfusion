@@ -310,6 +310,12 @@ typedef struct
 	unsigned int lastMasterResolve;
 } server_constant_t;
 
+typedef enum {
+	MASTER_WARFORK,
+	MASTER_DARKPLACES,
+	MASTER_STEAM,
+} master_type_t;
+
 //=============================================================================
 
 // shared message buffer to be used for occasional messages

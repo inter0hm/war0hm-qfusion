@@ -21,12 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server.h"
 #include "../matchmaker/mm_common.h"
 
-typedef enum {
-	MASTER_WARFORK = 0,
-	MASTER_DARKPLACES,
-	MASTER_STEAM,
-} master_type_t;
-
 typedef struct sv_master_s
 {
 	netadr_t address;
@@ -37,6 +31,7 @@ static sv_master_t sv_masters[MAX_MASTERS];
 
 extern cvar_t *sv_masterservers;
 extern cvar_t *sv_masterservers_steam;
+extern cvar_t *sv_masterservers_warfork;
 extern cvar_t *sv_hostname;
 extern cvar_t *sv_skilllevel;
 extern cvar_t *sv_reconnectlimit;     // minimum seconds between connect messages
@@ -123,7 +118,20 @@ static void SV_ResolveMaster( void )
 			if( !master[0] )
 				break;
 
-			SV_AddMaster_f( master, false );
+			SV_AddMaster_f( master, MASTER_DARKPLACES);
+		}
+	}
+
+	mlist = sv_masterservers_warfork->string;
+	if( *mlist )
+	{
+		while( mlist )
+		{
+			master = COM_Parse( &mlist );
+			if( !master[0] )
+				break;
+
+			SV_AddMaster_f( master, MASTER_WARFORK);
 		}
 	}
 
@@ -137,7 +145,7 @@ static void SV_ResolveMaster( void )
 			if( !master[0] )
 				break;
 
-			SV_AddMaster_f( master, true );
+			SV_AddMaster_f( master, MASTER_STEAM);
 		}
 	}
 #endif
@@ -283,7 +291,7 @@ static char *SV_ShortInfoString( void )
 {
 	static char string[MAX_STRING_SVCINFOSTRING];
 	char hostname[64];
-	char entry[20];
+	char entry[64];
 	size_t len;
 	int i, count, bots;
 	int maxcount;
@@ -385,6 +393,13 @@ static char *SV_ShortInfoString( void )
 	if ( Cvar_Integer("sv_useSteamAuth") )
 	{
 		Q_snprintfz( entry, sizeof( entry ), "stm\\\\1\\\\" );
+		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) )
+		{
+			Q_strncatz( string, entry, sizeof( string ) );
+			len = strlen( string );
+		}
+
+		Q_snprintfz( entry, sizeof( entry ), "sid\\\\%llu\\\\" , svs.steamid );
 		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) )
 		{
 			Q_strncatz( string, entry, sizeof( string ) );
@@ -561,7 +576,7 @@ static void SV_SendWFHeartbeat( const socket_t *socket, const netadr_t *address 
 	MSG_WriteByte(&tmpMessage, 1); // advertise
 	MSG_WriteLongLong(&tmpMessage, svs.steamid);
 
-	char *info = SV_LongInfoString(false);
+	char *info = SV_ShortInfoString();
 	MSG_WriteString(&tmpMessage, info);
 
 	NET_SendPacket( socket, tmpMessageData, tmpMessage.cursize, address );
