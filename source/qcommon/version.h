@@ -35,18 +35,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define APP_VERSION_MINOR     15
 #define APP_VERSION_UPDATE    0 
 
-// storing this is not necessary
-//#define APP_VERSION_MAJOR_OFFSET 0
-//#define APP_VERSION_MAJOR_BITS 0x7FF
-//
-//#define APP_VERSION_MINOR_OFFSET 11
-//#define APP_VERSION_MINOR_BITS 0x7FF
-//
-//#define APP_VERSION_UPDATE_OFFSET 22
-//#define APP_VERSION_UPDATE_BITS 0x3FF
-//
-//#define APP_VERSION           (APP_VERSION_MAJOR << APP_VERSION_MAJOR_OFFSET) | (APP_VERSION_MINOR << APP_VERSION_MINOR_OFFSET ) | (APP_VERSION_UPDATE << APP_VERSION_UPDATE_OFFSET)
-//#endif
+// ...data21.pk3. we should never need to bump this
+#define APP_PK3_VERSION       "21"
 
 #ifdef PUBLIC_BUILD
 #define APP_PROTOCOL_VERSION      26

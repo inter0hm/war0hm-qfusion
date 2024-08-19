@@ -20,7 +20,7 @@ for PK in $PKS; do
         relative=$(realpath --relative-to="$dir" "$file")
         if [ -L "$target/$relative" ]; then
           echo "removing old link $target/$relative"
-          # rm "$target/$relative"
+          rm "$target/$relative"
         fi
 
         echo "linking $target/$relative -> $dir/$relative"

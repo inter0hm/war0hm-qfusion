@@ -84,6 +84,7 @@ cvar_t *sv_maxrate;
 cvar_t *sv_compresspackets;
 cvar_t *sv_masterservers;
 cvar_t *sv_masterservers_steam;
+cvar_t *sv_masterservers_warfork;
 cvar_t *sv_skilllevel;
 
 // wsw : debug netcode
@@ -987,6 +988,7 @@ void SV_Init( void )
 
 	sv_masterservers =			Cvar_Get( "masterservers", DEFAULT_MASTER_SERVERS_IPS, CVAR_LATCH );
 	sv_masterservers_steam =	Cvar_Get( "masterservers_steam", DEFAULT_MASTER_SERVERS_STEAM_IPS, CVAR_LATCH );
+	sv_masterservers_warfork =	Cvar_Get( "masterservers_warfork", DEFAULT_MASTER_SERVERS_WARFORK_IPS, CVAR_LATCH );
 
 	sv_debug_serverCmd =	    Cvar_Get( "sv_debug_serverCmd", "0", CVAR_ARCHIVE );
 	sv_useSteamAuth = Cvar_Get( "sv_useSteamAuth", "1", CVAR_SERVERINFO|CVAR_LATCH );

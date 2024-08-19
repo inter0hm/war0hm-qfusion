@@ -73,6 +73,7 @@ cvar_t *info_password;
 cvar_t *rate;
 
 cvar_t *cl_masterservers;
+cvar_t *cl_masterservers_warfork;
 
 // wsw : debug netcode
 cvar_t *cl_debug_serverCmd;
@@ -2256,6 +2257,7 @@ static void CL_InitLocal( void )
 	m_sensCap =		Cvar_Get( "m_sensCap", "0", CVAR_ARCHIVE );
 
 	cl_masterservers =	Cvar_Get( "masterservers", DEFAULT_MASTER_SERVERS_IPS, 0 );
+	cl_masterservers_warfork =	Cvar_Get( "masterservers_warfork", DEFAULT_MASTER_SERVERS_WARFORK_IPS, 0 );
 
 	cl_shownet =		Cvar_Get( "cl_shownet", "0", 0 );
 	cl_timeout =		Cvar_Get( "cl_timeout", "120", 0 );
