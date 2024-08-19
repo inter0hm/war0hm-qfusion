@@ -567,6 +567,15 @@
 			int selectedRow = prop.toInt();
 			if( selectedRow >= 0 )
 			{
+				String steamid = browserDataSource.getField( browserTableName, selectedRow, 'steamid' );
+				console.log(steamid);
+
+				if ( steamid != 0 ) {
+	
+					game.exec( 'connectp2p "' + steamid + '"\n' );
+					return;
+				}
+
 				String address = browserDataSource.getField( browserTableName, selectedRow, 'address' );
 				if( address.empty() ) {
 					return;
