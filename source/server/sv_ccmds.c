@@ -84,21 +84,6 @@ found_player:
 //=========================================================
 
 /*
-* SV_AutoUpdateComplete_f
-*/
-static void SV_AutoUpdateComplete_f( void )
-{
-	// update the map list, which also does a filesystem rescan
-	ML_Update();
-
-	if( FS_GetNotifications() & FS_NOTIFY_NEWPAKS )
-	{
-		// force restart
-		svc.lastActivity = 0;
-	}
-}
-
-/*
 * SV_Map_f
 * 
 * User command to change the map
@@ -414,12 +399,6 @@ void SV_ShutdownOperatorCommands( void )
 	Cmd_RemoveCommand( "serverrecordpurge" );
 
 	Cmd_RemoveCommand( "purelist" );
-
-	if( dedicated->integer )
-	{
-		Cmd_RemoveCommand( "autoupdate" );
-		Cmd_RemoveCommand( "autoupdatecheck" );
-	}
 
 	Cmd_RemoveCommand( "cvarcheck" );
 }

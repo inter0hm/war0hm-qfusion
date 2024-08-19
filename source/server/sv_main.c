@@ -1024,8 +1024,6 @@ void SV_Init( void )
 		Cvar_ForceSet( "sv_fps", sv_pps->dvalue );
 	}
 
-	svc.autoUpdateMinute = rand() % 60;
-
 	Com_Printf( "Game running at %i fps. Server transmit at %i pps\n", sv_fps->integer, sv_pps->integer );
 
 	//init the master servers list
