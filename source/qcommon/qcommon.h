@@ -79,6 +79,7 @@ void MSG_WriteByte( msg_t *sb, int c );
 void MSG_WriteShort( msg_t *sb, int c );
 void MSG_WriteInt3( msg_t *sb, int c );
 void MSG_WriteLong( msg_t *sb, int c );
+void MSG_WriteLongLong( msg_t *sb, long long c );
 void MSG_WriteFloat( msg_t *sb, float f );
 void MSG_WriteString( msg_t *sb, const char *s );
 #define MSG_WriteCoord( sb, f ) ( MSG_WriteInt3( ( sb ), Q_rint( ( f*PM_VECTOR_SNAP ) ) ) )
