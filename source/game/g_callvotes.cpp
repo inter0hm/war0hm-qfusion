@@ -19,6 +19,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include <string>
 #include "g_local.h"
 
 //===================================================================
@@ -59,8 +60,7 @@ typedef struct callvotetype_s
 	void ( *execute )( callvotedata_t *vote );
 	const char *( *current )( void );
 	void ( *extraHelp )( edict_t *ent );
-	http_response_code_t ( *webRequest )( http_query_method_t method, const char *resource, 
-		const char *query_string, char **content, size_t *content_length );
+	void ( *ajaxRequest )( edict_t *caller, const char *resource );
 	char *argument_format;
 	char *help;
 	char *argument_type;
@@ -78,7 +78,6 @@ typedef struct
 static callvotestate_t callvoteState;
 
 static callvotetype_t *callvotesHeadNode = NULL;
-
 //==============================================
 //		Vote specifics
 //==============================================
@@ -119,15 +118,8 @@ static void G_AppendString( char **pdst, const char *src, size_t *pdst_len, size
 	*pdst = dst;
 }
 
-http_response_code_t G_PlayerlistWebRequest( http_query_method_t method, const char *resource, 
-	const char *query_string, char **content, size_t *content_length )
+void G_PlayerlistAjaxRequest( edict_t* caller, const char *resource )
 {
-	char *msg = NULL;
-	size_t msg_len = 0, msg_size = 0;
-
-	if( method != HTTP_METHOD_GET && method != HTTP_METHOD_HEAD ) {
-		return HTTP_RESP_BAD_REQUEST;
-	}
 	edict_t *ent;
 
 	for( ent = game.edicts+1; PLAYERNUM( ent ) < gs.maxclients; ent++ )
@@ -138,23 +130,20 @@ http_response_code_t G_PlayerlistWebRequest( http_query_method_t method, const c
 		char cleanname[MAX_NAME_BYTES];
 		strncpy( cleanname, ent->r.client->netname, MAX_NAME_BYTES );
 
-		G_AppendString( &msg, va( 
-			"{\n"
-			"\"value\"" " " "\"%i\"" "\n"
-			"\"steamid\"" " " "\"%llu\"" "\n"
-			"\"name\"" " " "\"%s\"" "\n"
-			"\"cleanname\"" " " "\"%s\"" "\n"
-			"}\n", 
+		trap_ServerCmd( caller, va( 
+		  "ajaxrespond \"%s\" \""
+			"value\\%i\\"
+			"steamid\\%llu\\"
+			"name\\%s\\"
+			"cleanname\\%s\\"
+			"\"",
+			resource,
 			PLAYERNUM( ent ),
 			ent->r.client->steamid,
 			ent->r.client->netname,
 			COM_RemoveColorTokens( cleanname )
-			), &msg_len, &msg_size );
+		));
 	}
-
-	*content = msg;
-	*content_length = msg_len;
-	return HTTP_RESP_OK;
 }
 
 /*
@@ -335,17 +324,10 @@ static const char *G_VoteMapCurrent( void )
 	return level.mapname;
 }
 
-static http_response_code_t G_VoteMapWebRequest( http_query_method_t method, const char *resource, 
-	const char *query_string, char **content, size_t *content_length )
+static void G_VoteMapAjaxRequest( edict_t *caller, const char *resource )
 {
 	int i;
-	char *msg = NULL;
-	size_t msg_len = 0, msg_size = 0;
 	char buffer[MAX_STRING_CHARS];
-
-	if( method != HTTP_METHOD_GET && method != HTTP_METHOD_HEAD ) {
-		return HTTP_RESP_BAD_REQUEST;
-	}
 
 	// update the maplist
 	trap_ML_Update ();
@@ -360,14 +342,15 @@ static http_response_code_t G_VoteMapWebRequest( http_query_method_t method, con
 		{
 			const char *fullname = trap_ML_GetFullname( tok );
 
-			G_AppendString( &msg, va( 
-				"{\n"
-				"\"value\"" " " "\"%s\"" "\n"
-				"\"name\"" " " "\"%s '%s'\"" "\n"
-				"}\n", 
+			trap_ServerCmd( caller, va( 
+				"ajaxrespond \"%s\" \""
+				"value\\%s\\"
+				"name\\%s '%s'\\"
+				"\"",
+				resource,
 				tok,
 				tok, fullname
-			), &msg_len, &msg_size );
+			));
 
 			tok = strtok( NULL, MAPLIST_SEPS );
 		}
@@ -376,20 +359,17 @@ static http_response_code_t G_VoteMapWebRequest( http_query_method_t method, con
 	}
 	else {
 		for( i = 0; trap_ML_GetMapByNum( i, buffer, sizeof( buffer ) ); i++ ) {
-			G_AppendString( &msg, va(
-				"{\n"
-				"\"value\"" " " "\"%s\"" "\n"
-				"\"name\"" " " "\"%s '%s'\"" "\n"
-				"}\n", 
+			trap_ServerCmd( caller, va(
+				"ajaxrespond \"%s\" \""
+				"value\\%s\\"
+				"name\\%s '%s'\\"
+				"\"",
+				resource,
 				buffer,
 				buffer, buffer + strlen( buffer ) + 1
-			), &msg_len, &msg_size );
+			));
 		}
 	}
-
-	*content = msg;
-	*content_length = msg_len;
-	return HTTP_RESP_OK;
 }
 
 
@@ -518,37 +498,28 @@ static void G_VoteGametypeExtraHelp( edict_t *ent )
 	G_PrintMsg( ent, "%s\n", message );
 }
 
-static http_response_code_t G_VoteGametypeWebRequest( http_query_method_t method, const char *resource, 
-	const char *query_string, char **content, size_t *content_length )
+static void G_VoteGametypeAjaxRequest( edict_t *caller, const char *resource )
 {
 	char *name; // use buffer to send only one print message
 	int count;
-	char *msg = NULL;
-	size_t msg_len = 0, msg_size = 0;
-
-	if( method != HTTP_METHOD_GET && method != HTTP_METHOD_HEAD ) {
-		return HTTP_RESP_BAD_REQUEST;
-	}
 
 	for( count = 0; ( name = G_ListNameForPosition( g_gametypes_list->string, count, CHAR_GAMETYPE_SEPARATOR ) ) != NULL; 
 		count++ )
 	{
 		if( G_Gametype_IsVotable( name ) )
 		{
-			G_AppendString( &msg, va( 
-				"{\n"
-				"\"value\"" " " "\"%s\"" "\n"
-				"\"name\"" " " "\"%s\"" "\n"
-				"}\n", 
+			trap_ServerCmd( caller, va(
+				"ajaxrespond \"%s\" \""
+				"value\\%s\\"
+				"name\\%s\\"
+				"\"",
+				resource,
 				name,
 				name
-				), &msg_len, &msg_size );
+			) );
 		}
 	}
 
-	*content = msg;
-	*content_length = msg_len;
-	return HTTP_RESP_OK;
 }
 
 static bool G_VoteGametypeValidate( callvotedata_t *vote, bool first )
@@ -2645,7 +2616,7 @@ void G_CallVotes_Init( void )
 	callvote->extraHelp = G_VoteMapExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<name>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_VoteMapWebRequest;
+	callvote->ajaxRequest = G_VoteMapAjaxRequest;
 	callvote->help = G_LevelCopyString( "Changes map" );
 
 	callvote = G_RegisterCallvote( "restart" );
@@ -2696,7 +2667,7 @@ void G_CallVotes_Init( void )
 	callvote->extraHelp = G_VoteGametypeExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<name>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_VoteGametypeWebRequest;
+	callvote->ajaxRequest = G_VoteGametypeAjaxRequest;
 	callvote->help = G_LevelCopyString( "Changes the gametype" );
 
 	callvote = G_RegisterCallvote( "warmup_timelimit" );
@@ -2767,7 +2738,7 @@ void G_CallVotes_Init( void )
 	callvote->extraHelp = G_VoteRemoveExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
+	callvote->ajaxRequest = G_PlayerlistAjaxRequest;
 	callvote->need_auth = true;
 	callvote->help = G_LevelCopyString( "Forces player back to spectator mode" );
 
@@ -2779,7 +2750,7 @@ void G_CallVotes_Init( void )
 	callvote->extraHelp = G_VoteKickExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
+	callvote->ajaxRequest = G_PlayerlistAjaxRequest;
 	callvote->need_auth = true;
 	callvote->help = G_LevelCopyString( "Removes player from the server" );
 
@@ -2791,7 +2762,7 @@ void G_CallVotes_Init( void )
 	callvote->extraHelp = G_VoteKickBanExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
+	callvote->ajaxRequest = G_PlayerlistAjaxRequest;
 	callvote->need_auth = true;
 	callvote->help = G_LevelCopyString( "Removes player from the server and bans his IP-address for 15 minutes" );
 
@@ -2803,7 +2774,7 @@ void G_CallVotes_Init( void )
 	callvote->extraHelp = G_VoteMuteExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
+	callvote->ajaxRequest = G_PlayerlistAjaxRequest;
 	callvote->need_auth = true;
 	callvote->help = G_LevelCopyString( "Disallows chat messages from the muted player" );
 
@@ -2815,7 +2786,7 @@ void G_CallVotes_Init( void )
 	callvote->extraHelp = G_VoteUnmuteExtraHelp;
 	callvote->argument_format = G_LevelCopyString( "<player>" );
 	callvote->argument_type = G_LevelCopyString( "option" );
-	callvote->webRequest = G_PlayerlistWebRequest;
+	callvote->ajaxRequest = G_PlayerlistAjaxRequest;
 	callvote->need_auth = true;
 	callvote->help = G_LevelCopyString( "Reallows chat messages from the unmuted player" );
 
@@ -2946,39 +2917,39 @@ void G_CallVotes_Init( void )
 http_response_code_t G_CallVotes_WebRequest( http_query_method_t method, const char *resource, 
 	const char *query_string, char **content, size_t *content_length )
 {
-	char *msg = NULL;
-	size_t msg_len = 0, msg_size = 0;
+	return HTTP_RESP_NOT_FOUND;
+}
+
+void G_Ajax_Cmd( edict_t *caller ) {
+ 	char *resource = trap_Cmd_Argv( 1 );
+ 	printf( "Resource: %s\n", resource );
+
 	callvotetype_t *callvote;
-
-	if( method != HTTP_METHOD_GET && method != HTTP_METHOD_HEAD ) {
-		return HTTP_RESP_BAD_REQUEST;
-	}
-
-	if( !Q_strnicmp( resource, "callvotes/", 10 ) ) {
+	if( !Q_strnicmp( resource, "players", 7 ) ) {
+		G_PlayerlistAjaxRequest( caller, resource );
+	} else if( !Q_strnicmp( resource, "callvotes/", 10 ) ) {
 		// print the list of callvotes
 		for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next )
 		{
 			if( trap_Cvar_Value( va( "g_disable_vote_%s", callvote->name ) ) )
 				continue;
 
-			G_AppendString( &msg, va( "{\n"
-				"\"name\"" " " "\"%s\"" "\n"
-				"\"expected_args\"" " " "\"%i\"" "\n"
-				"\"argument_format\"" " " "\"%s\"" "\n"
-				"\"argument_type\"" " " "\"%s\"" "\n"
-				"\"help\"" " " "\"%s\"" "\n"
-				"}\n", 
+			trap_ServerCmd( caller,  va(
+				"ajaxrespond \"%s\" \""
+				"name\\%s\\"
+				"expected_args\\%i\\"
+				"argument_format\\%s\\"
+				"argument_type\\%s\\"
+				"help\\%s\\"
+				"\"",
+				resource,
 				callvote->name,
 				callvote->expectedargs,
 				callvote->argument_format ? callvote->argument_format : "",
 				callvote->argument_type ? callvote->argument_type : "string",
 				callvote->help ? callvote->help : ""
-				), &msg_len, &msg_size );
+			) );
 		}
-
-		*content = msg;
-		*content_length = msg_len;
-		return HTTP_RESP_OK;
 	}
 	else if( !Q_strnicmp( resource, "callvote/", 9 ) ) {
 		const char *votename = resource + 9;
@@ -2988,10 +2959,13 @@ http_response_code_t G_CallVotes_WebRequest( http_query_method_t method, const c
 		{
 			if( Q_stricmp( callvote->name, votename ) )
 				continue;
-			if( callvote->webRequest )
-				return callvote->webRequest( method, resource, query_string, content, content_length );
+			if( callvote->ajaxRequest )
+				callvote->ajaxRequest( caller, resource );
 			break;
 		}
 	}
-	return HTTP_RESP_NOT_FOUND;
+
+	trap_ServerCmd( caller, va( "ajaxrespond \"%s\" DONE", resource ) );
 }
+
+
