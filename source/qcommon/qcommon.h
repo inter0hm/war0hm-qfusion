@@ -501,7 +501,7 @@ NET
 
 #define	PACKET_HEADER			10          // two ints, and a short
 
-#define	MAX_RELIABLE_COMMANDS	64          // max string commands buffered for restransmit
+#define	MAX_RELIABLE_COMMANDS	1024          // max string commands buffered for restransmit
 #define	MAX_PACKETLEN			1400        // max size of a network packet
 #define	MAX_MSGLEN				32768       // max length of a message, which may be fragmented into multiple packets
 
