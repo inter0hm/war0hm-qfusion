@@ -201,6 +201,7 @@ typedef struct
 	bool ( *HaveQuickMenu )( void );
 	void ( *ShowQuickMenu )( bool show );
 	void ( *AddToServerList )( const char *adr, const char *info );
+	void ( *AjaxResponse )( const char *resource, const char *data );
 } ui_export_t;
 
 #ifdef UI_HARD_LINKED

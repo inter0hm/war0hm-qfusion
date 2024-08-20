@@ -34,6 +34,7 @@ public:
 	GameAjaxDataSource( void );
 	~GameAjaxDataSource( void );
 
+	void AjaxResponse( const char *resource, const char *data );
 	void GetRow( StringList& row, const String& table, int row_index, const StringList& columns );
 	int GetNumRows( const String& table );
 

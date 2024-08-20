@@ -703,6 +703,7 @@ void G_SetBoundsForSpanEntity( edict_t *ent, vec_t size );
 //
 // g_callvotes.c
 //
+void G_Ajax_Cmd( edict_t *ent );
 void G_CallVotes_Init( void );
 void G_FreeCallvotes( void );
 void G_CallVotes_ResetClient( int n );

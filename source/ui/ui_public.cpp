@@ -191,6 +191,13 @@ namespace WSWUI
 			ui_main->addToServerList( adr, info );
 		}
 	}
+
+	void AjaxResponse( const char *resource, const char *data )
+	{
+		if( ui_main ) {
+			ui_main->ajaxResponse( resource, data );
+		}
+	}
 }	// namespace
 
 //=================================
@@ -229,6 +236,7 @@ ui_export_t *GetUIAPI( ui_import_t *import )
 	globals.HaveQuickMenu = WSWUI::HaveQuickMenu;
 
 	globals.AddToServerList = WSWUI::AddToServerList;
+	globals.AjaxResponse = WSWUI::AjaxResponse;
 
 	return &globals;
 }

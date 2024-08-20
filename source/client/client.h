@@ -507,6 +507,7 @@ void CL_UIModule_ForceMenuOff( void );
 void CL_UIModule_ShowQuickMenu( bool show );
 bool CL_UIModule_HaveQuickMenu( void );
 void CL_UIModule_AddToServerList( const char *adr, const char *info );
+void CL_UIModule_AjaxResponse( const char *resource, const char *data );
 void CL_UIModule_MouseMove( int dx, int dy );
 void CL_UIModule_MouseSet( int mx, int my, bool showCursor );
 

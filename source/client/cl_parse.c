@@ -859,22 +859,20 @@ static void CL_RPC_cb_steamAuth( void *self, struct steam_rpc_pkt_s *rec ){
 static void CL_SteamAuth(){
 	if (STEAMSHIM_active())
 	{
-		// ticket needs to be generated on demand each time we join a server
-		//SteamAuthTicket_t *ticket = Steam_GetAuthSessionTicketBlocking();
 		struct steam_rpc_shim_common_s request;
 		request.cmd = RPC_AUTHSESSION_TICKET;
 		uint32_t syncIndex;
 		STEAMSHIM_sendRPC( &request, sizeof( struct steam_rpc_shim_common_s ), NULL, CL_RPC_cb_steamAuth, &syncIndex );
 		STEAMSHIM_waitDispatchSync(syncIndex); // not sure if this need to be blocking
-		//uint8_t messageData[MAX_MSGLEN];
-		//msg_t msg;
-		//MSG_Init(&msg, messageData, sizeof(messageData));
-	  //MSG_WriteByte(&msg, clc_steamauth);
-	  //MSG_WriteLong(&msg, ticket->pcbTicket);
-		//MSG_WriteData(&msg, ticket->pTicket, ticket->pcbTicket);
-
-		//CL_Netchan_Transmit(&msg);
 	}
+}
+
+static void CL_AjaxRespond_f( void )
+{
+	char *response = Cmd_Argv(1);
+	char *data = Cmd_Argv(2);
+
+	CL_UIModule_AjaxResponse(response, data);
 }
 
 typedef struct
@@ -896,6 +894,7 @@ svcmd_t svcmds[] =
 	{ "multiview", CL_Multiview_f },
 	{ "cvarinfo", CL_CvarInfoRequest_f },
 	{ "steamauth", CL_SteamAuth },
+	{ "ajaxrespond", CL_AjaxRespond_f },
 
 	{ NULL, NULL }
 };

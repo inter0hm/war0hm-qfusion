@@ -584,6 +584,12 @@ void CL_UIModule_AddToServerList( const char *adr, const char *info )
 		uie->AddToServerList( adr, info );
 }
 
+void CL_UIModule_AjaxResponse( const char *resource, const char *data )
+{
+	if( uie )
+		uie->AjaxResponse( resource, data );
+}
+
 /*
 * CL_UIModule_MouseMove
 */
