@@ -653,7 +653,7 @@ char *COM_ParseExt2( const char **data_p, bool nl, bool sq )
 
 #define ANSI_CLEAR -1
 #define ANSIVALID(c) ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))
-#define ANSIINDEX(c) ( c == '-' ? ANSI_CLEAR : (c >= '0' ? c - '0' : c - 'A' + 10))
+#define ANSIINDEX(c) ( c == '-' ? ANSI_CLEAR : (c >= 'A' ? c - 'A' + 10 : c - '0'))
 /*
 * Q_GrabCharFromColorString
 * 
@@ -708,7 +708,7 @@ int Q_GrabCharFromColorString( const char **pstr, char *c, int *colorindex, int 
 
 // Like Q_GrabCharFromColorString, but reads whole UTF-8 sequences
 // and returns wide chars
-int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex )
+int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex, int *ansicolorindex, int *ansibgcolorindex )
 {
 	wchar_t num;
 
@@ -720,7 +720,15 @@ int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex 
 		return GRABCHAR_END;
 
 	case Q_COLOR_ESCAPE:
-		if( **pstr >= '0' && **pstr < '0' + MAX_S_COLORS )
+		if( **pstr == Q_COLOR_ANSI_ESCAPE && strlen(*pstr) > 3 && ANSIVALID( *(*pstr +1 ) ) && ANSIVALID( *(*pstr + 2) ) )
+		{
+			if( ansicolorindex )
+				*ansicolorindex = ANSIINDEX( *(*pstr + 1 ) );
+			if( ansibgcolorindex )
+				*ansibgcolorindex = ANSIINDEX( *(*pstr + 2 ) );
+			( *pstr ) += 3;
+			return GRABCHAR_ANSI;
+		} else if( **pstr >= '0' && **pstr < '0' + MAX_S_COLORS )
 		{
 			if( colorindex )
 				*colorindex = ColorIndex( **pstr );
@@ -945,13 +953,15 @@ int Q_ColorStrLastColor( int previous, const char *s, int maxlen, int *ansicolor
 			;
 		else if( gc == GRABCHAR_COLOR )
 			lastcolor = colorindex;
-		else if( gc == GRABCHAR_END ) {
+		else if( gc == GRABCHAR_ANSI ) {
 			if (ansicolorindex)
 				*ansicolorindex = _ansicolorindex;
 			if (bgcolorindex)
 				*bgcolorindex = _bgcolorindex;
 			lastcolor = Q_COLOR_ANSI_ESCAPE;
 		}
+		else if( gc == GRABCHAR_END )
+			break;
 		else
 			assert( 0 );
 	}

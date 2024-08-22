@@ -245,7 +245,7 @@ size_t Q_WCharToUtf8( wchar_t wc, char *dest, size_t bufsize );
 char *Q_WCharToUtf8Char( wchar_t wc );
 size_t Q_WCharToUtf8String( const wchar_t *ws, char *dest, size_t bufsize );
 wchar_t Q_GrabWCharFromUtf8String (const char **pstr);
-int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex );
+int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex, int *ansicolorindex, int *ansibgcolorindex  );
 #define UTF8SYNC_LEFT 0
 #define UTF8SYNC_RIGHT 1
 int Q_Utf8SyncPos( const char *str, int pos, int dir );
