@@ -1098,6 +1098,30 @@ void CG_StartBackgroundTrack( void )
 		trap_S_StartBackgroundTrack( cg_playList->string, NULL, cg_playListShuffle->integer ? 1 : 0 );
 }
 
+void CG_PlayVoice(void *buffer, size_t size, int clientnum) {
+	int bytes_per_sample = 2;
+
+	double sum = 0;
+	int nsamples = size / bytes_per_sample;
+	int16_t *buf = (int16_t*)buffer;
+	for (int i = 0; i < nsamples; i++) {
+		sum += buf[i] * buf[i];
+	}
+	double rms = sqrt(sum / nsamples);
+	if (rms < 1000) {
+		return;
+	}
+
+	int entnum = clientnum + 1;
+	centity_t *ent = &cg_entities[entnum];
+	ent->speaking = true;
+	ent->lastSpeakTime = cg.time;
+
+
+	// should voice be global or come from the player's position?
+	trap_S_PositionedRawSamples(-9999, cg_volume_voicechats->integer, 0, size / bytes_per_sample, VOICE_SAMPLE_RATE, bytes_per_sample, 1, (const unsigned char*)buffer);
+}
+
 /*
 * CG_Reset
 */

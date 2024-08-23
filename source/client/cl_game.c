@@ -728,3 +728,9 @@ bool CL_GameModule_GetBlocklistItem( size_t index, uint64_t* steamid_out, char* 
 		return cge->GetBlocklistItem(index, steamid_out, name, name_len_in_out);
 	return false;
 }
+
+void CL_GameModule_PlayVoice( void *buffer, size_t size, int clientnum )
+{
+	if ( cge )
+		cge->PlayVoice(buffer, size, clientnum);
+}

@@ -130,6 +130,8 @@ typedef struct
 	float yawVelocity;
 
 	struct cinematics_s *cin;
+	bool speaking;
+	int lastSpeakTime;
 } centity_t;
 
 #include "cg_pmodels.h"
@@ -964,6 +966,7 @@ void CG_Init(	const char *serverName, unsigned int playerNum,
 				int vidWidth, int vidHeight, float pixelRatio,
 				bool demoplaying, const char *demoName, bool pure, unsigned int snapFrameTime,
 				int protocol, const char *demoExtension, int sharedSeed, bool gameStart );
+void CG_PlayVoice(void *buffer, size_t size, int clientnum);
 void CG_Shutdown( void );
 void CG_ValidateItemDef( int tag, char *name );
 void CG_Printf( const char *format, ... );

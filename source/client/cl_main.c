@@ -2712,7 +2712,6 @@ static void CB_RPC_GetVoice( void *self, struct steam_rpc_pkt_s *rec )
 	MSG_WriteShort(&msg, rec->getvoice_recv.count);
 	MSG_WriteData(&msg, rec->getvoice_recv.buffer, rec->getvoice_recv.count);
 	CL_Netchan_Transmit(&msg);
-
 }
 
 static void CL_SendVoiceData() {

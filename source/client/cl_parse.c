@@ -932,8 +932,8 @@ static void CL_ParseServerCommand( msg_t *msg )
 
 static void CB_RPC_DecompressVoice( void *self, struct steam_rpc_pkt_s *rec )
 {
-	int bytes_per_sample = 2;
-	CL_SoundModule_PositionedRawSamples(-9999, 100, 0, rec->decompress_voice_recv.count / bytes_per_sample, VOICE_SAMPLE_RATE, bytes_per_sample, 1, rec->decompress_voice_recv.buffer);
+	int clientnum = (int)self;
+	CL_GameModule_PlayVoice(rec->decompress_voice_recv.buffer, rec->decompress_voice_recv.count, clientnum);
 }
 
 static void CL_ParseVoiceData( msg_t *msg ) {
@@ -954,7 +954,8 @@ static void CL_ParseVoiceData( msg_t *msg ) {
 	req->count = size;
 	MSG_ReadData( msg, req->buffer, size );
 
-	STEAMSHIM_sendRPC(req, sizeof(struct decompress_voice_req_s) + size, NULL, CB_RPC_DecompressVoice, NULL);
+	// yes this is bad but i'm not making an allocation for a single int
+	STEAMSHIM_sendRPC(req, sizeof(struct decompress_voice_req_s) + size, (int*)client, CB_RPC_DecompressVoice, NULL);
 }
 
 /*

@@ -451,6 +451,7 @@ void CL_GameModule_AddMovement( vec3_t movement );
 void CL_GameModule_TouchEvent( int id, touchevent_t type, int x, int y, unsigned int time );
 bool CL_GameModule_IsTouchDown( int id );
 bool CL_GameModule_GetBlocklistItem( size_t index, uint64_t* steamid_out, char* name, size_t* name_len_in_out );
+void CL_GameModule_PlayVoice( void *buffer, size_t size, int clientnum );
 
 //
 // cl_sound.c

@@ -73,6 +73,7 @@ extern "C" QF_DLL_EXPORT cgame_export_t *GetCGameAPI( cgame_import_t *import )
 	globals.IsTouchDown = CG_IsTouchDown;
 
 	globals.GetBlocklistItem = CG_GetBlocklistItem;
+	globals.PlayVoice = CG_PlayVoice;
 
 	return &globals;
 }
