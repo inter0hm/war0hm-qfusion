@@ -30,7 +30,7 @@ static fdrawchar_t drawCharIntercept = NULL;
 /*
 * FTLIB_GrabChar
 */
-static int FTLIB_GrabChar( const char **pstr, wchar_t *wc, int *colorindex, int *colorindexansi, int *colorindexansibg, int flags )
+static int FTLIB_GrabChar( const char **pstr, wchar_t *wc, int *colorindex, int *colorindexansi, int *colorindexansibg, int *rgbcolor, int flags )
 {
 	if( flags & TEXTDRAWFLAG_NO_COLORS ) {
 		wchar_t num = Q_GrabWCharFromUtf8String( pstr );
@@ -38,7 +38,7 @@ static int FTLIB_GrabChar( const char **pstr, wchar_t *wc, int *colorindex, int 
 		return num ? GRABCHAR_CHAR : GRABCHAR_END;
 	}
 
-	return Q_GrabWCharFromColorString( pstr, wc, colorindex, colorindexansi, colorindexansibg );
+	return Q_GrabWCharFromColorString( pstr, wc, colorindex, colorindexansi, colorindexansibg, rgbcolor );
 }
 
 /*
@@ -91,7 +91,7 @@ size_t FTLIB_strWidth( const char *str, qfontface_t *font, size_t maxlen, int fl
 
 		olds = s;
 
-		switch( FTLIB_GrabChar( &s, &num, NULL, NULL, NULL, flags ) )
+		switch( FTLIB_GrabChar( &s, &num, NULL, NULL, NULL, NULL, flags ) )
 		{
 		case GRABCHAR_CHAR:
 			if( num < ' ' )
@@ -116,9 +116,8 @@ size_t FTLIB_strWidth( const char *str, qfontface_t *font, size_t maxlen, int fl
 			prev_glyph = glyph;
 			break;
 
+		case GRABCHAR_RGB:
 		case GRABCHAR_ANSI:
-			break;
-
 		case GRABCHAR_COLOR:
 			break;
 
@@ -159,7 +158,7 @@ size_t FTLIB_StrlenForWidth( const char *str, qfontface_t *font, size_t maxwidth
 	for( s = str; s; )
 	{
 		olds = s;
-		gc = FTLIB_GrabChar( &s, &num, NULL, NULL, NULL, flags );
+		gc = FTLIB_GrabChar( &s, &num, NULL, NULL, NULL, NULL, flags );
 		if( gc == GRABCHAR_CHAR )
 		{
 			if( num == '\n' )
@@ -194,7 +193,7 @@ size_t FTLIB_StrlenForWidth( const char *str, qfontface_t *font, size_t maxwidth
 			prev_num = num;
 			prev_glyph = glyph;
 		}
-		else if( gc == GRABCHAR_COLOR || gc == GRABCHAR_ANSI )
+		else if( gc == GRABCHAR_COLOR || gc == GRABCHAR_ANSI || gc == GRABCHAR_RGB )
 			continue;
 		else if( gc == GRABCHAR_END )
 			break;
@@ -390,9 +389,7 @@ void FTLIB_DrawClampString( int x, int y, const char *str, int xmin, int ymin, i
 {
 	int xoffset = 0;
 	vec4_t scolor, bgcolor;
-	int colorindex;
-	int colorindexansi;
-	int colorindexansibg;
+	int colorindex, colorindexansi, colorindexansibg, rgbcolor;
 	wchar_t num, prev_num = 0;
 	const char *s = str, *olds;
 	int gc;
@@ -415,7 +412,7 @@ void FTLIB_DrawClampString( int x, int y, const char *str, int xmin, int ymin, i
 	while( 1 )
 	{
 		olds = s;
-		gc = FTLIB_GrabChar( &s, &num, &colorindex, &colorindexansi, &colorindexansibg, flags );
+		gc = FTLIB_GrabChar( &s, &num, &colorindex, &colorindexansi, &colorindexansibg, &rgbcolor, flags );
 		if( gc == GRABCHAR_CHAR )
 		{
 			if( num == '\n' )
@@ -458,6 +455,9 @@ void FTLIB_DrawClampString( int x, int y, const char *str, int xmin, int ymin, i
 			Vector4Copy( ansi_color_table[colorindexansi], scolor );
 			Vector4Copy( ansi_color_table[colorindexansibg], bgcolor );
 		}
+		else if (gc == GRABCHAR_RGB) {
+			Vector4Set( scolor, ( rgbcolor >> 16 ) / 255.0f, ( ( rgbcolor >> 8 ) & 0xFF ) / 255.0f, ( rgbcolor & 0xFF ) / 255.0f, 1.0f );
+		}
 		else if( gc == GRABCHAR_END )
 			break;
 		else
@@ -475,7 +475,7 @@ size_t FTLIB_DrawRawString( int x, int y, const char *str, size_t maxwidth, int 
 	vec4_t scolor, bgcolor;
 	const char *s, *olds;
 	int gc, colorindex;
-	int colorindexansi, colorindexansibg;
+	int colorindexansi, colorindexansibg, rgbcolor;
 	wchar_t num, prev_num = 0;
 	qglyph_t *glyph, *prev_glyph = NULL;
 	renderString_f renderString;
@@ -494,7 +494,7 @@ size_t FTLIB_DrawRawString( int x, int y, const char *str, size_t maxwidth, int 
 	for( s = str; s; )
 	{
 		olds = s;
-		gc = FTLIB_GrabChar( &s, &num, &colorindex, &colorindexansi, &colorindexansibg, flags );
+		gc = FTLIB_GrabChar( &s, &num, &colorindex, &colorindexansi, &colorindexansibg, &rgbcolor, flags );
 		if( gc == GRABCHAR_CHAR )
 		{
 			if( num == '\n' )
@@ -538,6 +538,9 @@ size_t FTLIB_DrawRawString( int x, int y, const char *str, size_t maxwidth, int 
 		else if(gc == GRABCHAR_ANSI ){
 			Vector4Copy( ansi_color_table[colorindexansi], scolor );
 		}
+		else if (gc == GRABCHAR_RGB) {
+			Vector4Set( scolor, ( rgbcolor >> 16 ) / 255.0f, ( ( rgbcolor >> 8 ) & 0xFF ) / 255.0f, ( rgbcolor & 0xFF ) / 255.0f, 1.0f );
+		}
 		else if( gc == GRABCHAR_END )
 			break;
 		else
@@ -561,7 +564,7 @@ int FTLIB_DrawMultilineString( int x, int y, const char *str, int halign, int ma
 	// characters and glyphs
 	const char *oldstr;
 	int gc, colorindex;
-	int ansicolorindex, ansicolorindexbg;
+	int ansicolorindex, ansicolorindexbg, rgbcolor;
 	wchar_t num, prev_num;
 	qglyph_t *glyph, *prev_glyph;
 	int glyph_width;
@@ -615,7 +618,7 @@ int FTLIB_DrawMultilineString( int x, int y, const char *str, int halign, int ma
 		while( str )
 		{
 			oldstr = str;
-			gc = FTLIB_GrabChar( &str, &num, &colorindex, &ansicolorindex, &ansicolorindexbg, flags );
+			gc = FTLIB_GrabChar( &str, &num, &colorindex, &ansicolorindex, &ansicolorindexbg, &rgbcolor, flags );
 			if( gc == GRABCHAR_CHAR )
 			{
 				if( num == '\n' )
@@ -739,7 +742,7 @@ int FTLIB_DrawMultilineString( int x, int y, const char *str, int halign, int ma
 			prev_glyph = NULL;
 			while( ( line_chars > 0 ) && line )
 			{
-				gc = FTLIB_GrabChar( &line, &num, &colorindex, &ansicolorindex, &ansicolorindexbg, flags );
+				gc = FTLIB_GrabChar( &line, &num, &colorindex, &ansicolorindex, &ansicolorindexbg, &rgbcolor, flags );
 				if( gc == GRABCHAR_CHAR )
 				{
 					if( num < ' ' )

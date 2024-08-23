@@ -652,8 +652,8 @@ char *COM_ParseExt2( const char **data_p, bool nl, bool sq )
 }
 
 #define ANSI_CLEAR -1
-#define ANSIVALID(c) ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))
-#define ANSIINDEX(c) ( c == '-' ? ANSI_CLEAR : (c >= 'A' ? c - 'A' + 10 : c - '0'))
+#define HEXVALID(c) ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))
+#define TOHEX(c) ( c == '-' ? ANSI_CLEAR : (c >= 'A' ? c - 'A' + 10 : c - '0'))
 /*
 * Q_GrabCharFromColorString
 * 
@@ -665,7 +665,7 @@ char *COM_ParseExt2( const char **data_p, bool nl, bool sq )
 * GRABCHAR_CHAR - printable char parsed and saved to *c;  *colorindex is undefined
 * GRABCHAR_COLOR - color escape parsed and saved to *colorindex;  *c is undefined
 */
-int Q_GrabCharFromColorString( const char **pstr, char *c, int *colorindex, int *ansicolorindex, int *bgcolorindex )
+int Q_GrabCharFromColorString( const char **pstr, char *c, int *colorindex, int *ansicolorindex, int *bgcolorindex, int *rgbcolor )
 {
 	switch( **pstr )
 	{
@@ -687,14 +687,24 @@ int Q_GrabCharFromColorString( const char **pstr, char *c, int *colorindex, int 
 			( *pstr ) += 2;	// skip the ^^
 			return GRABCHAR_CHAR;
 		}
-		else if ( ( *pstr )[1] == Q_COLOR_ANSI_ESCAPE && ANSIVALID( ( *pstr )[2] ) && ANSIVALID( ( *pstr )[3] ))
+		else if ( ( *pstr )[1] == Q_COLOR_ANSI_ESCAPE && HEXVALID( ( *pstr )[2] ) && HEXVALID( ( *pstr )[3] ))
 		{
 			if ( ansicolorindex )
-				*ansicolorindex = ANSIINDEX( ( *pstr )[2] );
+				*ansicolorindex = TOHEX( ( *pstr )[2] );
 			if ( bgcolorindex )
-				*bgcolorindex = ANSIINDEX( ( *pstr )[3] );
+				*bgcolorindex = TOHEX( ( *pstr )[3] );
 			( *pstr ) += 3;
 			return GRABCHAR_ANSI;
+		} else if ( ( *pstr )[1] == Q_COLOR_RGB_ESCAPE && strlen(*pstr) > 6 &&
+			HEXVALID( *(*pstr + 1 )) && HEXVALID( *(*pstr + 2 ) ) &&
+			HEXVALID( *(*pstr + 3 ) ) && HEXVALID( *(*pstr + 4 ) ) &&
+			HEXVALID( *(*pstr + 5 ) ) && HEXVALID( *(*pstr + 6 ) ))
+		{
+			if (rgbcolor)
+				*rgbcolor = TOHEX( *(*pstr + 1) ) << 20 | TOHEX( *(*pstr + 2) ) << 16 | TOHEX( *(*pstr + 3) ) << 12 | TOHEX( *(*pstr + 4) ) << 8 | TOHEX( *(*pstr + 5) ) << 4 | TOHEX( *(*pstr + 6) );
+			( *pstr ) += 7;
+
+			return GRABCHAR_RGB;
 		}
 		/* fall through */
 
@@ -708,7 +718,7 @@ int Q_GrabCharFromColorString( const char **pstr, char *c, int *colorindex, int 
 
 // Like Q_GrabCharFromColorString, but reads whole UTF-8 sequences
 // and returns wide chars
-int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex, int *ansicolorindex, int *ansibgcolorindex )
+int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex, int *ansicolorindex, int *ansibgcolorindex, int *rgbcolor )
 {
 	wchar_t num;
 
@@ -720,12 +730,21 @@ int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex,
 		return GRABCHAR_END;
 
 	case Q_COLOR_ESCAPE:
-		if( **pstr == Q_COLOR_ANSI_ESCAPE && strlen(*pstr) > 3 && ANSIVALID( *(*pstr +1 ) ) && ANSIVALID( *(*pstr + 2) ) )
+		if ( **pstr == Q_COLOR_RGB_ESCAPE && strlen(*pstr) > 6 && 
+			HEXVALID(*(*pstr+1)) && HEXVALID( *(*pstr + 2 ) ) &&
+			HEXVALID( *(*pstr + 3 ) ) && HEXVALID( *(*pstr + 4 ) ) &&
+			HEXVALID( *(*pstr + 5 ) ) && HEXVALID( *(*pstr + 6 ) ))
+		{
+			if (rgbcolor)
+				*rgbcolor = TOHEX( *(*pstr + 1) ) << 20 | TOHEX( *(*pstr + 2) ) << 16 | TOHEX( *(*pstr + 3) ) << 12 | TOHEX( *(*pstr + 4) ) << 8 | TOHEX( *(*pstr + 5) ) << 4 | TOHEX( *(*pstr + 6) );
+			( *pstr ) += 7;
+			return GRABCHAR_RGB;
+		} else if( **pstr == Q_COLOR_ANSI_ESCAPE && strlen(*pstr) > 3 && HEXVALID( *(*pstr + 1 ) ) && HEXVALID( *(*pstr + 2) ) )
 		{
 			if( ansicolorindex )
-				*ansicolorindex = ANSIINDEX( *(*pstr + 1 ) );
+				*ansicolorindex = TOHEX( *(*pstr + 1 ) );
 			if( ansibgcolorindex )
-				*ansibgcolorindex = ANSIINDEX( *(*pstr + 2 ) );
+				*ansibgcolorindex = TOHEX( *(*pstr + 2 ) );
 			( *pstr ) += 3;
 			return GRABCHAR_ANSI;
 		} else if( **pstr >= '0' && **pstr < '0' + MAX_S_COLORS )
@@ -769,7 +788,7 @@ const char *COM_RemoveColorTokensExt( const char *str, bool draw )
 
 	while( out + 1 < end)
 	{
-		gc = Q_GrabCharFromColorString( &in, &c, NULL, NULL, NULL );
+		gc = Q_GrabCharFromColorString( &in, &c, NULL, NULL, NULL, NULL );
 		if( gc == GRABCHAR_CHAR )
 		{
 			if( c == Q_COLOR_ESCAPE && draw )
@@ -783,7 +802,7 @@ const char *COM_RemoveColorTokensExt( const char *str, bool draw )
 			else
 				*out++ = c;
 		}
-		else if( gc == GRABCHAR_COLOR )
+		else if( gc == GRABCHAR_COLOR || gc == GRABCHAR_ANSI || gc == GRABCHAR_RGB )
 			;
 		else if( gc == GRABCHAR_END )
 			break;
@@ -829,7 +848,7 @@ int COM_SanitizeColorString( const char *str, char *buf, int bufsize, int maxpri
 
 	while( out + 1 < end && c_printable < maxprintablechars )
 	{
-		gc = Q_GrabCharFromColorString( &in, &c, &colorindex, NULL, NULL );
+		gc = Q_GrabCharFromColorString( &in, &c, &colorindex, NULL, NULL, NULL );
 
 		if( gc == GRABCHAR_CHAR )
 		{
@@ -858,7 +877,7 @@ int COM_SanitizeColorString( const char *str, char *buf, int bufsize, int maxpri
 		}
 		else if( gc == GRABCHAR_COLOR )
 			newcolor = colorindex;
-		else if ( gc == GRABCHAR_ANSI )
+		else if ( gc == GRABCHAR_ANSI || gc == GRABCHAR_RGB )
 			// TODO: proper handling here
 			newcolor = 0;
 		else if( gc == GRABCHAR_END )
@@ -892,8 +911,8 @@ const char *Q_ColorStringTerminator( const char *str, int finalcolor )
 	// see what color the string ends in
 	while( 1 )
 	{
-		int gc = Q_GrabCharFromColorString( &s, &c, &colorindex, NULL, NULL );
-		if( gc == GRABCHAR_CHAR )
+		int gc = Q_GrabCharFromColorString( &s, &c, &colorindex, NULL, NULL,NULL );
+		if( gc == GRABCHAR_CHAR || gc == GRABCHAR_RGB || gc == GRABCHAR_ANSI)
 			;
 		else if( gc == GRABCHAR_COLOR )
 			lastcolor = colorindex;
@@ -934,7 +953,7 @@ const char *Q_ColorStringTerminator( const char *str, int finalcolor )
 * Returns the last color in a string, or the previous color specified in the argument.
 * Returns Q_COLOR_ANSI_ESCAPE for an ansi color sequence
 */
-int Q_ColorStrLastColor( int previous, const char *s, int maxlen, int *ansicolorindex, int *bgcolorindex )
+int Q_ColorStrLastColor( int previous, const char *s, int maxlen, int *ansicolorindex, int *bgcolorindex, int *rgbcolor )
 {
 	char c;
 	const char *end = s;
@@ -942,13 +961,14 @@ int Q_ColorStrLastColor( int previous, const char *s, int maxlen, int *ansicolor
 
 	int _ansicolorindex;
 	int _bgcolorindex;
+	int _rgbcolor;
 
 	if( maxlen > 0 )
 		end += maxlen;
 
 	while( ( s < end ) || ( maxlen < 0 ) )
 	{
-		int gc = Q_GrabCharFromColorString( &s, &c, &colorindex, &_ansicolorindex, &_bgcolorindex );
+		int gc = Q_GrabCharFromColorString( &s, &c, &colorindex, &_ansicolorindex, &_bgcolorindex, &_rgbcolor );
 		if( gc == GRABCHAR_CHAR )
 			;
 		else if( gc == GRABCHAR_COLOR )
@@ -959,6 +979,11 @@ int Q_ColorStrLastColor( int previous, const char *s, int maxlen, int *ansicolor
 			if (bgcolorindex)
 				*bgcolorindex = _bgcolorindex;
 			lastcolor = Q_COLOR_ANSI_ESCAPE;
+		}
+		else if( gc == GRABCHAR_RGB ) {
+			if (rgbcolor)
+				*rgbcolor = _rgbcolor;
+			lastcolor = Q_COLOR_RGB_ESCAPE;
 		}
 		else if( gc == GRABCHAR_END )
 			break;

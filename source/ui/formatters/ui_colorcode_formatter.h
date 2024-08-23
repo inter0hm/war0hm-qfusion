@@ -52,7 +52,7 @@ public:
 
 			s = it->CString();
 			while( s ) {
-				gc = Q_GrabWCharFromColorString( &s, &num, &colorindex, NULL, NULL );
+				gc = Q_GrabWCharFromColorString( &s, &num, &colorindex, NULL, NULL, NULL );
 
 				if( gc == GRABCHAR_CHAR ) {
 					colorblock += Q_WCharToUtf8Char( num );
@@ -93,7 +93,7 @@ public:
 					}
 					break;
 				}
-				else if  (gc == GRABCHAR_ANSI) {
+				else if (gc == GRABCHAR_ANSI || gc == GRABCHAR_RGB ) {
 					// ignore
 					break;
 				}
