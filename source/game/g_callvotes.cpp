@@ -619,6 +619,49 @@ static const char *G_VoteGametypeCurrent( void )
 	return gs.gametypeName;
 }
 
+/*
+* instagib
+*/
+static bool G_VoteInstagibValidate( callvotedata_t *vote, bool first )
+{
+	int instagib = atoi( vote->argv[0] );
+
+	if( instagib != 0 && instagib != 1 )
+		return false;
+
+	if( instagib && g_instagib->integer )
+	{
+		if( first ) 
+			G_PrintMsg( vote->caller, "%sInstagib is already enabled\n", S_COLOR_RED );
+		return false;
+	}
+
+	if( !instagib && !g_instagib->integer )
+	{
+		if( first ) 
+			G_PrintMsg( vote->caller, "%sInstagib is already disabled\n", S_COLOR_RED );
+		return false;
+	}
+
+	return true;
+}
+
+static void G_VoteInstagibPassed( callvotedata_t *vote )
+{
+	trap_Cvar_Set( "g_instagib", va( "%i", atoi( vote->argv[0] ) ) );
+
+	trap_Cmd_ExecuteText( EXEC_APPEND, va("map \"%s\"", level.mapname) );
+}
+
+static const char *G_VoteInstagibCurrent( void )
+{
+	if( g_instagib->integer )
+		return "1";
+	else
+		return "0";
+}
+
+
 
 /*
 * warmup_timelimit
@@ -2698,6 +2741,17 @@ void G_CallVotes_Init( void )
 	callvote->argument_type = G_LevelCopyString( "option" );
 	callvote->webRequest = G_VoteGametypeWebRequest;
 	callvote->help = G_LevelCopyString( "Changes the gametype" );
+
+	callvote = G_RegisterCallvote( "instagib" );
+	callvote->expectedargs = 1;
+	callvote->validate = G_VoteInstagibValidate;
+	callvote->execute = G_VoteInstagibPassed;
+	callvote->current = G_VoteInstagibCurrent;
+	callvote->extraHelp = NULL;
+	callvote->argument_format = G_LevelCopyString( "<1 or 0>" );
+	callvote->argument_type = G_LevelCopyString( "bool" );
+	callvote->need_auth = true;
+	callvote->help = G_LevelCopyString( "Enables instagib" );
 
 	callvote = G_RegisterCallvote( "warmup_timelimit" );
 	callvote->expectedargs = 1;
