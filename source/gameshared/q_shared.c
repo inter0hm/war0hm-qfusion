@@ -696,12 +696,12 @@ int Q_GrabCharFromColorString( const char **pstr, char *c, int *colorindex, int 
 			( *pstr ) += 3;
 			return GRABCHAR_ANSI;
 		} else if ( ( *pstr )[1] == Q_COLOR_RGB_ESCAPE && strlen(*pstr) > 6 &&
-			HEXVALID( *(*pstr + 1 )) && HEXVALID( *(*pstr + 2 ) ) &&
-			HEXVALID( *(*pstr + 3 ) ) && HEXVALID( *(*pstr + 4 ) ) &&
-			HEXVALID( *(*pstr + 5 ) ) && HEXVALID( *(*pstr + 6 ) ))
+			HEXVALID( *(*pstr + 2 )) && HEXVALID( *(*pstr + 3 ) ) &&
+			HEXVALID( *(*pstr + 4 ) ) && HEXVALID( *(*pstr + 5 ) ) &&
+			HEXVALID( *(*pstr + 6 ) ) && HEXVALID( *(*pstr + 7 ) ))
 		{
 			if (rgbcolor)
-				*rgbcolor = TOHEX( *(*pstr + 1) ) << 20 | TOHEX( *(*pstr + 2) ) << 16 | TOHEX( *(*pstr + 3) ) << 12 | TOHEX( *(*pstr + 4) ) << 8 | TOHEX( *(*pstr + 5) ) << 4 | TOHEX( *(*pstr + 6) );
+				*rgbcolor = TOHEX( *(*pstr + 2) ) << 20 | TOHEX( *(*pstr + 3) ) << 16 | TOHEX( *(*pstr + 4) ) << 12 | TOHEX( *(*pstr + 5) ) << 8 | TOHEX( *(*pstr + 6) ) << 4 | TOHEX( *(*pstr + 7) );
 			( *pstr ) += 7;
 
 			return GRABCHAR_RGB;
@@ -877,9 +877,19 @@ int COM_SanitizeColorString( const char *str, char *buf, int bufsize, int maxpri
 		}
 		else if( gc == GRABCHAR_COLOR )
 			newcolor = colorindex;
-		else if ( gc == GRABCHAR_ANSI || gc == GRABCHAR_RGB )
-			// TODO: proper handling here
-			newcolor = 0;
+		else if ( gc == GRABCHAR_ANSI ) {
+			*out++ = Q_COLOR_ESCAPE;
+			*out++ = *(in-2);
+			*out++ = *(in-1);
+		} else if ( gc == GRABCHAR_RGB ) {
+			*out++ = Q_COLOR_ESCAPE;
+			*out++ = *(in-6);
+			*out++ = *(in-5);
+			*out++ = *(in-4);
+			*out++ = *(in-3);
+			*out++ = *(in-2);
+			*out++ = *(in-1);
+		}
 		else if( gc == GRABCHAR_END )
 			break;
 		else
