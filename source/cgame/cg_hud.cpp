@@ -1149,7 +1149,7 @@ static void CG_DrawVoices( int x, int y, int align, struct qfontface_s *font, ve
 	unsigned line_height;
 	int xoffset, yoffset = 0;
 	struct shader_s *pic;
-	vec4_t teamcolor;
+	vec4_t teamcolor{0,0,0,1.0};
 
 	if ( trap_Cvar_String("cl_enablevoice")[0] != '1' ) return;
 
