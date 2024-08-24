@@ -373,7 +373,7 @@ void FTLIB_DrawClampChar( int x, int y, wchar_t num, int xmin, int ymin, int xma
 	if (!shaderWhite)
 		shaderWhite = trap_R_RegisterPic("$whiteimage");
 
-	draw( ix - 1, iy - 1, font->advance + 1, font->height + 1,
+	draw( ix - 1, iy - 1, glyph->x_advance, font->height + 1,
 		0.0f, 0.0f, 1.0f, 1.0f,
 		bgcolor, shaderWhite );
 	draw( x, y, x2 - x, y2 - y,
@@ -450,6 +450,7 @@ void FTLIB_DrawClampString( int x, int y, const char *str, int xmin, int ymin, i
 		{
 			assert( ( unsigned )colorindex < MAX_S_COLORS );
 			VectorCopy( color_table[colorindex], scolor );
+			bgcolor[3] = 0.0f;
 		}
 		else if(gc == GRABCHAR_ANSI ){
 			Vector4Copy( ansi_color_table[colorindexansi], scolor );
