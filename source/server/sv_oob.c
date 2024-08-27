@@ -27,6 +27,12 @@ typedef struct sv_master_s
 	master_type_t type;
 } sv_master_t;
 
+#define WARMONGER_MAGIC "warfork"
+enum {
+	WARMONGER_ADVERTISE = 1,
+	WARMONGER_CLOSE_NOTIFY = 2,
+};
+
 static sv_master_t sv_masters[MAX_MASTERS];
 
 extern cvar_t *sv_masterservers;
@@ -197,14 +203,24 @@ void SV_MasterSendQuit( void )
 	{
 		sv_master_t *master = &sv_masters[i];
 
-		if( master->type == MASTER_STEAM && ( master->address.type != NA_NOTRANSMIT ) )
+		if (master->address.type == NA_NOTRANSMIT) continue;
+
+		if( dedicated && dedicated->integer )
+			Com_Printf( "Sending quit to %s\n", NET_AddressToString( &master->address ) );
+
+		if( master->type == MASTER_STEAM )
 		{
 			socket_t *socket = ( master->address.type == NA_IP6 ? &svs.socket_udp6 : &svs.socket_udp );
 
-			if( dedicated && dedicated->integer )
-				Com_Printf( "Sending quit to %s\n", NET_AddressToString( &master->address ) );
-
 			NET_SendPacket( socket, ( const uint8_t * )quitMessage, sizeof( quitMessage ), &master->address );
+		} else if (master->type == MASTER_WARFORK) {
+			socket_t *socket = ( master->address.type == NA_IP6 ? &svs.socket_udp6 : &svs.socket_udp );
+
+			MSG_Init(&tmpMessage, tmpMessageData, sizeof(tmpMessageData));
+			MSG_WriteString(&tmpMessage, WARMONGER_MAGIC);
+			MSG_WriteByte(&tmpMessage, WARMONGER_CLOSE_NOTIFY); // close notify
+			MSG_WriteLongLong(&tmpMessage, svs.steamid);
+			NET_SendPacket( socket, tmpMessageData, tmpMessage.cursize, &master->address );
 		}
 	}
 }
@@ -572,8 +588,8 @@ static void SV_SendWFHeartbeat( const socket_t *socket, const netadr_t *address 
 	printf("Address: %s\n", NET_AddressToString( address ));
 
 	MSG_Init(&tmpMessage, tmpMessageData, sizeof(tmpMessageData));
-	MSG_WriteString(&tmpMessage, "warfork"); // magic string
-	MSG_WriteByte(&tmpMessage, 1); // advertise
+	MSG_WriteString(&tmpMessage, WARMONGER_MAGIC);
+	MSG_WriteByte(&tmpMessage, WARMONGER_ADVERTISE); // advertise
 	MSG_WriteLongLong(&tmpMessage, svs.steamid);
 
 	char *info = SV_ShortInfoString();
