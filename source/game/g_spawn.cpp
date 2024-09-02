@@ -929,6 +929,7 @@ void G_InitLevel( char *mapname, char *entities, int entstrlen, unsigned int lev
 	trap_ConfigString( CS_SCB_PLAYERTAB_TITLES, "" );
 	trap_ConfigString( CS_MATCHNAME, "" );
 	trap_ConfigString( CS_MATCHSCORE, "" );
+	trap_ConfigString( CS_MOVEMENT, va( "%i %i %i", 1000, 1300, 700 )); // dashjump, walljump, failed walljump
 
 	// reset map messages
 	for( i = 0; i < MAX_HELPMESSAGES; i++ ) {
