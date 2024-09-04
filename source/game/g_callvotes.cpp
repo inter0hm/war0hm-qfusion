@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <string>
 #include "g_local.h"
 
+#define MAX_MAPS_AJAX 128 // must be lower than MAX_RELIABLE_COMMANDS
+
 //===================================================================
 
 int clientVoted[MAX_CLIENTS];
@@ -359,6 +361,9 @@ static void G_VoteMapAjaxRequest( edict_t *caller, const char *resource )
 	}
 	else {
 		for( i = 0; trap_ML_GetMapByNum( i, buffer, sizeof( buffer ) ); i++ ) {
+			if ( i > MAX_MAPS_AJAX ) // no need to send thousands of maps no one will read
+				break;
+							 
 			trap_ServerCmd( caller, va(
 				"ajaxrespond \"%s\" \""
 				"value\\%s\\"
@@ -2922,7 +2927,6 @@ http_response_code_t G_CallVotes_WebRequest( http_query_method_t method, const c
 
 void G_Ajax_Cmd( edict_t *caller ) {
  	char *resource = trap_Cmd_Argv( 1 );
- 	printf( "Resource: %s\n", resource );
 
 	callvotetype_t *callvote;
 	if( !Q_strnicmp( resource, "players", 7 ) ) {
