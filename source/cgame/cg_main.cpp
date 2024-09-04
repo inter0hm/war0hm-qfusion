@@ -1128,6 +1128,15 @@ void CG_PlayVoice(void *buffer, size_t size, int clientnum) {
 	ent->speaking = true;
 	ent->lastSpeakTime = cg.time;
 
+	int i = 0;
+	uint64_t test_steamid;
+	while (CG_GetBlocklistItem(i, &test_steamid, NULL, NULL))  {
+		if (test_steamid == cgs.clientInfo[clientnum].steamid) {
+			// player is blocked
+			return;
+		}
+		i++;
+	}
 
 	// should voice be global or come from the player's position?
 	trap_S_PositionedRawSamples(-9999, cg_volume_voicechats->integer, 0, size / bytes_per_sample, VOICE_SAMPLE_RATE, bytes_per_sample, 1, (const unsigned char*)buffer);
