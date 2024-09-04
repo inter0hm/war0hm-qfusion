@@ -1243,6 +1243,7 @@ struct gclient_s
 	bool isoperator;
 	unsigned int queueTimeStamp;
 	int muted; // fallback if steam auth is disabled. see SV_FilterSteamID
+	int lastFailedCallvoteTime;
 
 	usercmd_t ucmd;
 	int timeDelta;              // time offset to adjust for shots collision (antilag)
