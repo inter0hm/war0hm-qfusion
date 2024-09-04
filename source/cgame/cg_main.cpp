@@ -1102,14 +1102,25 @@ void CG_PlayVoice(void *buffer, size_t size, int clientnum) {
 	int bytes_per_sample = 2;
 
 	double sum = 0;
+	double max = 0;
 	int nsamples = size / bytes_per_sample;
+
 	int16_t *buf = (int16_t*)buffer;
 	for (int i = 0; i < nsamples; i++) {
 		sum += buf[i] * buf[i];
+		if (abs(buf[i]) > max) {
+			max = abs(buf[i]);
+		}
 	}
+
 	double rms = sqrt(sum / nsamples);
 	if (rms < 1000) {
 		return;
+	}
+
+	float norm = 32767.0f / max;
+	for (int i = 0; i < nsamples; i++) {
+		buf[i] = (int16_t)(buf[i] * norm);
 	}
 
 	int entnum = clientnum + 1;
