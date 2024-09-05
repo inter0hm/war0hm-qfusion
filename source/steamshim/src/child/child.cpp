@@ -464,9 +464,6 @@ static bool initSteamworks( PipeType fd )
 		GServerBrowser->RefreshInternetServers();
 
 		SteamNetworkingUtils()->InitRelayNetworkAccess();
-
-		SteamUser()->StartVoiceRecording();
-
 	}
 
 	if( GRunServer ) {

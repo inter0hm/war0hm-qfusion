@@ -1170,18 +1170,26 @@ static void CG_DrawVoices( int x, int y, int align, struct qfontface_s *font, ve
 			continue;
 		cent = &cg_entities[i + 1];
 
-		if( cent->lastSpeakTime + 100 < cg.time ) {
-			cent->speaking = false;
-			continue;
-		}
+		// if( cent->lastSpeakTime + 100 < cg.time ) {
+		// 	cent->speaking = false;
+		// 	continue;
+		// }
 
-		if( cent->speaking )
+		// if( cent->speaking )
 			speakingClients.push_back( std::make_pair( cent, &cgs.clientInfo[i] ) );
 	}
 
 	std::sort( speakingClients.begin(), speakingClients.end(), []( const speakpair_t a, const speakpair_t b ) {
 		return a.first->lastSpeakTime > b.first->lastSpeakTime;
 	} );
+
+	int maxnamewidth = 0;
+	for ( auto speaker : speakingClients)
+	{
+		auto client = speaker.second;
+		int namewidth = trap_SCR_strWidth(client->name, font, 0 );
+		maxnamewidth = max( maxnamewidth, namewidth );
+	}
 
 	for ( auto speaker : speakingClients)
 	{
@@ -1196,12 +1204,11 @@ static void CG_DrawVoices( int x, int y, int align, struct qfontface_s *font, ve
 			CG_TeamColor( team, teamcolor );
 		teamcolor[3] = 0.25f; // make transparent
 
-		int namewidth = trap_SCR_strWidth(client->name, font, 0 );
 
 		int xspacing = 5;
 
 		// bg rect
-		RF_DrawStretchPic( x + xoffset, y + yoffset, namewidth + icon_size * 2 + xspacing*4, line_height, 0, 0, 1, 1, teamcolor, cgs.shaderWhite );
+		RF_DrawStretchPic( x + xoffset, y + yoffset, maxnamewidth + icon_size * 2 + xspacing*4, line_height, 0, 0, 1, 1, teamcolor, cgs.shaderWhite );
 
 		// pfp
 		RF_DrawStretchPic( x + xoffset, y + yoffset, icon_size, icon_size, 0, 0, 1, 1, colorWhite, client->avatar );
@@ -1209,7 +1216,7 @@ static void CG_DrawVoices( int x, int y, int align, struct qfontface_s *font, ve
 
 		// name
 		trap_SCR_DrawString( x + xoffset, y + yoffset + ( line_height - trap_SCR_FontHeight( font ) ) / 2, ALIGN_LEFT_TOP, client->name, font, colorWhite );
-		xoffset += namewidth;
+		xoffset += maxnamewidth;
 		xoffset += xspacing;
 
 		// voice icon
