@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iterator>
 #include "datasources/ui_serverbrowser_datasource.h"
+#import "../../qcommon/qcommon.h"
 
 namespace WSWUI {
 
@@ -761,7 +762,7 @@ void ServerBrowserDataSource::startFullUpdate( void )
 
 	for( std::vector<std::string>::iterator it = masterServersWF.begin(); it != masterServersWF.end(); ++it ) {
 		char url[256];
-		snprintf(url, sizeof(url), "http://%s:27950/", it->c_str());
+		snprintf(url, sizeof(url), "http://%s:%i/", it->c_str(), PORT_MASTER_WARFORK);
 
 
 		auto fetcher = new WFMasterFetcher(this);
