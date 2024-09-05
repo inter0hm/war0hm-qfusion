@@ -33,7 +33,7 @@ void Steam_Init( void )
 
 	 SteamshimOptions opts;
 	 opts.debug = steam_debug->integer;
-	 opts.runserver = dedicated->integer;
+	 opts.runserver = 1;
 	 opts.runclient = !dedicated->integer;
 	int r = STEAMSHIM_init( &opts );
 	if( !r ) {

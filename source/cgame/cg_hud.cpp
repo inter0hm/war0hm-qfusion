@@ -1170,12 +1170,12 @@ static void CG_DrawVoices( int x, int y, int align, struct qfontface_s *font, ve
 			continue;
 		cent = &cg_entities[i + 1];
 
-		// if( cent->lastSpeakTime + 100 < cg.time ) {
-		// 	cent->speaking = false;
-		// 	continue;
-		// }
+		if( cent->lastSpeakTime + 100 < cg.time ) {
+			cent->speaking = false;
+			continue;
+		}
 
-		// if( cent->speaking )
+		if( cent->speaking )
 			speakingClients.push_back( std::make_pair( cent, &cgs.clientInfo[i] ) );
 	}
 
