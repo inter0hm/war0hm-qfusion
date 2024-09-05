@@ -52,6 +52,16 @@ extern cvar_t *sv_iplimit;
 //==============================================================================
 
 
+static unsigned short SV_MasterPort( master_type_t type ) {
+	switch( type ) {
+		case MASTER_STEAM:
+			return PORT_MASTER_STEAM;
+		case MASTER_WARFORK:
+			return PORT_MASTER_WARFORK;
+		case MASTER_DARKPLACES:
+			return PORT_MASTER;
+	}
+}
 /*
 * SV_AddMaster_f
 * Add a master server to the list
@@ -87,7 +97,7 @@ static void SV_AddMaster_f( char *address, master_type_t type )
 		}
 
 		if( NET_GetAddressPort( &master->address ) == 0 )
-			NET_SetAddressPort( &master->address, type == MASTER_STEAM ? PORT_MASTER_STEAM : PORT_MASTER );
+			NET_SetAddressPort( &master->address, SV_MasterPort(type) );
 
 		master->type = type;
 
@@ -97,6 +107,7 @@ static void SV_AddMaster_f( char *address, master_type_t type )
 
 	Com_Printf( "'SV_AddMaster_f' List of master servers is already full\n" );
 }
+
 
 /*
 * SV_ResolveMaster
