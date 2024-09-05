@@ -575,7 +575,7 @@
 
 				bool usep2p = (preferp2p.integer == 1) || address.empty();
 				if ( steamid != 0 && usep2p ) {
-					game.exec( 'connect steam:"' + steamid + '"\n' );
+					game.exec( 'connect "steam:' + steamid + '"\n' );
 					return;
 				}
 
