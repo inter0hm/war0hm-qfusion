@@ -1318,7 +1318,7 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg )
 					{
 						SV_InitClientMessage(cl, &tmpMessage, NULL, 0);
 						MSG_WriteByte(&tmpMessage, svc_voice);
-						MSG_WriteShort(&tmpMessage, cl->edict->s.ownerNum);
+						MSG_WriteShort(&tmpMessage, client->edict->s.number - 1);
 						MSG_WriteShort(&tmpMessage, voiceDataSize);
 						MSG_CopyData(&tmpMessage, voiceData, voiceDataSize);
 						SV_SendMessageToClient(cl, &tmpMessage);
