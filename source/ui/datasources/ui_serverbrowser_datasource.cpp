@@ -3,7 +3,6 @@
 #include "kernel/ui_main.h"
 #include "kernel/ui_utils.h"
 
-#include <endian.h>
 #include <sstream>
 #include <iterator>
 #include "datasources/ui_serverbrowser_datasource.h"
@@ -21,6 +20,13 @@ namespace WSWUI {
 #define TABLE_SUFFIX_SUGGESTIONS "_suggestions"
 
 //=====================================
+
+static uint16_t be16toh(uint16_t x) {
+	volatile uint16_t num = 1;
+	if (*(char *)&num == 0)
+		return x;
+	return (x & 0xFF) << 8 | (x >> 8);
+}
 
 namespace {
 
