@@ -329,7 +329,17 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 	 		prepared_rpc_packet(&req->common, recv);
 	 		write_packet(GPipeWrite, recv, sizeof(struct decompress_voice_recv_s) + size);
 	 	 	break;
-	 	 }
+	 	}
+	 	case RPC_START_VOICE_RECORDING: {
+			SteamUser()->StartVoiceRecording();
+			SteamFriends()->SetInGameVoiceSpeaking(SteamUser()->GetSteamID(), true);
+			break;
+	 	}
+	 	case RPC_STOP_VOICE_RECORDING: {
+			SteamUser()->StopVoiceRecording();
+			SteamFriends()->SetInGameVoiceSpeaking(SteamUser()->GetSteamID(), false);
+			break;
+	 	}
 		case RPC_REQUEST_STEAM_ID: {
 			struct steam_id_rpc_s recv;
 			prepared_rpc_packet( &req->common, &recv );
