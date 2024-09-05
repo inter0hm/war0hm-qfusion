@@ -685,5 +685,4 @@ void CL_Sys_Shutdown( void );
 // cl_steam.c
 //
 
-void Steam_AdvertiseGame( const uint8_t *ip, unsigned short port, uint32_t* syncToken);
-
+void Steam_AdvertiseGame( netadr_t *addr, uint32_t* syncToken);

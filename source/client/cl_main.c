@@ -492,12 +492,7 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 static void CB_P2P_Connect( void *self, struct steam_rpc_pkt_s *rec ){
 	printf("P2P Connect success: %d\n", rec->p2p_connect_recv.success);
 
-	netadr_t serveraddress;
-	NET_InitAddress( &serveraddress, NA_IP );
-
-
-	NET_SteamidToAddress( rec->p2p_connect_recv.steamID, &serveraddress );
-	CL_Connect( "p2p server test", SOCKET_SDR, &serveraddress, "");
+	CL_Connect( "steam server", SOCKET_SDR, self, "");
 }
 
 static void CL_ConnectP2P_f() {
@@ -511,7 +506,12 @@ static void CL_ConnectP2P_f() {
 	struct p2p_connect_req_s req;
 	req.cmd = RPC_P2P_CONNECT;
 	req.steamID = steamid;
-	STEAMSHIM_sendRPC(&req, sizeof req, NULL, CB_P2P_Connect, NULL);
+
+	static netadr_t serveraddress;
+	NET_InitAddress( &serveraddress, NA_SDR );
+	serveraddress.address.steamid = steamid;
+
+	STEAMSHIM_sendRPC(&req, sizeof req, &serveraddress, CB_P2P_Connect, NULL);
 }
 
 /*
@@ -1183,6 +1183,7 @@ void CL_Reconnect_f( void )
 	servername = TempCopyString( cls.servername );
 	servertype = cls.servertype;
 	serveraddress = cls.serveraddress;
+
 	CL_Disconnect( NULL );
 	CL_Connect( servername, servertype, &serveraddress, "" );
 	Mem_TempFree( servername );
@@ -1952,7 +1953,7 @@ void CL_SetClientState( int state )
 	Com_SetClientState( state );
 
 	if( state <= CA_DISCONNECTED )
-		Steam_AdvertiseGame( NULL, 0, NULL);
+		Steam_AdvertiseGame( NULL, NULL);
 
 	switch( state )
 	{

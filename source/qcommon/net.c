@@ -360,7 +360,8 @@ static void NET_SDR_ConsumePacket(void* self, struct steam_rpc_pkt_s* rpc) {
 	message->cursize = size;
 
 	memcpy(message->data, recv->buffer, size);
-	NET_SteamidToAddress(recv->steamID, address);
+	NET_InitAddress(address, NA_SDR);
+	address->address.steamid = recv->steamID;
 	netRecieve->result = 1;
 }
 
@@ -1211,6 +1212,12 @@ char *NET_AddressToString( const netadr_t *a )
 				BigShort( adr6->port ) );
 			break;
 		}
+	case NA_SDR:
+		{
+			Q_snprintfz( s, sizeof( s ), "steam:%llu", a->address.steamid );
+			break;
+		}
+
 	default:
 		assert( false );
 		Q_strncpyz( s, "unknown", sizeof( s ) );
@@ -1250,6 +1257,8 @@ bool NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b )
 			const netadr_ipv6_t *addr2 = &b->address.ipv6;
 			return ( ( memcmp( addr1->ip, addr2->ip, sizeof( addr1->ip ) ) == 0 && addr1->scope_id == addr2->scope_id ) ? true : false );
 		}
+	case NA_SDR:
+		return a->address.steamid == b->address.steamid;
 
 	default:
 		assert( false );
@@ -1341,6 +1350,9 @@ bool NET_CompareAddress( const netadr_t *a, const netadr_t *b )
 
 			return false;
 		}
+
+	case NA_SDR:
+		return a->address.steamid == b->address.steamid;
 
 	default:
 		assert( false );
@@ -1496,22 +1508,6 @@ static bool StringToSockaddress( const char *s, struct sockaddr_storage *sadr )
 	return false;
 }
 
-
-// Create a (hopefully) unique address 
-bool NET_SteamidToAddress(uint64_t steamid, netadr_t *address) {
-
-	// only the lower 32 bits are significant
-	uint32_t accountid = steamid & 0xFFFFFFFF;
-
-	address->type = NA_IP;
-	address->address.ipv4.ip[0] = accountid & 0xFF;
-	address->address.ipv4.ip[1] = (accountid >> 8) & 0xFF;
-	address->address.ipv4.ip[2] = (accountid >> 16) & 0xFF;
-	address->address.ipv4.ip[3] = (accountid >> 24) & 0xFF;
-	address->address.ipv4.port = 44400;
-
-	return true;
-}
 
 /*
 * NET_StringToAddress

@@ -423,7 +423,9 @@ static void SV_ReadPackets( void )
 		req.handle = p2p_handles[i].handle;
 		uint32_t syncIndex;
 		
-		NET_SteamidToAddress(p2p_handles[i].steamid, &address);
+		NET_InitAddress(&address, NA_SDR);
+		address.address.steamid = p2p_handles[i].steamid;
+
 		socket->address = address;
 		socket->type = SOCKET_SDR;
 		socket->handle = p2p_handles[i].handle;

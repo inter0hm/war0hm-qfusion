@@ -517,6 +517,7 @@ typedef enum
 	NA_LOOPBACK,
 	NA_IP,
 	NA_IP6,
+	NA_SDR,
 } netadrtype_t;
 
 typedef struct netadr_ipv4_s
@@ -539,6 +540,7 @@ typedef struct netadr_s
 	{
 		netadr_ipv4_t ipv4;
 		netadr_ipv6_t ipv6;
+		uint64_t steamid;
 	} address;
 } netadr_t;
 
@@ -622,7 +624,6 @@ const char *NET_SocketTypeToString( socket_type_t type );
 const char *NET_SocketToString( const socket_t *socket );
 char	   *NET_AddressToString( const netadr_t *address );
 bool		NET_StringToAddress( const char *s, netadr_t *address );
-bool NET_SteamidToAddress(uint64_t steamid, netadr_t *address);
 
 unsigned short	NET_GetAddressPort( const netadr_t *address );
 void			NET_SetAddressPort( netadr_t *address, unsigned short port );
