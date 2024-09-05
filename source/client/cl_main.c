@@ -421,15 +421,25 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 		cls.reliable = false;
 		break;
 	case SOCKET_SDR:
-		cls.socket = &cls.socket_sdr;
-		cls.socket->address = *address;
-		cls.socket->type = SOCKET_SDR;
-		cls.socket->open = true;
-		cls.socket->remoteAddress = *address;
-		cls.socket->connected = true;
-		cls.socket->server = false;
-		cls.socket->handle = 0;
-		cls.reliable = false;
+		{
+			struct p2p_connect_req_s req;
+			req.cmd = RPC_P2P_CONNECT;
+			req.steamID = address->address.steamid;
+			uint32_t sync;
+			STEAMSHIM_sendRPC(&req, sizeof req, NULL, NULL, &sync);
+			// do we need to wait for connection open?
+			// STEAMSHIM_waitDispatchSync(sync);
+
+			cls.socket = &cls.socket_sdr;
+			cls.socket->address = *address;
+			cls.socket->type = SOCKET_SDR;
+			cls.socket->open = true;
+			cls.socket->remoteAddress = *address;
+			cls.socket->connected = true;
+			cls.socket->server = false;
+			cls.socket->handle = 0;
+			cls.reliable = false;
+		}
 		break;
 
 	case SOCKET_UDP:
@@ -481,6 +491,7 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 		Q_strncpyz( cl_connectChain, serverchain, sizeof( cl_connectChain ) );
 	}
 
+	cls.full_connect_time = Sys_Milliseconds() + 1;
 	cls.connect_time = -99999; // CL_CheckForResend() will fire immediately
 	cls.connect_count = 0;
 	cls.rejected = false;
@@ -491,8 +502,6 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 
 static void CB_P2P_Connect( void *self, struct steam_rpc_pkt_s *rec ){
 	printf("P2P Connect success: %d\n", rec->p2p_connect_recv.success);
-
-	CL_Connect( "steam server", SOCKET_SDR, self, "");
 }
 
 static void CL_ConnectP2P_f() {
@@ -503,15 +512,10 @@ static void CL_ConnectP2P_f() {
 
 	uint64_t steamid = atoll(Cmd_Argv(1));
 
-	struct p2p_connect_req_s req;
-	req.cmd = RPC_P2P_CONNECT;
-	req.steamID = steamid;
-
 	static netadr_t serveraddress;
 	NET_InitAddress( &serveraddress, NA_SDR );
 	serveraddress.address.steamid = steamid;
 
-	STEAMSHIM_sendRPC(&req, sizeof req, &serveraddress, CB_P2P_Connect, NULL);
 }
 
 /*
@@ -584,6 +588,10 @@ static void CL_Connect_Cmd_f( socket_type_t socket )
 		Mem_TempFree( connectstring_base );
 		Com_Printf( "Bad server address\n" );
 		return;
+	}
+
+	if (serveraddress.type == NA_SDR) {
+		socket = SOCKET_SDR;
 	}
 
 	// wait until MM allows us to connect to a server
@@ -997,6 +1005,7 @@ void CL_Disconnect( const char *message )
 			time/1000.0, cl.timedemo.frames*1000.0 / time );
 	}
 
+	cls.full_connect_time = 0;
 	cls.connect_time = 0;
 	cls.connect_count = 0;
 	cls.rejected = false;

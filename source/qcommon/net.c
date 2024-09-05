@@ -1521,6 +1521,13 @@ bool NET_StringToAddress( const char *s, netadr_t *address )
 
 	memset( address, 0, sizeof( *address ) );
 
+	if ( !strncmp( s, "steam:", 6 ) )
+	{
+		address->type = NA_SDR;
+		address->address.steamid = atoll( s + 6 );
+		return true;
+	}
+
 	if( !StringToSockaddress( s, &sadr ) )
 	{
 		address->type = NA_NOTRANSMIT;
