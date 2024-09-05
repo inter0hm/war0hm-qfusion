@@ -244,6 +244,7 @@ typedef struct
 	socket_type_t servertype;       // socket type used to connect to the server
 	netadr_t serveraddress;         // address of that server
 	int connect_time;               // for connection retransmits
+	int full_connect_time;          // the time that the user actually clicked "connect"
 	int connect_count;
 
 	socket_t *socket;               // socket used by current connection
