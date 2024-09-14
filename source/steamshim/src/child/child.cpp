@@ -23,6 +23,7 @@ freely, subject to the following restrictions:
 #include <ctime>
 #include <chrono>
 #include <thread>
+#include <stdlib.h>
 
 #include "child_private.h"
 #include "../steamshim_private.h"
@@ -33,6 +34,7 @@ freely, subject to the following restrictions:
 #include "steam/isteamutils.h"
 #include "steam/steam_api.h"
 #include "steam/steam_gameserver.h"
+#include "ServerBrowser.h"
 
 
 static bool GRunServer = false;
@@ -44,32 +46,21 @@ static ISteamUser *GSteamUser = NULL;
 static AppId_t GAppID = 0;
 static uint64 GUserID = 0;
 static ISteamGameServer *GSteamGameServer = NULL;
+ServerBrowser *GServerBrowser = NULL;
 static time_t time_since_last_pump = 0;
 
 static SteamCallbacks *GSteamCallbacks;
 
 static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
 {
-  #if 1
-    if (false) {}
-#define PRINTGOTCMD(x) else if (cmdtype && cmdtype == x) dbgprintf("Child got " #x ".\n")
-    PRINTGOTCMD(SHIMCMD_BYE);
-    // PRINTGOTCMD(SHIMCMD_PUMP);
-    PRINTGOTCMD(SHIMCMD_REQUESTSTEAMID);
-    PRINTGOTCMD(SHIMCMD_REQUESTPERSONANAME);
-    PRINTGOTCMD(SHIMCMD_SETRICHPRESENCE);
-    PRINTGOTCMD(SHIMCMD_REQUESTAUTHSESSIONTICKET);
-    PRINTGOTCMD(SHIMCMD_BEGINAUTHSESSION);
-    PRINTGOTCMD(SHIMCMD_ENDAUTHSESSION);
-    PRINTGOTCMD(SHIMCMD_REQUESTAVATAR);
-#undef PRINTGOTCMD
-    else if (cmdtype != SHIMCMD_PUMP) printf("Child got unknown shimcmd %d.\n", (int) cmdtype);
-#endif
 
+    if (debug){
+        // dbgprintf("Processing command %d\n", cmdtype);
+    }
     PipeBuffer msg;
     switch (cmdtype)
     {
-        case SHIMCMD_PUMP:
+        case CMD_PUMP:
             time(&time_since_last_pump);
             if (GRunServer)
                 SteamGameServer_RunCallbacks();
@@ -77,30 +68,27 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
                 SteamAPI_RunCallbacks();
             break;
 
-        case SHIMCMD_BYE:
-            return false;
-
-        case SHIMCMD_REQUESTSTEAMID:
+        case CMD_CL_REQUESTSTEAMID:
             {
                 unsigned long long id = SteamUser()->GetSteamID().ConvertToUint64();
 
-                msg.WriteByte(SHIMEVENT_STEAMIDRECIEVED);
+                msg.WriteByte(EVT_CL_STEAMIDRECIEVED);
                 msg.WriteLong(id);
                 msg.Transmit();
             }
             break;
 
-        case SHIMCMD_REQUESTPERSONANAME:
+        case CMD_CL_REQUESTPERSONANAME:
             {
                 const char* name = SteamFriends()->GetPersonaName();
 
-                msg.WriteByte(SHIMEVENT_PERSONANAMERECIEVED);
+                msg.WriteByte(EVT_CL_PERSONANAMERECIEVED);
                 msg.WriteData((void*)name, strlen(name));
                 msg.Transmit();
             }
             break;
 
-        case SHIMCMD_SETRICHPRESENCE:
+        case CMD_CL_SETRICHPRESENCE:
             {
                 int num = cmd.ReadInt();
 
@@ -111,19 +99,19 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
                 }
             }
             break;
-        case SHIMCMD_REQUESTAUTHSESSIONTICKET:
+        case CMD_CL_REQUESTAUTHSESSIONTICKET:
             {
                 char pTicket[AUTH_TICKET_MAXSIZE];
                 uint32 pcbTicket;
                 GSteamUser->GetAuthSessionTicket(pTicket,AUTH_TICKET_MAXSIZE, &pcbTicket);
 
-                msg.WriteByte(SHIMEVENT_AUTHSESSIONTICKETRECIEVED);
+                msg.WriteByte(EVT_CL_AUTHSESSIONTICKETRECIEVED);
                 msg.WriteLong(pcbTicket);
                 msg.WriteData(pTicket, AUTH_TICKET_MAXSIZE);
                 msg.Transmit();
             }
             break;
-        case SHIMCMD_BEGINAUTHSESSION:
+        case CMD_SV_BEGINAUTHSESSION:
             {
                 uint64 steamID = cmd.ReadLong();
                 long long cbAuthTicket = cmd.ReadLong();
@@ -132,57 +120,85 @@ static bool processCommand(PipeBuffer cmd, ShimCmd cmdtype, unsigned int len)
 
                 int result = GSteamGameServer->BeginAuthSession(pAuthTicket, cbAuthTicket, steamID);
 
-                msg.WriteByte(SHIMEVENT_AUTHSESSIONVALIDATED);
+                msg.WriteByte(EVT_SV_AUTHSESSIONVALIDATED);
                 msg.WriteInt(result);
                 msg.Transmit();
             }
             break;
-        case SHIMCMD_CREATEBEACON:
-            {
-
-                int openSlots = cmd.ReadInt();
-                char *connectString = cmd.ReadString();
-                char *metadata = cmd.ReadString();
-
-                uint32 puNumLocations = 0;
-                SteamParties()->GetNumAvailableBeaconLocations(&puNumLocations);
-                if (puNumLocations <= 0) return 0;
-
-                SteamPartyBeaconLocation_t *pLocationList = (SteamPartyBeaconLocation_t *)malloc(puNumLocations* sizeof(SteamPartyBeaconLocation_t) );
-                SteamParties()->GetAvailableBeaconLocations(pLocationList, puNumLocations);
-
-                SteamParties()->CreateBeacon(openSlots, pLocationList, connectString,metadata);
-                free(pLocationList);
-            }
-            break;
-        case SHIMCMD_REQUESTAVATAR:
+        case CMD_CL_REQUESTAVATAR:
             {
                 uint64 id = cmd.ReadLong();
+                SteamAvatarSize size = (SteamAvatarSize)cmd.ReadInt();
 
                 if (!SteamFriends()->RequestUserInformation(id, false)){
-                    TransmitAvatar(id);
+                    TransmitAvatar(id, size);
                 }
             }
             break;
-        case SHIMCMD_ENDAUTHSESSION:
+        case CMD_SV_ENDAUTHSESSION:
             {
                 uint64 steamID = cmd.ReadLong();
                 GSteamGameServer->EndAuthSession(steamID);
             }
             break;
-        case SHIMCMD_OPENPROFILE:
+        case CMD_CL_OPENPROFILE:
             {
                 uint64 steamID = cmd.ReadLong();
                 SteamFriends()->ActivateGameOverlayToUser("steamid", steamID);
             }
             break;
-        case SHIMCMD_REQUESTCOMMANDLINE:
+        case CMD_CL_REQUESTCOMMANDLINE:
             {
                 char cmdline[1024] = {0};
                 SteamApps()->GetLaunchCommandLine(cmdline, 1024);
-                msg.WriteByte(SHIMEVENT_COMMANDLINERECIEVED);
+                msg.WriteByte(EVT_CL_COMMANDLINERECIEVED);
                 msg.WriteString(cmdline);
                 msg.Transmit();
+            }
+            break;
+        case CMD_SV_UPDATESERVERINFO:
+            {
+                bool advertise = cmd.ReadByte();
+                GSteamGameServer->SetAdvertiseServerActive(advertise);
+                int botplayercount = cmd.ReadInt();
+                GSteamGameServer->SetBotPlayerCount(botplayercount);
+                bool dedicatedserver = cmd.ReadByte();
+                GSteamGameServer->SetDedicatedServer(dedicatedserver);
+                const char *gamedata = cmd.ReadString();
+                if (gamedata[0])
+                    GSteamGameServer->SetGameData(gamedata);
+                const char *gamedescription = cmd.ReadString();
+                if (gamedescription[0])
+                    GSteamGameServer->SetGameDescription(gamedescription);
+                const char *gametags = cmd.ReadString();
+                if (gametags[0])
+                    GSteamGameServer->SetGameTags(gametags);
+                int heartbeatinterval = cmd.ReadInt();
+                // GSteamGameServer->SetHeartbeatInterval(heartbeatinterval);
+                const char *mapname = cmd.ReadString();
+                if (mapname[0])
+                    GSteamGameServer->SetMapName(mapname);
+                int maxplayercount = cmd.ReadInt();
+                GSteamGameServer->SetMaxPlayerCount(maxplayercount);
+                const char *moddir = cmd.ReadString();
+                if (moddir[0])
+                    GSteamGameServer->SetModDir(moddir);
+                bool passwordprotected = cmd.ReadByte();
+                GSteamGameServer->SetPasswordProtected(passwordprotected);
+                const char *product = cmd.ReadString();
+                if (product[0])
+                    GSteamGameServer->SetProduct(product);
+                const char *region = cmd.ReadString();
+                if (region[0])
+                    GSteamGameServer->SetRegion(region);
+                const char *servername = cmd.ReadString();
+                if (servername[0])
+                    GSteamGameServer->SetServerName(servername);
+            }
+            break;
+        case CMD_CL_REQUESTSERVERS:
+            {
+                GServerBrowser->RefreshInternetServers();
             }
             break;
     } // switch
@@ -226,15 +242,6 @@ static void processCommands()
 
 static bool initSteamworks(PipeType fd)
 {
-    if (GRunServer) {
-        // this will fail if port is in use
-        if (!SteamGameServer_Init(0, 27016, 0,eServerModeNoAuthentication,"0.0.0.0"))
-            return 0;
-        GSteamGameServer = SteamGameServer();
-        if (!GSteamGameServer)
-            return 0;
-        
-    }
     if (GRunClient){
         // this can fail for many reasons:
         //  - you forgot a steam_appid.txt in the current working directory.
@@ -249,6 +256,23 @@ static bool initSteamworks(PipeType fd)
 
         GAppID = GSteamUtils ? GSteamUtils->GetAppID() : 0;
 	    GUserID = GSteamUser ? GSteamUser->GetSteamID().ConvertToUint64() : 0;
+
+
+        GServerBrowser = new ServerBrowser();
+
+        GServerBrowser->RefreshInternetServers();
+    }
+
+    if (GRunServer) {
+        // this will fail if port is in use
+        if (!SteamGameServer_Init(0, 27015, 27016, eServerModeAuthenticationAndSecure,"0.0.0.0"))
+            return 0;
+        GSteamGameServer = SteamGameServer();
+        if (!GSteamGameServer)
+            return 0;
+
+        GSteamGameServer->LogOnAnonymous();
+        
     }
     
     GSteamCallbacks = new SteamCallbacks();

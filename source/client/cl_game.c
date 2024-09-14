@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "cin.h"
 #include "../qcommon/asyncstream.h"
+#include <stdint.h>
 
 static cgame_export_t *cge;
 
@@ -166,7 +167,7 @@ static void CL_GameModule_RefreshMouseAngles( void )
 * CL_GameModule_R_RegisterWorldModel
 */
 static void CL_GameModule_R_RegisterWorldModel( const char *model ) {
-	re.RegisterWorldModel( model, cl.cms ? CM_PVSData( cl.cms ) : NULL );
+	RF_RegisterWorldModel( model, cl.cms ? CM_PVSData( cl.cms ) : NULL );
 }
 
 /*
@@ -454,42 +455,9 @@ void CL_GameModule_Init( void )
 	import.NET_GetCurrentState = CL_GameModule_NET_GetCurrentState;
 	import.RefreshMouseAngles = CL_GameModule_RefreshMouseAngles;
 
+	import.ref_import = RF_Forward_Mod();
 	import.R_UpdateScreen = SCR_UpdateScreen;
-	import.R_GetClippedFragments = re.GetClippedFragments;
-	import.R_ClearScene = re.ClearScene;
-	import.R_AddEntityToScene = re.AddEntityToScene;
-	import.R_AddLightToScene = re.AddLightToScene;
-	import.R_AddPolyToScene = re.AddPolyToScene;
-	import.R_AddLightStyleToScene = re.AddLightStyleToScene;
-	import.R_RenderScene = re.RenderScene;
-	import.R_GetSpeedsMessage = re.GetSpeedsMessage;
-	import.R_GetAverageFramerate = re.GetAverageFramerate;
 	import.R_RegisterWorldModel = CL_GameModule_R_RegisterWorldModel;
-	import.R_ModelBounds = re.ModelBounds;
-	import.R_ModelFrameBounds = re.ModelFrameBounds;
-	import.R_RegisterModel = re.RegisterModel;
-	import.R_RegisterPic = re.RegisterPic;
-	import.R_RegisterRawPic = re.RegisterRawPic;
-	import.R_RegisterLevelshot = re.RegisterLevelshot;
-	import.R_RegisterSkin = re.RegisterSkin;
-	import.R_RegisterSkinFile = re.RegisterSkinFile;
-	import.R_LerpTag = re.LerpTag;
-	import.R_LightForOrigin = re.LightForOrigin;
-	import.R_SetCustomColor = re.SetCustomColor;
-	import.R_DrawStretchPic = re.DrawStretchPic;
-	import.R_DrawStretchPoly = re.DrawStretchPoly;
-	import.R_DrawRotatedStretchPic = re.DrawRotatedStretchPic;
-	import.R_Scissor = re.Scissor;
-	import.R_GetScissor = re.GetScissor;
-	import.R_ResetScissor = re.ResetScissor;
-	import.R_GetShaderDimensions = re.GetShaderDimensions;
-	import.R_TransformVectorToScreen = re.TransformVectorToScreen;
-	import.R_SkeletalGetNumBones = re.SkeletalGetNumBones;
-	import.R_SkeletalGetBoneInfo = re.SkeletalGetBoneInfo;
-	import.R_SkeletalGetBonePose = re.SkeletalGetBonePose;
-
-	import.R_GetShaderForOrigin = re.GetShaderForOrigin;
-	import.R_GetShaderCinematic = re.GetShaderCinematic;
 
 	import.VID_FlashWindow = VID_FlashWindow;
 
@@ -758,7 +726,7 @@ bool CL_GameModule_IsTouchDown( int id )
 /*
 * CL_GameModule_CallbackRequestAvatar
 */
-void CL_GameModule_CallbackRequestAvatar( uint64_t steamid, char* avatar )
+void CL_GameModule_CallbackRequestAvatar( uint64_t steamid, uint8_t* avatar )
 {
 	if( cge )
 		cge->CallbackRequestAvatar( steamid, avatar );

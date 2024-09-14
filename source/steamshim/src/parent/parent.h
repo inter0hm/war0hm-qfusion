@@ -32,16 +32,32 @@ typedef struct {
   bool runserver;
 } SteamshimOptions;
 
+typedef struct {
+  bool advertise;
+  int botplayercount;
+  bool dedicatedserver;
+  const char *gamedata;
+  const char *gamedescription;
+  const char *gametags;
+  int heartbeatinterval;
+  const char *mapname;
+  int maxplayercount;
+  const char *moddir;
+  bool passwordprotected;
+  const char *product;
+  const char *region;
+  const char *servername;
+} ServerInfo;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// pass runclient to connect to the steam app, runserver to host a game server
 // return of 0 means failure
 int STEAMSHIM_init(SteamshimOptions* options);
 void STEAMSHIM_deinit(void);
 int STEAMSHIM_alive(void);
-const STEAMSHIM_Event *STEAMSHIM_pump(void);
+const SteamshimEvent *STEAMSHIM_pump(void);
 void STEAMSHIM_getSteamID();
 void STEAMSHIM_getPersonaName();
 void STEAMSHIM_setRichPresence(int num, const char** key, const char** val);
@@ -49,7 +65,7 @@ void STEAMSHIM_getAuthSessionTicket();
 void STEAMSHIM_beginAuthSession(uint64_t steamid, SteamAuthTicket_t* ticket);
 void STEAMSHIM_endAuthSession(uint64_t steamid);
 void STEAMSHIM_createBeacon(uint32_t openSlots, char* connectString, char* metadata);
-void STEAMSHIM_requestAvatar(uint64_t steamid, int size);
+void STEAMSHIM_requestAvatar(uint64_t steamid, SteamAvatarSize size);
 void STEAMSHIM_openProfile(uint64_t steamid);
 void STEAMSHIM_requestCommandLine();
 #ifdef __cplusplus

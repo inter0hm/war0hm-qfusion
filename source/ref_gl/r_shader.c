@@ -3408,13 +3408,6 @@ shader_t *R_RegisterVideo( const char *name )
 }
 
 /*
-* R_RemapShader
-*/
-void R_RemapShader( const char *from, const char *to, int timeOffset )
-{
-}
-
-/*
 * R_GetShaderDimensions
 *
 * Returns dimensions for shader's base (taken from the first pass) image

@@ -880,8 +880,6 @@ void Qcommon_Init( int argc, char **argv )
 	NET_Init();
 	Netchan_Init();
 
-	Com_Autoupdate_Init();
-
 	CM_Init();
 
 	Com_ScriptModule_Init();
@@ -1041,8 +1039,6 @@ void Qcommon_Shutdown( void )
 	Netchan_Shutdown();
 	NET_Shutdown();
 	Key_Shutdown();
-
-	Com_Autoupdate_Shutdown();
 
 
 	Qcommon_ShutdownCommands();

@@ -865,9 +865,9 @@ static void R_TextureFormat( int flags, int samples, int *comp, int *format, int
 	{
 		*type = GL_UNSIGNED_BYTE;
 		if( samples == 4 )
-			*format = ( flags & IT_BGRA ? GL_BGRA_EXT : GL_RGBA );
+			*format = GL_RGBA;
 		else if( samples == 3 )
-			*format = ( flags & IT_BGRA ? GL_BGR_EXT : GL_RGB );
+			*format = GL_RGB;
 		else if( samples == 2 )
 			*format = GL_LUMINANCE_ALPHA;
 		else if( flags & IT_ALPHAMASK )
@@ -1414,10 +1414,9 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		  for( size_t faceIdx = 0; faceIdx < numFaces; ++faceIdx ) {
 		  	struct texture_buf_s *tex = R_KTXResolveBuffer( &ktxContext, 0, faceIdx, 0 );
 				decompressed[faceIdx] = R_PrepareImageBuffer( ctx, TEXTURE_LOADING_BUF0 + faceIdx, ALIGN( tex->width * 3, 4 ) * tex->height);
-				DecompressETC1( tex->buffer, tex->width, tex->height, decompressed[faceIdx], glConfig.ext.bgra ? true : false );
+				DecompressETC1( tex->buffer, tex->width, tex->height, decompressed[faceIdx], false);
 		  }
-		  R_UploadMipmapped( ctx, decompressed, R_KTXWidth( &ktxContext ), R_KTXHeight( &ktxContext ), 1, image->flags, image->minmipsize, &image->upload_width, &image->upload_height,
-		  				   glConfig.ext.bgra ? GL_BGR_EXT : GL_RGB, GL_UNSIGNED_BYTE );
+		  R_UploadMipmapped( ctx, decompressed, R_KTXWidth( &ktxContext ), R_KTXHeight( &ktxContext ), 1, image->flags, image->minmipsize, &image->upload_width, &image->upload_height, GL_RGB, GL_UNSIGNED_BYTE );
 		}
 
 		image->samples = 3;
@@ -1430,7 +1429,6 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 				RT_ExpectChannelsMatch( definition, expectBGR, Q_ARRAY_COUNT( expectBGR ) ) || 
 				RT_ExpectChannelsMatch( definition, expectBGRA, Q_ARRAY_COUNT( expectBGRA ) ); 
 		image->flags |= (
-			(isBGRTexture  ? IT_BGRA : 0 ) |
 			(RT_ExpectChannelsMatch( definition, expectA, Q_ARRAY_COUNT( expectA ) ) ? IT_ALPHAMASK : 0));
 		image->samples = RT_NumberChannels(definition);
 		const uint16_t numberOfMipLevels = ( image->flags & IT_NOMIPMAP ) ? 1 : R_KTXGetNumberMips(&ktxContext);
@@ -1441,7 +1439,7 @@ static bool R_LoadKTX( int ctx, image_t *image, const char *pathname )
 		for( uint16_t mipIndex = 0; mipIndex < numberOfMipLevels; mipIndex++ ) {
 			for( uint32_t faceIndex = 0; faceIndex < numberOfFaces; faceIndex++ ) {
 				struct texture_buf_s *texBuffer = R_KTXResolveBuffer( &ktxContext, mipIndex, faceIndex, 0 );
-				if( !glConfig.ext.bgra && isBGRTexture ) {
+				if( isBGRTexture ) {
 					const size_t numberChannels = RT_NumberChannels( definition );
 					assert( numberChannels >= 3 && numberChannels <= Q_ARRAY_COUNT( swizzleChannel ) );
 					memcpy( swizzleChannel, RT_Channels( definition ), numberChannels );

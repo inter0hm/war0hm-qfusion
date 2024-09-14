@@ -144,24 +144,16 @@ typedef struct
 	// only uint8_ts must follow the extensionsBoolMarker
 	//
 	unsigned int  draw_range_elements: 1;
-	unsigned int  multitexture: 1;
 	unsigned int  texture_cube_map: 1;
 	unsigned int  texture_edge_clamp: 1;
 	unsigned int  texture_filter_anisotropic: 1;
 	unsigned int  texture_compression: 1;
 	unsigned int  compressed_ETC1_RGB8_texture: 1;
-	unsigned int  vertex_buffer_object: 1;
-	unsigned int  GLSL: 1;
 	unsigned int  GLSL_core: 1;
 	unsigned int  GLSL130: 1;
 	unsigned int  depth_texture: 1;
-	unsigned int  framebuffer_object: 1;
 	unsigned int  vertex_shader: 1;
-	unsigned int  fragment_shader: 1;
-	unsigned int  shader_objects: 1;
-	unsigned int  shading_language_100: 1;
 	unsigned int  shading_language_130: 1;
-	unsigned int  bgra: 1;
 	unsigned int  gamma_control: 1;
 	unsigned int  swap_control: 1;
 	unsigned int  draw_instanced: 1;
@@ -174,7 +166,6 @@ typedef struct
 	unsigned int  get_program_binary: 1;
 	unsigned int  rgb8_rgba8: 1;
 	unsigned int  ES3_compatibility: 1;
-	unsigned int  blend_func_separate: 1;
 	unsigned int  texture_array: 1;
 	unsigned int  fragment_precision_high: 1;
 	unsigned int  packed_depth_stencil: 1;

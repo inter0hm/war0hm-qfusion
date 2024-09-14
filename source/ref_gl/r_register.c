@@ -145,18 +145,6 @@ typedef struct
 	void **pointer;					// constant pointer to function's pointer (function itself)
 } gl_extension_func_t;
 
-typedef struct
-{
-	const char * prefix;			// constant pointer to constant string
-	const char * name;
-	const char * cvar_default;
-	bool cvar_readonly;
-	bool mandatory;
-	gl_extension_func_t *funcs;		// constant pointer to array of functions
-	size_t offset;					// offset to respective variable
-	size_t depOffset;				// offset to required pre-initialized variable
-} gl_extension_t;
-
 #define GL_EXTENSION_FUNC_EXT(name,func) { name, (void ** const)func }
 #define GL_EXTENSION_FUNC(name) GL_EXTENSION_FUNC_EXT("gl"#name,&(qgl##name))
 
@@ -181,6 +169,13 @@ static const gl_extension_func_t gl_ext_vertex_buffer_object_ARB_funcs[] =
 	,GL_EXTENSION_FUNC(BufferSubDataARB)
 
 	,GL_EXTENSION_FUNC_EXT(NULL,NULL)
+};
+
+
+static const gl_extension_func_t gl_ext_debug_message_callback[] = {
+	GL_EXTENSION_FUNC(DebugMessageCallback),
+	GL_EXTENSION_FUNC_EXT(NULL,NULL)
+
 };
 
 /* GL_EXT_draw_range_elements */
@@ -450,6 +445,103 @@ static bool R_TryLoadGLProcAddress(const gl_extension_func_t *funcs)
 	return true;
 }
 
+static void __R_GlCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const char *msg, const void *userParam )
+{
+	const char *_source;
+	const char *_type;
+	const char *_severity;
+
+	switch( source ) {
+		case GL_DEBUG_SOURCE_API:
+			_source = "API";
+			break;
+
+		case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+			_source = "WINDOW SYSTEM";
+			break;
+
+		case GL_DEBUG_SOURCE_SHADER_COMPILER:
+			_source = "SHADER COMPILER";
+			break;
+
+		case GL_DEBUG_SOURCE_THIRD_PARTY:
+			_source = "THIRD PARTY";
+			break;
+
+		case GL_DEBUG_SOURCE_APPLICATION:
+			_source = "APPLICATION";
+			break;
+
+		case GL_DEBUG_SOURCE_OTHER:
+			_source = "UNKNOWN";
+			break;
+
+		default:
+			_source = "UNKNOWN";
+			break;
+	}
+
+	switch( type ) {
+		case GL_DEBUG_TYPE_ERROR:
+			_type = "ERROR";
+			break;
+
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+			_type = "DEPRECATED BEHAVIOR";
+			break;
+
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+			_type = "UDEFINED BEHAVIOR";
+			break;
+
+		case GL_DEBUG_TYPE_PORTABILITY:
+			_type = "PORTABILITY";
+			break;
+
+		case GL_DEBUG_TYPE_PERFORMANCE:
+			_type = "PERFORMANCE";
+			break;
+
+		case GL_DEBUG_TYPE_OTHER:
+			_type = "OTHER";
+			break;
+
+		case GL_DEBUG_TYPE_MARKER:
+			_type = "MARKER";
+			break;
+
+		default:
+			_type = "UNKNOWN";
+			break;
+	}
+
+	switch( severity ) {
+		case GL_DEBUG_SEVERITY_HIGH:
+			_severity = "HIGH";
+			break;
+
+		case GL_DEBUG_SEVERITY_MEDIUM:
+			_severity = "MEDIUM";
+			break;
+
+		case GL_DEBUG_SEVERITY_LOW:
+			_severity = "LOW";
+			break;
+
+		case GL_DEBUG_SEVERITY_NOTIFICATION:
+			_severity = "NOTIFICATION";
+			break;
+
+		default:
+			_severity = "UNKNOWN";
+			break;
+	}
+	ri.Com_Printf( "%d: %s of %s severity, raised from %s: %s\n", id, _type, _severity, _source, msg );
+	if( severity == GL_DEBUG_SEVERITY_HIGH ) {
+		assert( false );
+	}
+}
+
 /*
 * R_RegisterGLExtensions
 */
@@ -457,38 +549,28 @@ static bool R_RegisterGLExtensions( void )
 {
 	memset( &glConfig.ext, 0, sizeof( glextinfo_t ) );
 
-	if( R_TryLoadGLProcAddress( gl_ext_vertex_buffer_object_ARB_funcs ) ) {
-		glConfig.ext.vertex_buffer_object = 1;
-	} else {
+	if( !R_TryLoadGLProcAddress( gl_ext_vertex_buffer_object_ARB_funcs ) ) {
 		R_RegisterFatalExt( "gl_ext_vertex_buffer_object_ARB_funcs " );
 	}
 
-	if( R_TryLoadGLProcAddress( gl_ext_framebuffer_object_EXT_funcs ) ) {
-		glConfig.ext.framebuffer_object = 1;
-	} else {
+	if( !R_TryLoadGLProcAddress( gl_ext_framebuffer_object_EXT_funcs ) ) {
 		R_RegisterFatalExt( "gl_ext_framebuffer_object_EXT_funcs" );
 	}
 
-	if( R_TryLoadGLProcAddress( gl_ext_multitexture_ARB_funcs ) ) {
-		glConfig.ext.multitexture = 1;
-		glConfig.ext.vertex_shader = 1;
-		glConfig.ext.fragment_shader = 1;
-		glConfig.ext.shader_objects = 1;
-		glConfig.ext.shading_language_100 = 1;
-	} else {
+	if( !R_TryLoadGLProcAddress( gl_ext_multitexture_ARB_funcs ) ) {
 		R_RegisterFatalExt( "gl_ext_multitexture_ARB_funcs" );
 	}
 
-	if( R_TryLoadGLProcAddress( gl_ext_GLSL_ARB_funcs ) ) {
-		glConfig.ext.GLSL = 1;
-	} else {
+	if( !R_TryLoadGLProcAddress( gl_ext_GLSL_ARB_funcs ) ) {
 		R_RegisterFatalExt( "gl_ext_GLSL_ARB_funcs" );
 	}
 
-	if( R_TryLoadGLProcAddress( gl_ext_blend_func_separate_EXT_funcs ) ) {
-		glConfig.ext.blend_func_separate = 1;
-	} else {
+	if( !R_TryLoadGLProcAddress( gl_ext_blend_func_separate_EXT_funcs ) ) {
 		R_RegisterFatalExt( "gl_ext_blend_func_separate_EXT_funcs" );
+	}
+
+	if(qglDebugMessageCallback && R_TryLoadGLProcAddress( gl_ext_debug_message_callback ) ) {
+		qglDebugMessageCallback( __R_GlCallback, NULL );
 	}
 
 	if( R_TryLoadGLProcAddress( gl_ext_GLSL_core_ARB_funcs ) ) {
@@ -527,7 +609,6 @@ static bool R_RegisterGLExtensions( void )
 		glConfig.ext.texture_array = 1;
 	}
 
-	glConfig.ext.bgra = 1;
 	glConfig.ext.texture_filter_anisotropic = 1;
 	glConfig.ext.meminfo = 1;
 	glConfig.ext.gpu_memory_info = 1;

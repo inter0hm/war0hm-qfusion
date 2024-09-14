@@ -43,7 +43,7 @@ void SteamCallbacks::OnCreateBeacon(UserStatsReceived_t *pCallback)
 void SteamCallbacks::OnGameJoinRequested(GameRichPresenceJoinRequested_t *pCallback)
 {
     PipeBuffer msg;
-    msg.WriteByte(SHIMEVENT_GAMEJOINREQUESTED);
+    msg.WriteByte(EVT_CL_GAMEJOINREQUESTED);
     msg.WriteLong(pCallback->m_steamIDFriend.ConvertToUint64());
     msg.WriteString(pCallback->m_rgchConnect);
     msg.Transmit();
@@ -52,17 +52,27 @@ void SteamCallbacks::OnGameJoinRequested(GameRichPresenceJoinRequested_t *pCallb
 void SteamCallbacks::OnPersonaStateChange(PersonaStateChange_t *pCallback)
 {
     if (pCallback->m_nChangeFlags & k_EPersonaChangeAvatar){
-        TransmitAvatar(pCallback->m_ulSteamID);
+        TransmitAvatar(pCallback->m_ulSteamID, AVATAR_SMALL);
     }
 } 
-void TransmitAvatar(uint64 id){
-    int handle = SteamFriends()->GetSmallFriendAvatar(id);
+void TransmitAvatar(uint64 id, SteamAvatarSize size){
+    int handle;
+
+    if(size == AVATAR_LARGE){
+        handle = SteamFriends()->GetLargeFriendAvatar(id);
+    } else if(size == AVATAR_MEDIUM){
+        handle = SteamFriends()->GetMediumFriendAvatar(id);
+    } else if(size == AVATAR_SMALL){
+        handle = SteamFriends()->GetSmallFriendAvatar(id);
+    } else {
+        return;
+    }
 
     uint8_t image[STEAM_AVATAR_SIZE];
     SteamUtils()->GetImageRGBA(handle, image, sizeof image);
 
     PipeBuffer msg;
-    msg.WriteByte(SHIMEVENT_AVATARRECIEVED);
+    msg.WriteByte(EVT_CL_AVATARRECIEVED);
     msg.WriteLong(id);
     msg.WriteData(image, sizeof image);
     msg.Transmit();

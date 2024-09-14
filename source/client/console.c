@@ -1064,7 +1064,7 @@ void Con_DrawConsole( void )
 		lines = viddef.height;
 
 	// draw the background
-	re.DrawStretchPic( 0, 0, viddef.width, lines, 0, 0, 1, 1, colorWhite, cls.consoleShader );
+	RF_DrawStretchPic( 0, 0, viddef.width, lines, 0, 0, 1, 1, colorWhite, cls.consoleShader );
 	scaled = 2 * pixelRatio;
 	SCR_DrawFillRect( 0, lines - scaled, viddef.width, scaled, colorLtBlue );
 
@@ -1073,8 +1073,7 @@ void Con_DrawConsole( void )
 	newtime = localtime( &long_time );
 
 #ifdef PUBLIC_BUILD
-	Q_snprintfz( version, sizeof( version ), "%02d:%02d %s v%4.2f", newtime->tm_hour, newtime->tm_min,
-		APPLICATION, APP_VERSION );
+	Q_snprintfz( version, sizeof( version ), "%02d:%02d %s v"APP_VERSION_STR, newtime->tm_hour, newtime->tm_min, APPLICATION);
 #else
 	Q_snprintfz( version, sizeof( version ), "%02d:%02d %s v%4.2f rev:%s", newtime->tm_hour, newtime->tm_min,
 		APPLICATION, APP_VERSION, revisioncvar->string );

@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cg_local.h"
-
+#include "../ref_base/ref_mod.h"
 cg_static_t cgs;
 cg_state_t cg;
 
@@ -634,7 +634,7 @@ static void CG_RegisterShaders( void )
 		if( !CG_LoadingItemName( name ) )
 			return;
 
-		cgs.imagePrecache[i] = trap_R_RegisterPic( name );
+		cgs.imagePrecache[i] = R_RegisterPic( name );
 	}
 
 	if( cgs.precacheShadersStart != MAX_IMAGES )
@@ -673,7 +673,7 @@ static void CG_RegisterSkinFiles( void )
 		if( !CG_LoadingItemName( name ) )
 			return;
 
-		cgs.skinPrecache[i] = trap_R_RegisterSkinFile( name );
+		cgs.skinPrecache[i] = R_RegisterSkinFile( name );
 	}
 
 	cgs.precacheSkinsStart = MAX_SKINFILES;
@@ -1204,7 +1204,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	// register fonts here so loading screen works
 	CG_RegisterFonts();
-	cgs.shaderWhite = trap_R_RegisterPic( "$whiteimage" );
+	cgs.shaderWhite = R_RegisterPic( "$whiteimage" );
 
 	// l10n
 	CG_InitL10n();

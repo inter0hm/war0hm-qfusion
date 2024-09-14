@@ -18,6 +18,7 @@
 
  */
 // client.h -- primary header for client
+#include "../ref_base/ref_mod.h"
 
 #include "../qcommon/qcommon.h"
 #include "../ref_base/r_public.h"
@@ -30,6 +31,7 @@
 #include "input.h"
 #include "keys.h"
 #include "console.h"
+
 
 typedef struct shader_s shader_t;
 typedef struct qfontface_s qfontface_t;
@@ -447,7 +449,7 @@ void CL_GameModule_AddViewAngles( vec3_t viewangles, float frametime, bool flipp
 void CL_GameModule_AddMovement( vec3_t movement );
 void CL_GameModule_TouchEvent( int id, touchevent_t type, int x, int y, unsigned int time );
 bool CL_GameModule_IsTouchDown( int id );
-void CL_GameModule_CallbackRequestAvatar( uint64_t steamid, char* avatar );
+void CL_GameModule_CallbackRequestAvatar( uint64_t steamid, uint8_t* avatar );
 bool CL_GameModule_GetBlocklistItem( size_t index, uint64_t* steamid_out, char* name, size_t* name_len_in_out );
 
 //

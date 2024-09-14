@@ -306,7 +306,6 @@ typedef struct
 	unsigned int gameFrameTime;		// msecs between game code executions
 	bool autostarted;
 	unsigned int lastMasterResolve;
-	unsigned int autoUpdateMinute;	// the minute number we should run the autoupdate check, in the range 0 to 59
 } server_constant_t;
 
 //=============================================================================
@@ -373,7 +372,6 @@ extern cvar_t *sv_MOTD;
 extern cvar_t *sv_MOTDFile;
 // String to display
 extern cvar_t *sv_MOTDString;
-extern cvar_t *sv_lastAutoUpdate;
 extern cvar_t *sv_defaultmap;
 
 extern cvar_t *sv_demodir;
@@ -394,7 +392,6 @@ int SV_SkinIndex( const char *name );
 
 void SV_WriteClientdataToMessage( client_t *client, msg_t *msg );
 
-void SV_AutoUpdateFromWeb( bool checkOnly );
 void SV_InitOperatorCommands( void );
 void SV_ShutdownOperatorCommands( void );
 
