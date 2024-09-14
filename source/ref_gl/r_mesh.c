@@ -155,7 +155,7 @@ unsigned R_PackOpaqueOrder( const entity_t *e, const shader_t *shader, bool ligh
 void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const mfog_t *fog, const shader_t *shader, 
 	float dist, unsigned int order, const portalSurface_t *portalSurf, void *drawSurf )
 {
-	sortedDrawSurf_t *sds;
+	
 	int shaderSort;
 	bool depthWrite;
 	int renderFx;
@@ -183,8 +183,13 @@ void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const mfog_t *fo
 		}
 		R_ReserveDrawSurfaces( list, minMeshes );
 	}
-
-	if( renderFx & RF_WEAPONMODEL ) {
+	if(renderFx & RF_OUTLINE_WRITE_THROUGH) {
+		shaderSort = SHADER_SORT_DECAL;
+		dist = -1;
+		if(portalSurf) {
+			return false;
+		}
+	} else if( renderFx & RF_WEAPONMODEL ) {
 		if( renderFx & RF_NOCOLORWRITE ) {
 			// depth-pass for alpha-blended weapon:
 			// write to depth but do not write to color
@@ -213,7 +218,7 @@ void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const mfog_t *fo
 		dist = 0;
 	}
 
-	sds = &list->drawSurfs[list->numDrawSurfs++];
+	sortedDrawSurf_t *sds = &list->drawSurfs[list->numDrawSurfs++];
 	sds->distKey = R_PackDistKey( shaderSort, (int)dist, order );
 	sds->sortKey = R_PackSortKey( shader->id, fog ? fog - rsh.worldBrushModel->fogs : -1,
 		portalSurf ? portalSurf - rn.portalSurfaces : -1, R_ENT2NUM(e) );
@@ -407,7 +412,6 @@ static const batchDrawSurf_cb r_batchDrawSurfCb[ST_MAX_TYPES] =
 static void _R_DrawSurfaces( drawList_t *list )
 {
 	unsigned int i;
-	unsigned int sortKey;
 	unsigned int shaderNum = 0, prevShaderNum = MAX_SHADERS;
 	unsigned int entNum = 0, prevEntNum = MAX_REF_ENTITIES;
 	int portalNum = -1, prevPortalNum = -100500;
@@ -438,7 +442,7 @@ static void _R_DrawSurfaces( drawList_t *list )
 
 	for( i = 0; i < list->numDrawSurfs; i++ ) {
 		sds = list->drawSurfs + i;
-		sortKey = sds->sortKey;
+		const unsigned int sortKey = sds->sortKey;
 		drawSurfType = *(int *)sds->drawSurf;
 
 		assert( drawSurfType > ST_NONE && drawSurfType < ST_MAX_TYPES );

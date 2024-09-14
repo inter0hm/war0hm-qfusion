@@ -1306,8 +1306,21 @@ void CG_AddPModel( centity_t *cent )
 		CG_AddEntityToScene( &cent->ent );
 	}
 
+	
 	if( !cent->ent.model )
 		return;
+
+
+	{
+		entity_t shellOutline = cent->ent;
+		shellOutline.renderfx |= RF_OUTLINE_WRITE_THROUGH;
+		shellOutline.outlineColor[0] = 255;
+		shellOutline.outlineColor[1] = 0;
+		shellOutline.outlineColor[2] = 0;
+		shellOutline.outlineColor[3] = 255;
+		
+		CG_AddEntityToScene( &shellOutline );
+	}
 
 	CG_PModel_AddFlag( cent );
 

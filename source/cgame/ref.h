@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define RF_GREYSCALE			0x400
 #define RF_NODEPTHTEST			0x800
 #define RF_NOCOLORWRITE			0x1000
+#define RF_OUTLINE_WRITE_THROUGH 0x2000
 
 // refdef flags
 #define	RDF_UNDERWATER			0x1		// warp the screen as apropriate

@@ -2301,7 +2301,7 @@ void R_InitViewportTexture( image_t **texture, const char *name, int id,
 		}
 		if( t->flags & IT_FRAMEBUFFER ) {
 			t->fbo = RFB_RegisterObject( t->upload_width, t->upload_height, ( tags & IMAGE_TAG_BUILTIN ) != 0,
-				( flags & IT_DEPTHRB ) != 0, ( flags & IT_STENCIL ) != 0 );
+				( flags & IT_DEPTHRB ) != 0, true );
 			RFB_AttachTextureToObject( t->fbo, t );
 		}
 	}
@@ -2426,8 +2426,8 @@ static void R_InitScreenImagePair( const char *name, image_t **color, image_t **
 
 	assert( !depth || glConfig.ext.depth_texture );
 
-	if( !glConfig.stencilBits )
-		stencil = false;
+	//if( !glConfig.stencilBits )
+	//	stencil = false;
 
 	flags = IT_SPECIAL;
 

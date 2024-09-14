@@ -145,6 +145,34 @@ void RB_StatsMessage( char *msg, size_t size )
 	);
 }
 
+void RB_SetStencilFunc( int func, int ref, int mask ) {
+	if( rb.gl.stencilFunc == func && rb.gl.stencilRef == ref && rb.gl.stencilFuncMask == mask )
+		return;
+
+	qglStencilFunc( func, ref, mask );
+	rb.gl.stencilFunc = func;
+	rb.gl.stencilRef = ref;
+	rb.gl.stencilFuncMask = mask;
+}
+
+void RB_SetStencilOp( int sfail, int dpfail, int dppass ) {
+	if( rb.gl.stencilSFail == sfail && rb.gl.stencilDPFail == dpfail && rb.gl.stencilDPPass == dppass )
+		return;
+
+	qglStencilOp( sfail, dpfail, dppass );
+	rb.gl.stencilSFail = sfail;
+	rb.gl.stencilDPFail = dpfail;
+	rb.gl.stencilDPPass = dppass;
+}
+
+void RB_SetStencilMask( int mask ) {
+	 if( rb.gl.stencilMask == mask )
+	 	return;
+	qglStencilMask( mask );
+	rb.gl.stencilMask = mask;
+}
+
+
 /*
 * RB_SetGLDefaults
 */
@@ -335,9 +363,8 @@ void RB_Cull( int cull )
 */
 void RB_SetState( int state )
 {
-	int diff;
 
-	diff = rb.gl.state ^ state;
+	int diff = rb.gl.state ^ state;
 	if( !diff )
 		return;
 
@@ -466,7 +493,7 @@ void RB_SetState( int state )
 
 	if( diff & GLSTATE_STENCIL_TEST )
 	{
-		if( glConfig.stencilBits )
+	//	if( glConfig.stencilBits )
 		{
 			if( state & GLSTATE_STENCIL_TEST )
 				qglEnable( GL_STENCIL_TEST );
