@@ -1379,9 +1379,6 @@ static void RB_RenderMeshGLSL_Shadowmap( const shaderpass_t *pass, r_glslfeat_t 
 */
 static void RB_RenderMeshGLSL_OverlayOutline( const shaderpass_t *pass, r_glslfeat_t programFeatures )
 {
-//	int faceCull = rb.gl.faceCull;
-	mat4_t texMatrix;
-
 	if( rb.currentModelType == mod_brush ) {
 		programFeatures |= GLSL_SHADER_OUTLINE_OUTLINES_CUTOFF;
 	}
@@ -1399,10 +1396,8 @@ static void RB_RenderMeshGLSL_OverlayOutline( const shaderpass_t *pass, r_glslfe
 	if( !RB_BindProgram( program ) )
 		return;
 
+	mat4_t texMatrix;
 	Matrix4_Identity( texMatrix );
-
-	//RB_Cull( GL_BACK );
-
 	RB_UpdateCommonUniforms( program, pass, texMatrix );
 	
 	if( programFeatures & GLSL_SHADER_COMMON_FOG ) {
@@ -1413,14 +1408,14 @@ static void RB_RenderMeshGLSL_OverlayOutline( const shaderpass_t *pass, r_glslfe
 	if( programFeatures & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
 		RP_UpdateBonesUniforms( program, rb.bonesData.numBones, rb.bonesData.dualQuats );
 	}
-	
+
 	// set shaderpass state (blending, depthwrite, etc)
 	RB_SetStencilMask( 0xFF );
 	RB_SetStencilOp( GL_REPLACE, GL_KEEP, GL_REPLACE);
 	RB_SetStencilFunc( GL_ALWAYS, 1, 0xFF );
 
 	RB_SetShaderpassState( pass->flags | GLSTATE_STENCIL_TEST | GLSTATE_DEPTHFUNC_GT | GLSTATE_NO_COLORWRITE );
-	RP_UpdateOutlineUniforms( program, 2.0f );
+	RP_UpdateOutlineUniforms( program, rb.currentEntity->outlineHeight * r_outlines_scale->value  );
 	RB_DrawElementsReal( &rb.drawElements );
 
 	RB_SetStencilFunc( GL_ALWAYS, 0x0, 0xFF );
@@ -1435,12 +1430,9 @@ static void RB_RenderMeshGLSL_OverlayOutline( const shaderpass_t *pass, r_glslfe
 	RB_SetStencilMask( 0x00 );
 
 	RB_SetShaderpassState( pass->flags | GLSTATE_NO_DEPTH_TEST  | GLSTATE_STENCIL_TEST );
-	RP_UpdateOutlineUniforms( program, 2.0f );
+	RP_UpdateOutlineUniforms( program, rb.currentEntity->outlineHeight * r_outlines_scale->value  );
 	RB_DrawElementsReal( &rb.drawElements );
-
-	RB_SetShaderpassState( pass->flags );
-
-	//RB_Cull( faceCull );
+	
 }
 
 /*
@@ -1472,7 +1464,7 @@ static void RB_RenderMeshGLSL_Outline( const shaderpass_t *pass, r_glslfeat_t pr
 	RB_Cull( GL_BACK );
 
 	// set shaderpass state (blending, depthwrite, etc)
-	RB_SetShaderpassState( pass->flags );
+	RB_SetShaderpassState( pass->flags);
 
 	RB_UpdateCommonUniforms( program, pass, texMatrix );
 
@@ -2072,7 +2064,7 @@ void RB_BindShader( const entity_t *e, const shader_t *shader, const mfog_t *fog
 		rb.alphaHack = e->renderfx & RF_ALPHAHACK ? true : false;
 		rb.hackedAlpha = e->shaderRGBA[3] / 255.0;
 		rb.greyscale = e->renderfx & RF_GREYSCALE ? true : false;
-		rb.noDepthTest = e->renderfx & RF_NODEPTHTEST && e->rtype == RT_SPRITE ? true : false;
+		rb.noDepthTest = e->renderfx & (RF_NODEPTHTEST | RF_OUTLINE_WRITE_THROUGH) && e->rtype == RT_SPRITE ? true : false;
 		rb.noColorWrite = e->renderfx & RF_NOCOLORWRITE ? true : false;
 		rb.depthEqual = rb.alphaHack && (e->renderfx & RF_WEAPONMODEL);
 	}

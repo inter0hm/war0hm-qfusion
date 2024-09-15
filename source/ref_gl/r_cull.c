@@ -302,7 +302,7 @@ int R_CullModelEntity( const entity_t *e, vec3_t mins, vec3_t maxs, float radius
 			return 1;
 	}
 
-	if( e->flags & RF_NODEPTHTEST )
+	if( e->flags & (RF_NODEPTHTEST | RF_OUTLINE_WRITE_THROUGH) )
 		return 0;
 
 	// account for possible outlines

@@ -180,9 +180,9 @@ static void RB_SetGLDefaults( void )
 {
 	if( glConfig.stencilBits )
 	{
-		qglStencilMask( ( GLuint ) ~0 );
-		qglStencilFunc( GL_EQUAL, 128, 0xFF );
-		qglStencilOp( GL_KEEP, GL_KEEP, GL_INCR );
+		RB_SetStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+		RB_SetStencilMask(( GLuint ) ~0);
+		RB_SetStencilFunc(GL_EQUAL, 128, 0xFF )	;
 	}
 
 	qglDisable( GL_CULL_FACE );

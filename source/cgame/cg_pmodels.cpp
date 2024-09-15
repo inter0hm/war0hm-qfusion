@@ -1310,6 +1310,9 @@ void CG_AddPModel( centity_t *cent )
 	if( !cent->ent.model )
 		return;
 
+	CG_PModel_AddFlag( cent );
+
+	CG_AddShellEffects( &cent->ent, cent->effects );
 
 	{
 		entity_t shellOutline = cent->ent;
@@ -1318,13 +1321,11 @@ void CG_AddPModel( centity_t *cent )
 		shellOutline.outlineColor[1] = 0;
 		shellOutline.outlineColor[2] = 0;
 		shellOutline.outlineColor[3] = 255;
+		shellOutline.outlineHeight = 1.5f;
 		
 		CG_AddEntityToScene( &shellOutline );
 	}
 
-	CG_PModel_AddFlag( cent );
-
-	CG_AddShellEffects( &cent->ent, cent->effects );
 
 	CG_AddHeadIcon( cent );
 

@@ -139,9 +139,13 @@ unsigned R_PackOpaqueOrder( const entity_t *e, const shader_t *shader, bool ligh
 	// group by dlight
 	if( dlight )
 		order |= 0x80;
-	// draw game objects after the world
-	if( e != rsc.worldent )
+
+	if(e->renderfx & RF_OUTLINE_WRITE_THROUGH) {
 		order |= 0x100;
+	} else if( e != rsc.worldent ) {
+		// draw game objects after the world
+		order |= 0x200;
+	}
 
 	return order;
 }
@@ -184,11 +188,7 @@ void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const mfog_t *fo
 		R_ReserveDrawSurfaces( list, minMeshes );
 	}
 	if(renderFx & RF_OUTLINE_WRITE_THROUGH) {
-		shaderSort = SHADER_SORT_DECAL;
-		dist = -1;
-		if(portalSurf) {
-			return false;
-		}
+		shaderSort = SHADER_SORT_OPAQUE;
 	} else if( renderFx & RF_WEAPONMODEL ) {
 		if( renderFx & RF_NOCOLORWRITE ) {
 			// depth-pass for alpha-blended weapon:
@@ -501,7 +501,7 @@ static void _R_DrawSurfaces( drawList_t *list )
 
 			// sky and things that don't use depth test use infinite projection matrix
 			// to not pollute the farclip
-			infiniteProj = entity->renderfx & RF_NODEPTHTEST ? true : (shader->flags & SHADER_SKY ? true : false);
+			infiniteProj = (entity->renderfx & RF_NODEPTHTEST) ? true : (shader->flags & SHADER_SKY ? true : false);
 			if( infiniteProj != prevInfiniteProj ) {
 				RB_FlushDynamicMeshes();
 				batchFlushed = true;
