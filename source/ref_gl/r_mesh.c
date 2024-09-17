@@ -140,11 +140,13 @@ unsigned R_PackOpaqueOrder( const entity_t *e, const shader_t *shader, bool ligh
 	if( dlight )
 		order |= 0x80;
 
-	if(e->renderfx & RF_OUTLINE_WRITE_THROUGH) {
+	if(e->renderfx & RF_OUTLINE_STENCIL_0) {
 		order |= 0x100;
+	} else if(e->renderfx & RF_OUTLINE_STENCIL_1) {
+		order |= 0x200;
 	} else if( e != rsc.worldent ) {
 		// draw game objects after the world
-		order |= 0x200;
+		order |= 0x300;
 	}
 
 	return order;
@@ -187,7 +189,7 @@ void *R_AddSurfToDrawList( drawList_t *list, const entity_t *e, const mfog_t *fo
 		}
 		R_ReserveDrawSurfaces( list, minMeshes );
 	}
-	if(renderFx & RF_OUTLINE_WRITE_THROUGH) {
+	if(renderFx &  (RF_OUTLINE_STENCIL_0 | RF_OUTLINE_STENCIL_1)) {
 		shaderSort = SHADER_SORT_OPAQUE;
 	} else if( renderFx & RF_WEAPONMODEL ) {
 		if( renderFx & RF_NOCOLORWRITE ) {

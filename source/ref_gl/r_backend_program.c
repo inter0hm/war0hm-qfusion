@@ -34,7 +34,8 @@ enum
 	BUILTIN_GLSLPASS_SHADOWMAP,
 	BUILTIN_GLSLPASS_OUTLINE,
 	BUILTIN_GLSLPASS_SKYBOX,
-	BUILTIN_GLSLPASS_OVERLAY_OUTLINE,
+	BUILTIN_GLSLPASS_OVERLAY_OUTLINE_0,
+	BUILTIN_GLSLPASS_OVERLAY_OUTLINE_1,
 	MAX_BUILTIN_GLSLPASSES
 };
 
@@ -103,12 +104,20 @@ static void RB_InitBuiltinPasses( void )
 	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE;
 
 	// overlay outline
-	pass = &r_GLSLpasses[BUILTIN_GLSLPASS_OVERLAY_OUTLINE];
+	pass = &r_GLSLpasses[BUILTIN_GLSLPASS_OVERLAY_OUTLINE_0];
 	pass->flags = 0;
 	pass->rgbgen.type = RGB_GEN_OUTLINE;
 	pass->alphagen.type = ALPHA_GEN_OUTLINE;
 	pass->tcgen = TC_GEN_NONE;
-	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE_OVERLAY;
+	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE_0;
+
+	// overlay outline
+	pass = &r_GLSLpasses[BUILTIN_GLSLPASS_OVERLAY_OUTLINE_1];
+	pass->flags = 0;
+	pass->rgbgen.type = RGB_GEN_OUTLINE;
+	pass->alphagen.type = ALPHA_GEN_OUTLINE;
+	pass->tcgen = TC_GEN_NONE;
+	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE_1;
 
 
 	// skybox
@@ -1377,7 +1386,7 @@ static void RB_RenderMeshGLSL_Shadowmap( const shaderpass_t *pass, r_glslfeat_t 
 /*
 * RB_RenderMeshGLSL_Outline
 */
-static void RB_RenderMeshGLSL_OverlayOutline( const shaderpass_t *pass, r_glslfeat_t programFeatures )
+static void RB_RenderMeshGLSL_StencilOutline_0( const shaderpass_t *pass, r_glslfeat_t programFeatures )
 {
 	if( rb.currentModelType == mod_brush ) {
 		programFeatures |= GLSL_SHADER_OUTLINE_OUTLINES_CUTOFF;
@@ -1411,28 +1420,57 @@ static void RB_RenderMeshGLSL_OverlayOutline( const shaderpass_t *pass, r_glslfe
 
 	// set shaderpass state (blending, depthwrite, etc)
 	RB_SetStencilMask( 0xFF );
-	RB_SetStencilOp( GL_REPLACE, GL_KEEP, GL_REPLACE);
+	RB_SetStencilOp( GL_REPLACE, GL_ZERO, GL_REPLACE);
 	RB_SetStencilFunc( GL_ALWAYS, 1, 0xFF );
 
 	RB_SetShaderpassState( pass->flags | GLSTATE_STENCIL_TEST | GLSTATE_DEPTHFUNC_GT | GLSTATE_NO_COLORWRITE );
 	RP_UpdateOutlineUniforms( program, rb.currentEntity->outlineHeight * r_outlines_scale->value  );
 	RB_DrawElementsReal( &rb.drawElements );
+}
 
+
+/*
+* RB_RenderMeshGLSL_Outline
+*/
+static void RB_RenderMeshGLSL_StencilOutline_1( const shaderpass_t *pass, r_glslfeat_t programFeatures )
+{
+	if( rb.currentModelType == mod_brush ) {
+		programFeatures |= GLSL_SHADER_OUTLINE_OUTLINES_CUTOFF;
+	}
+
+	programFeatures |= RB_RGBAlphaGenToProgramFeatures( &pass->rgbgen, &pass->alphagen );
+
+	programFeatures |= RB_FogProgramFeatures( pass, rb.fog );
+
+	// update uniforcms
+	int program = RB_RegisterProgram( GLSL_PROGRAM_TYPE_OUTLINE, NULL,
+		rb.currentShader->deformsKey, 
+		rb.currentShader->deforms,
+		 rb.currentShader->numdeforms,
+		  programFeatures );
+	if( !RB_BindProgram( program ) )
+		return;
+
+	mat4_t texMatrix;
+	Matrix4_Identity( texMatrix );
+	RB_UpdateCommonUniforms( program, pass, texMatrix );
+	
+	if( programFeatures & GLSL_SHADER_COMMON_FOG ) {
+		RB_UpdateFogUniforms( program, rb.fog );
+	}
+
+	// submit animation data
+	if( programFeatures & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
+		RP_UpdateBonesUniforms( program, rb.bonesData.numBones, rb.bonesData.dualQuats );
+	}
+
+	RB_SetStencilMask( 0xFF );
 	RB_SetStencilFunc( GL_ALWAYS, 0x0, 0xFF );
 	RB_SetStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
 
 	RB_SetShaderpassState( pass->flags | GLSTATE_STENCIL_TEST | GLSTATE_NO_DEPTH_TEST | GLSTATE_NO_COLORWRITE );
 	RP_UpdateOutlineUniforms( program, 0 );
 	RB_DrawElementsReal( &rb.drawElements );
-
-	RB_SetStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
-	RB_SetStencilFunc( GL_EQUAL, 1, 0xFF );
-	RB_SetStencilMask( 0x00 );
-
-	RB_SetShaderpassState( pass->flags | GLSTATE_NO_DEPTH_TEST  | GLSTATE_STENCIL_TEST );
-	RP_UpdateOutlineUniforms( program, rb.currentEntity->outlineHeight * r_outlines_scale->value  );
-	RB_DrawElementsReal( &rb.drawElements );
-	
 }
 
 /*
@@ -1480,8 +1518,21 @@ static void RB_RenderMeshGLSL_Outline( const shaderpass_t *pass, r_glslfeat_t pr
 	}
 
 	RB_DrawElementsReal( &rb.drawElements );
-
+	
 	RB_Cull( faceCull );
+	
+	if(rb.currentEntity->outlineGhost) {
+		Vector4Copy( rb.currentEntity->outlineColorGhost, rb.entityOutlineColor );
+		RB_UpdateCommonUniforms( program, pass, texMatrix );
+
+		RB_SetStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
+		RB_SetStencilFunc( GL_EQUAL, 1, 0xFF );
+		RB_SetStencilMask( 0x00 );
+
+		RB_SetShaderpassState( pass->flags | GLSTATE_NO_DEPTH_TEST  | GLSTATE_STENCIL_TEST );
+		RP_UpdateOutlineUniforms( program, rb.currentEntity->outlineGhost * r_outlines_scale->value  );
+		RB_DrawElementsReal( &rb.drawElements );
+	}
 }
 
 /*
@@ -1965,8 +2016,11 @@ void RB_RenderMeshGLSLProgrammed( const shaderpass_t *pass, int programType )
 	case GLSL_PROGRAM_TYPE_SHADOWMAP:
 		RB_RenderMeshGLSL_Shadowmap( pass, features );
 		break;
-	case GLSL_PROGRAM_TYPE_OUTLINE_OVERLAY:
-		RB_RenderMeshGLSL_OverlayOutline(pass, features );
+	case GLSL_PROGRAM_TYPE_OUTLINE_0:
+		RB_RenderMeshGLSL_StencilOutline_0(pass, features );
+		break;
+	case GLSL_PROGRAM_TYPE_OUTLINE_1:
+		RB_RenderMeshGLSL_StencilOutline_1(pass, features );
 		break;
 	case GLSL_PROGRAM_TYPE_OUTLINE:
 		RB_RenderMeshGLSL_Outline( pass, features );
@@ -2064,7 +2118,7 @@ void RB_BindShader( const entity_t *e, const shader_t *shader, const mfog_t *fog
 		rb.alphaHack = e->renderfx & RF_ALPHAHACK ? true : false;
 		rb.hackedAlpha = e->shaderRGBA[3] / 255.0;
 		rb.greyscale = e->renderfx & RF_GREYSCALE ? true : false;
-		rb.noDepthTest = e->renderfx & (RF_NODEPTHTEST | RF_OUTLINE_WRITE_THROUGH) && e->rtype == RT_SPRITE ? true : false;
+		rb.noDepthTest = e->renderfx & (RF_NODEPTHTEST | RF_OUTLINE_STENCIL_0 | RF_OUTLINE_STENCIL_1) && e->rtype == RT_SPRITE ? true : false;
 		rb.noColorWrite = e->renderfx & RF_NOCOLORWRITE ? true : false;
 		rb.depthEqual = rb.alphaHack && (e->renderfx & RF_WEAPONMODEL);
 	}
@@ -2450,8 +2504,13 @@ void RB_DrawShadedElements( void )
 
 	RB_SetShaderState();
 
-	if(rb.currentEntity->renderfx & RF_OUTLINE_WRITE_THROUGH) {
-		RB_RenderPass( &r_GLSLpasses[BUILTIN_GLSLPASS_OVERLAY_OUTLINE] );
+	if(rb.currentEntity->renderfx & RF_OUTLINE_STENCIL_1) {
+		RB_RenderPass( &r_GLSLpasses[BUILTIN_GLSLPASS_OVERLAY_OUTLINE_1] );
+		return;
+	}
+
+	if(rb.currentEntity->renderfx & RF_OUTLINE_STENCIL_0) {
+		RB_RenderPass( &r_GLSLpasses[BUILTIN_GLSLPASS_OVERLAY_OUTLINE_0] );
 		return;
 	}
 

@@ -1303,9 +1303,19 @@ void CG_AddPModel( centity_t *cent )
 	if( !( cent->effects & EF_RACEGHOST ) )
 	{
 		CG_AddCentityOutLineEffect( cent );
+
+		if( cent->current.team == cg.predictedPlayerState.stats[STAT_TEAM] ) {
+			vec4_t color;
+			CG_TeamColor( cg.predictedPlayerState.stats[STAT_TEAM], color );
+			cent->ent.outlineColorGhost[0] = color[0] * 255.0f;
+			cent->ent.outlineColorGhost[1] = color[1] * 255.0f;
+			cent->ent.outlineColorGhost[2] = color[2] * 255.0f;
+			cent->ent.outlineColorGhost[3] = 255;
+			cent->ent.outlineGhost = 1.5f;
+		}
+
 		CG_AddEntityToScene( &cent->ent );
 	}
-
 	
 	if( !cent->ent.model )
 		return;
@@ -1313,19 +1323,6 @@ void CG_AddPModel( centity_t *cent )
 	CG_PModel_AddFlag( cent );
 
 	CG_AddShellEffects( &cent->ent, cent->effects );
-
-	{
-		entity_t shellOutline = cent->ent;
-		shellOutline.renderfx |= RF_OUTLINE_WRITE_THROUGH;
-		shellOutline.outlineColor[0] = 255;
-		shellOutline.outlineColor[1] = 0;
-		shellOutline.outlineColor[2] = 0;
-		shellOutline.outlineColor[3] = 255;
-		shellOutline.outlineHeight = 1.5f;
-		
-		CG_AddEntityToScene( &shellOutline );
-	}
-
 
 	CG_AddHeadIcon( cent );
 
