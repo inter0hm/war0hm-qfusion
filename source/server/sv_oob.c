@@ -722,6 +722,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 #ifdef TCP_ALLOW_CONNECT
 	int incoming = 0;
 #endif
+	int incomingp2p = 0;
 	char userinfo[MAX_INFO_STRING];
 	client_t *cl, *newcl;
 	int i, version, game_port, challenge;
@@ -817,6 +818,24 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 		incoming = i;
 	}
 #endif
+	if( socket->type == SOCKET_SDR )
+	{
+		// find the connection
+		for( i = 0; i < MAX_INCOMING_CONNECTIONS; i++ )
+		{
+			if( !svs.incomingp2p[i].active )
+				continue;
+
+			if( NET_CompareAddress( &svs.incomingp2p[i].address, address ) && socket == &svs.incomingp2p[i].socket )
+				break;
+		}
+		if( i == MAX_INCOMING_CONNECTIONS )
+		{
+			Com_Error( ERR_FATAL, "Incoming connection not found.\n" );
+			return;
+		}
+		incomingp2p = i;
+	}
 
 	// see if the challenge is valid
 	for( i = 0; i < MAX_CHALLENGES; i++ )
@@ -954,6 +973,11 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 		svs.incoming[incoming].socket.open = false;
 	}
 #endif
+if( socket->type == SOCKET_SDR )
+	{
+		svs.incomingp2p[incomingp2p].active = false;
+		svs.incomingp2p[incomingp2p].socket.open = false;
+	}
 }
 
 /*

@@ -175,48 +175,39 @@ static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg )
 
 	return true;
 }
-
-static struct {
-	uint32_t handle;
-	uint64_t steamid;
-} p2p_handles[64] = { 0 };
-
-static void SV_P2P_NewConnection( void *self, struct steam_evt_pkt_s *evt) {
+static void SV_P2P_NewConnection( void *self, struct steam_evt_pkt_s *evt )
+{
 	struct p2p_new_connection_evt_s *p2p = &evt->p2p_new_connection;
-	Com_Printf( "New P2P connection from %llu, %d\n", p2p->steamID , p2p->handle);
 
 	// find a free slot
-	for( int i = 0; i < 64; i++ )
-	{
-		if( p2p_handles[i].handle == 0 )
-		{
-			p2p_handles[i].handle = p2p->handle;
-			p2p_handles[i].steamid = p2p->steamID;
-			break;
-		}
+	int free = -1;
+	for( int i = 0; i < MAX_INCOMING_CONNECTIONS; i++ ) {
+    if( !svs.incomingp2p[i].active ) {
+      free = i;
+      break;
+    }
 	}
-}
-
-static void SV_P2P_ConsumePacket(void* self, struct steam_rpc_pkt_s* rpc) {
-	socket_t* socket = self;	
-	size_t offset = 0;
-	struct recv_messages_recv_s* recv = &rpc->recv_messages_recv;	
-	for (int j = 0; j < recv->count; j++) {
-		Com_Printf("Received message %d\n", recv->messageinfo[j].count);
-
-		msg_t msg;
-		MSG_Init(&msg, recv->buffer+offset, recv->messageinfo[j].count);
-		msg.cursize = recv->messageinfo[j].count;
-		MSG_BeginReading(&msg);
-
-		if( *(int *)msg.data == -1 )
-		{
-			SV_ConnectionlessPacket( socket, &socket->address, &msg );
-			continue;
-		}
-		
-		offset += recv->messageinfo[j].count;
+	if( free == -1 ) {
+    Com_Printf( "No free slot for P2P connection\n" );
+    return;
 	}
+	printf("New %i P2P connection from %llu\n", free, p2p->steamID);
+
+	incoming_t *inc = &svs.incomingp2p[free];
+	netadr_t address;
+	NET_InitAddress( &address, NA_SDR );
+	address.address.steamid = p2p->steamID;
+
+	inc->active = true;
+	inc->time = svs.realtime;
+	inc->address = address;
+
+	inc->socket.address = address;
+	inc->socket.type = SOCKET_SDR;
+	inc->socket.handle = p2p->handle;
+	inc->socket.server = true;
+	inc->socket.open = true;
+	inc->socket.connected = true;
 }
 
 /*
@@ -412,30 +403,29 @@ static void SV_ReadPackets( void )
 		}
 	}
 
-	// handle p2p messages that haven't been assigned to a client yet
-	for (int i = 0; i < 64; i++) {
-		if (p2p_handles[i].handle == 0) {
-			continue;
-		}
+  // sdr packets without a connection
+  for( int i = 0; i < MAX_INCOMING_CONNECTIONS; i++ ) {
+      if( !svs.incomingp2p[i].active )
+          continue;
 
-		struct recv_messages_req_s req;
-		req.cmd = RPC_P2P_RECV_MESSAGES;
-		req.handle = p2p_handles[i].handle;
-		uint32_t syncIndex;
-		
-		NET_InitAddress(&address, NA_SDR);
-		address.address.steamid = p2p_handles[i].steamid;
+      ret = NET_GetPacket( &svs.incomingp2p[i].socket, &address, &msg );
+      if( ret == -1 ) {
+          Com_Printf( "NET_GetPacket: Error: %s\n", NET_ErrorString() );
+          NET_CloseSocket( &svs.incomingp2p[i].socket );
+          svs.incomingp2p[i].active = false;
+      } else if( ret == 1 ) {
+          if( *(int *)msg.data != -1 ) {
+              Com_Printf( "Sequence packet without connection\n" );
+              NET_CloseSocket( &svs.incomingp2p[i].socket );
+              svs.incomingp2p[i].active = false;
+              continue;
+          }
 
-		socket->address = address;
-		socket->type = SOCKET_SDR;
-		socket->handle = p2p_handles[i].handle;
-		socket->server = true;
-		socket->open = true;
-		socket->connected = true;
+          Com_Printf( "Connectionless SDR packet from: %s\n", NET_AddressToString( &address ) );
 
-		STEAMSHIM_sendRPC(&req, sizeof req, socket, SV_P2P_ConsumePacket,  &syncIndex);
-		STEAMSHIM_waitDispatchSync(syncIndex);
-	}
+          SV_ConnectionlessPacket( &svs.incomingp2p[i].socket, &address, &msg );
+      }
+  }
 
 }
 

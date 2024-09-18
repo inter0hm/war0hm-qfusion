@@ -231,7 +231,6 @@ typedef struct
 
 typedef server_static_demo_t demorec_t;
 
-#ifdef TCP_ALLOW_CONNECT
 #define MAX_INCOMING_CONNECTIONS 256
 typedef struct
 {
@@ -240,7 +239,6 @@ typedef struct
 	socket_t socket;
 	netadr_t address;
 } incoming_t;
-#endif
 
 #define MAX_MOTD_LEN 1024
 
@@ -284,6 +282,7 @@ typedef struct
 #ifdef TCP_ALLOW_CONNECT
 	incoming_t incoming[MAX_INCOMING_CONNECTIONS]; // holds socket while tcp client is connecting
 #endif
+	incoming_t incomingp2p[MAX_INCOMING_CONNECTIONS];
 
 	server_static_demo_t demo;
 

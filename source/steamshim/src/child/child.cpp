@@ -236,7 +236,7 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 				SteamNetworkingSockets()->CloseConnection(GClientToServerConn, 0, nullptr, false);
 			} else {
 				// connection close causes a hang inside of steamworks dll. haven't figured out why yet
-				// SteamGameServerNetworkingSockets()->CloseConnection(req->p2p_disconnect.handle, 0, nullptr, false);
+				SteamGameServerNetworkingSockets()->CloseConnection(req->p2p_disconnect.handle, 0, nullptr, false);
 			}
 		 	break;
 	 	}
