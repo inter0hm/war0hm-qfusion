@@ -421,8 +421,6 @@ static void SV_ReadPackets( void )
               continue;
           }
 
-          Com_Printf( "Connectionless SDR packet from: %s\n", NET_AddressToString( &address ) );
-
           SV_ConnectionlessPacket( &svs.incomingp2p[i].socket, &address, &msg );
       }
   }
