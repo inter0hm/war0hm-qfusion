@@ -2426,8 +2426,8 @@ static void R_InitScreenImagePair( const char *name, image_t **color, image_t **
 
 	assert( !depth || glConfig.ext.depth_texture );
 
-	//if( !glConfig.stencilBits )
-	//	stencil = false;
+	if( !glConfig.stencilBits )
+		stencil = false;
 
 	flags = IT_SPECIAL;
 

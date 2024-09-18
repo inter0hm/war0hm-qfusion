@@ -110,7 +110,7 @@ static void RB_InitBuiltinPasses( void )
 	pass->rgbgen.type = RGB_GEN_OUTLINE;
 	pass->alphagen.type = ALPHA_GEN_OUTLINE;
 	pass->tcgen = TC_GEN_NONE;
-	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE_0;
+	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE_STENCIL_BACK;
 
 	// overlay outline
 	pass = &r_GLSLpasses[BUILTIN_GLSLPASS_OVERLAY_OUTLINE_1];
@@ -118,7 +118,7 @@ static void RB_InitBuiltinPasses( void )
 	pass->rgbgen.type = RGB_GEN_OUTLINE;
 	pass->alphagen.type = ALPHA_GEN_OUTLINE;
 	pass->tcgen = TC_GEN_NONE;
-	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE_1;
+	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE_STENCIL_FRONT;
 	
 	// overlay outline
 	pass = &r_GLSLpasses[BUILTIN_GLSLPASS_OVERLAY_OUTLINE_2];
@@ -126,7 +126,7 @@ static void RB_InitBuiltinPasses( void )
 	pass->rgbgen.type = RGB_GEN_OUTLINE;
 	pass->alphagen.type = ALPHA_GEN_OUTLINE;
 	pass->tcgen = TC_GEN_NONE;
-	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE_2;
+	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE_GHOST_FINAL;
 
 
 	// skybox
@@ -1391,10 +1391,6 @@ static void RB_RenderMeshGLSL_Shadowmap( const shaderpass_t *pass, r_glslfeat_t 
 	RB_Scissor( old_scissor[0], old_scissor[1], old_scissor[2], old_scissor[3] );
 }
 
-
-/*
-* RB_RenderMeshGLSL_Outline
-*/
 static void RB_RenderMeshGLSL_StencilOutline_0( const shaderpass_t *pass, r_glslfeat_t programFeatures )
 {
 	Vector4Copy( rb.currentEntity->outlineColorGhost, rb.entityOutlineColor );
@@ -1425,7 +1421,7 @@ static void RB_RenderMeshGLSL_StencilOutline_0( const shaderpass_t *pass, r_glsl
 	RB_SetStencilOp( GL_REPLACE, GL_ZERO, GL_REPLACE);
 	RB_SetStencilFunc( GL_ALWAYS, 1, 0xFF );
 
-	RB_SetShaderpassState( pass->flags | GLSTATE_STENCIL_TEST | GLSTATE_DEPTHFUNC_GT);// | GLSTATE_NO_COLORWRITE );
+	RB_SetShaderpassState( pass->flags | GLSTATE_STENCIL_TEST | GLSTATE_DEPTHFUNC_GT);;
 	RP_UpdateOutlineUniforms( program, rb.currentEntity->outlineGhost);
 	RB_DrawElementsReal( &rb.drawElements );
 }
@@ -2024,13 +2020,13 @@ void RB_RenderMeshGLSLProgrammed( const shaderpass_t *pass, int programType )
 	case GLSL_PROGRAM_TYPE_SHADOWMAP:
 		RB_RenderMeshGLSL_Shadowmap( pass, features );
 		break;
-	case GLSL_PROGRAM_TYPE_OUTLINE_0:
+	case GLSL_PROGRAM_TYPE_OUTLINE_STENCIL_BACK:
 		RB_RenderMeshGLSL_StencilOutline_0(pass, features );
 		break;
-	case GLSL_PROGRAM_TYPE_OUTLINE_1:
+	case GLSL_PROGRAM_TYPE_OUTLINE_STENCIL_FRONT:
 		RB_RenderMeshGLSL_StencilOutline_1(pass, features );
 		break;
-	case GLSL_PROGRAM_TYPE_OUTLINE_2:
+	case GLSL_PROGRAM_TYPE_OUTLINE_GHOST_FINAL:
 		RB_RenderMeshGLSL_StencilOutline_2(pass, features );
 		break;
 	case GLSL_PROGRAM_TYPE_OUTLINE:
@@ -2543,7 +2539,7 @@ void RB_DrawShadedElements( void )
 	if( addGLSLOutline )
 		RB_RenderPass( &r_GLSLpasses[BUILTIN_GLSLPASS_OUTLINE] );
 
-	if(rb.currentEntity->outlineGhost) 
+	if(rb.currentEntity->outlineGhost && glConfig.stencilBits) 
 		RB_RenderPass( &r_GLSLpasses[BUILTIN_GLSLPASS_OVERLAY_OUTLINE_2] );
 
 	// fog

@@ -118,6 +118,7 @@ void R_AddEntityToScene( const entity_t *ent )
 				tent.renderfx |= RF_OUTLINE_STENCIL_0;
 				R_AddEntityToScene( &tent );
 			}
+			if(glConfig.stencilBits)
 			{
 				entity_t tent = *ent;
 				tent.renderfx |= RF_OUTLINE_STENCIL_1;

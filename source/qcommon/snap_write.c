@@ -909,8 +909,6 @@ static bool SNAP_SnapCullEntity( cmodel_state_t *cms, edict_t *ent, edict_t *cle
 	if( frame->allentities )
 		return false;
 
-	if(ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE)
-		return false;
 
 	// filters: transmit only to clients in the same team as this entity
 	// broadcasting is less important than team specifics
