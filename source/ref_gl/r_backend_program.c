@@ -1420,10 +1420,14 @@ static void RB_RenderMeshGLSL_StencilOutline_0( const shaderpass_t *pass, r_glsl
 	RB_SetStencilMask( 0xFF );
 	RB_SetStencilOp( GL_REPLACE, GL_ZERO, GL_REPLACE);
 	RB_SetStencilFunc( GL_ALWAYS, 1, 0xFF );
+	
+	int faceCull =  rb.gl.faceCull;
+	RB_Cull(0);
 
 	RB_SetShaderpassState( pass->flags | GLSTATE_STENCIL_TEST | GLSTATE_DEPTHFUNC_GT);;
 	RP_UpdateOutlineUniforms( program, rb.currentEntity->outlineGhost);
 	RB_DrawElementsReal( &rb.drawElements );
+	RB_Cull(faceCull);
 }
 
 static void RB_RenderMeshGLSL_StencilOutline_1( const shaderpass_t *pass, r_glslfeat_t programFeatures )
@@ -1451,10 +1455,14 @@ static void RB_RenderMeshGLSL_StencilOutline_1( const shaderpass_t *pass, r_glsl
 	RB_SetStencilMask( 0xFF );
 	RB_SetStencilFunc( GL_ALWAYS, 0x0, 0xFF );
 	RB_SetStencilOp( GL_REPLACE, GL_REPLACE, GL_REPLACE );
+	
+	int faceCull =  rb.gl.faceCull;
+	RB_Cull(0);
 
 	RB_SetShaderpassState( pass->flags | GLSTATE_STENCIL_TEST | GLSTATE_NO_DEPTH_TEST | GLSTATE_NO_COLORWRITE );
 	RP_UpdateOutlineUniforms( program, 0 );
 	RB_DrawElementsReal( &rb.drawElements );
+	RB_Cull(faceCull);
 }
 
 static void RB_RenderMeshGLSL_StencilOutline_2( const shaderpass_t *pass, r_glslfeat_t programFeatures )
@@ -1482,9 +1490,13 @@ static void RB_RenderMeshGLSL_StencilOutline_2( const shaderpass_t *pass, r_glsl
 	RB_SetStencilFunc( GL_EQUAL, 1, 0xFF );
 	RB_SetStencilMask( 0x00 );
 
+	int faceCull =  rb.gl.faceCull;
+	RB_Cull(0);
+
 	RB_SetShaderpassState( pass->flags | GLSTATE_NO_DEPTH_TEST  | GLSTATE_STENCIL_TEST );
 	RP_UpdateOutlineUniforms( program, rb.currentEntity->outlineGhost  );
 	RB_DrawElementsReal( &rb.drawElements );
+	RB_Cull(faceCull);
 }
 
 /*
