@@ -110,10 +110,6 @@ msgid "g_countdown_time"
 msgstr "<value> Countdown time (in seconds) before a round begins."
 
 #. Console/g
-msgid "g_dashjump_cooldown"
-msgstr "<value> The amount of time (in milliseconds) dashjump is available to be used again"
-
-#. Console/g
 msgid "g_disable_opcall_allow_falldamage"
 msgstr "<0/1> Disables \"allow_falldamage\" opcall.\n"
 "^6Disable: g_disable_opcall_allow_falldamage \"0\"\n"
@@ -678,14 +674,6 @@ msgstr "<value> Specifies how many times can a player change their vote."
 #. Console/g
 msgid "g_vote_percent"
 msgstr "<0-100> The percentage of players that need to vote yes for it to pass."
-
-#. Console/g
-msgid "g_walljump_cooldown"
-msgstr "<value> The amount of time (in milliseconds) a walljump is available again"
-
-#. Console/g
-msgid "g_walljump_failed_cooldown"
-msgstr "<value> The amount of time (in milliseconds) a walljump is available again while being stunned"
 
 #. Console/g
 msgid "g_weapon_respawn"
