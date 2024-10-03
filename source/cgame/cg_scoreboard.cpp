@@ -859,7 +859,9 @@ static int SCR_DrawPlayerTab( const char **ptrptr, int team, int x, int y, int p
 	int gap = trap_SCR_FontHeight(font) / 4;
 	if (pass && !last){
 		// draw scoreboard separator
-		CG_TeamColor( team, teamcolor );
+		
+		if( ( team == TEAM_ALPHA ) || ( team == TEAM_BETA ) )
+			CG_TeamColor( team, teamcolor );
 		teamcolor[3] = SCB_BACKGROUND_ALPHA - 0.17;
 		RF_DrawStretchPic( xstart, y + yoffset + avatarsize,panelWidth+gap, gap, 0, 0, 1, 1,teamcolor, cgs.shaderWhite );
 	}
