@@ -687,22 +687,24 @@ int Q_GrabCharFromColorString( const char **pstr, char *c, int *colorindex, int 
 			( *pstr ) += 2;	// skip the ^^
 			return GRABCHAR_CHAR;
 		}
-		else if ( ( *pstr )[1] == Q_COLOR_ANSI_ESCAPE && HEXVALID( ( *pstr )[2] ) && HEXVALID( ( *pstr )[3] ))
-		{
-			if ( ansicolorindex )
-				*ansicolorindex = TOHEX( ( *pstr )[2] );
-			if ( bgcolorindex )
-				*bgcolorindex = TOHEX( ( *pstr )[3] );
-			( *pstr ) += 3;
-			return GRABCHAR_ANSI;
-		} else if ( ( *pstr )[1] == Q_COLOR_RGB_ESCAPE && strlen(*pstr) > 6 &&
+		/* ansi colors currently disabled */
+		/* else if ( ( *pstr )[1] == Q_COLOR_ANSI_ESCAPE && HEXVALID( ( *pstr )[2] ) && HEXVALID( ( *pstr )[3] )) */
+		/* { */
+		/* 	if ( ansicolorindex ) */
+		/* 		*ansicolorindex = TOHEX( ( *pstr )[2] ); */
+		/* 	if ( bgcolorindex ) */
+		/* 		*bgcolorindex = TOHEX( ( *pstr )[3] ); */
+		/* 	( *pstr ) += 3; */
+		/* 	return GRABCHAR_ANSI; */
+		/* } */
+		else if ( ( *pstr )[1] == Q_COLOR_RGB_ESCAPE && strlen(*pstr) > 6 &&
 			HEXVALID( *(*pstr + 2 )) && HEXVALID( *(*pstr + 3 ) ) &&
 			HEXVALID( *(*pstr + 4 ) ) && HEXVALID( *(*pstr + 5 ) ) &&
 			HEXVALID( *(*pstr + 6 ) ) && HEXVALID( *(*pstr + 7 ) ))
 		{
 			if (rgbcolor)
 				*rgbcolor = TOHEX( *(*pstr + 2) ) << 20 | TOHEX( *(*pstr + 3) ) << 16 | TOHEX( *(*pstr + 4) ) << 12 | TOHEX( *(*pstr + 5) ) << 8 | TOHEX( *(*pstr + 6) ) << 4 | TOHEX( *(*pstr + 7) );
-			( *pstr ) += 7;
+			( *pstr ) += 8;
 
 			return GRABCHAR_RGB;
 		}
@@ -739,15 +741,18 @@ int Q_GrabWCharFromColorString( const char **pstr, wchar_t *wc, int *colorindex,
 				*rgbcolor = TOHEX( *(*pstr + 1) ) << 20 | TOHEX( *(*pstr + 2) ) << 16 | TOHEX( *(*pstr + 3) ) << 12 | TOHEX( *(*pstr + 4) ) << 8 | TOHEX( *(*pstr + 5) ) << 4 | TOHEX( *(*pstr + 6) );
 			( *pstr ) += 7;
 			return GRABCHAR_RGB;
-		} else if( **pstr == Q_COLOR_ANSI_ESCAPE && strlen(*pstr) > 3 && HEXVALID( *(*pstr + 1 ) ) && HEXVALID( *(*pstr + 2) ) )
-		{
-			if( ansicolorindex )
-				*ansicolorindex = TOHEX( *(*pstr + 1 ) );
-			if( ansibgcolorindex )
-				*ansibgcolorindex = TOHEX( *(*pstr + 2 ) );
-			( *pstr ) += 3;
-			return GRABCHAR_ANSI;
-		} else if( **pstr >= '0' && **pstr < '0' + MAX_S_COLORS )
+		}
+		/* ansi disabled */
+		/* else if( **pstr == Q_COLOR_ANSI_ESCAPE && strlen(*pstr) > 3 && HEXVALID( *(*pstr + 1 ) ) && HEXVALID( *(*pstr + 2) ) ) */
+		/* { */
+		/* 	if( ansicolorindex ) */
+		/* 		*ansicolorindex = TOHEX( *(*pstr + 1 ) ); */
+		/* 	if( ansibgcolorindex ) */
+		/* 		*ansibgcolorindex = TOHEX( *(*pstr + 2 ) ); */
+		/* 	( *pstr ) += 3; */
+		/* 	return GRABCHAR_ANSI; */
+		/* } */
+		else if( **pstr >= '0' && **pstr < '0' + MAX_S_COLORS )
 		{
 			if( colorindex )
 				*colorindex = ColorIndex( **pstr );
