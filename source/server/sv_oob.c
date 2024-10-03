@@ -139,16 +139,19 @@ static void SV_ResolveMaster( void )
 		}
 	}
 
-	mlist = sv_masterservers_warfork->string;
-	if( *mlist )
-	{
-		while( mlist )
+	// do not enable warfork master for dedicated servers - port forwarding is already expected of you
+	if (dedicated->integer == 0) {
+		mlist = sv_masterservers_warfork->string;
+		if( *mlist )
 		{
-			master = COM_Parse( &mlist );
-			if( !master[0] )
-				break;
+			while( mlist )
+			{
+				master = COM_Parse( &mlist );
+				if( !master[0] )
+					break;
 
-			SV_AddMaster_f( master, MASTER_WARFORK);
+				SV_AddMaster_f( master, MASTER_WARFORK);
+			}
 		}
 	}
 
