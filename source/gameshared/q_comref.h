@@ -207,8 +207,10 @@ typedef struct
 #define CS_WORLDMODEL		30
 #define	CS_MAPCHECKSUM		31		// for catching cheater maps
 
+#define CS_MOVEMENT 32
+
 //precache stuff begins here
-#define	CS_MODELS			32
+#define	CS_MODELS			33
 #define	CS_SOUNDS			( CS_MODELS+MAX_MODELS )
 #define	CS_IMAGES			( CS_SOUNDS+MAX_SOUNDS )
 #define	CS_SKINFILES		( CS_IMAGES+MAX_IMAGES )

@@ -355,6 +355,11 @@ extern cvar_t *g_allow_falldamage;
 extern cvar_t *g_allow_selfdamage;
 extern cvar_t *g_allow_teamdamage;
 extern cvar_t *g_allow_bunny;
+
+extern cvar_t *g_pmove_dashjump_timedelay;
+extern cvar_t *g_pmove_walljump_timedelay;
+extern cvar_t *g_pmove_walljump_failed_timedelay;
+
 extern cvar_t *g_ammo_respawn;
 extern cvar_t *g_weapon_respawn;
 extern cvar_t *g_health_respawn;
@@ -984,6 +989,7 @@ bool G_RespawnLevel( void );
 void G_ResetLevel( void );
 void G_InitLevel( char *mapname, char *entities, int entstrlen, unsigned int levelTime, unsigned int serverTime, unsigned int realTime );
 const char *G_GetEntitySpawnKey( const char *key, edict_t *self );
+void G_UpdateConfigStrings();
 
 //
 // g_awards.c
