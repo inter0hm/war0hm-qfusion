@@ -1946,10 +1946,6 @@ void G_Gametype_Init( void )
 	g_allow_teamdamage = trap_Cvar_Get( "g_allow_teamdamage", "0", CVAR_ARCHIVE );
 	g_allow_bunny = trap_Cvar_Get( "g_allow_bunny", "1", CVAR_ARCHIVE|CVAR_READONLY );
 
-	g_pmove_dashjump_timedelay = trap_Cvar_Get( "g_pmove_dashjump_timedelay", "1000", CVAR_ARCHIVE );
-	g_pmove_walljump_timedelay = trap_Cvar_Get( "g_pmove_walljump_timedelay", "1300", CVAR_ARCHIVE );
-	g_pmove_walljump_failed_timedelay = trap_Cvar_Get( "g_pmove_walljump_failed_timedelay", "700", CVAR_ARCHIVE );
-
 	// map-specific gametype
 	mapGametype = G_asCallMapGametype();
 	if( mapGametype[0] && G_Gametype_Exists( mapGametype ) )
