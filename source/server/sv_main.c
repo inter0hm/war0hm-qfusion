@@ -182,16 +182,15 @@ static void SV_P2P_NewConnection( void *self, struct steam_evt_pkt_s *evt )
 	// find a free slot
 	int free = -1;
 	for( int i = 0; i < MAX_INCOMING_CONNECTIONS; i++ ) {
-    if( !svs.incomingp2p[i].active ) {
-      free = i;
-      break;
-    }
+		if( !svs.incomingp2p[i].active ) {
+			free = i;
+			break;
+		}
 	}
 	if( free == -1 ) {
-    Com_Printf( "No free slot for P2P connection\n" );
-    return;
+		Com_Printf( "No free slot for P2P connection\n" );
+		return;
 	}
-	printf("New %i P2P connection from %llu\n", free, p2p->steamID);
 
 	incoming_t *inc = &svs.incomingp2p[free];
 	netadr_t address;
