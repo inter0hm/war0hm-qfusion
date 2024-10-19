@@ -7,11 +7,6 @@
 #include <string.h>
 #include <stdio.h>
 
-
-static const SteamshimEvent* blockOnEvent(SteamshimEventType type){
-	return NULL;
-}
-
 /*
 * Steam_AdvertiseGame
 */

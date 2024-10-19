@@ -863,7 +863,7 @@ static void CL_SteamAuth(){
 		request.cmd = RPC_AUTHSESSION_TICKET;
 		uint32_t syncIndex;
 		STEAMSHIM_sendRPC( &request, sizeof( struct steam_rpc_shim_common_s ), NULL, CL_RPC_cb_steamAuth, &syncIndex );
-		STEAMSHIM_waitDispatchSync(syncIndex); // not sure if this need to be blocking
+		STEAMSHIM_waitDispatchSync(syncIndex);
 	}
 }
 
@@ -938,7 +938,6 @@ static void CB_RPC_DecompressVoice( void *self, struct steam_rpc_pkt_s *rec )
 
 static void CL_ParseVoiceData( msg_t *msg ) {
 	int client = MSG_ReadShort( msg );
-	// need some way to mute players...
 
 	int size = MSG_ReadShort( msg );
 	if (cl_enablevoice->integer != 1) {

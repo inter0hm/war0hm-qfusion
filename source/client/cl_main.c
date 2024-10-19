@@ -499,11 +499,6 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 	cls.mv = false;
 }
 
-
-static void CB_P2P_Connect( void *self, struct steam_rpc_pkt_s *rec ){
-	printf("P2P Connect success: %d\n", rec->p2p_connect_recv.success);
-}
-
 /*
 * CL_Connect_Cmd_f
 */
