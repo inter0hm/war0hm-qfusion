@@ -9,8 +9,7 @@ static inline void prepared_rpc_packet( const steam_rpc_shim_common_s *req, T *r
 	response->cmd = req->cmd;
 }
 
-template <typename T>
-static inline void write_packet( PipeType fd, const T *response, uint32_t size )
+static inline void write_packet( PipeType fd, const void *response, uint32_t size )
 {
 	writePipe( fd, &size, sizeof( uint32_t ) );
 	writePipe( fd, response, size );
