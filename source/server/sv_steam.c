@@ -1,40 +1,38 @@
 #include "../qcommon/qcommon.h"
 #include "../qcommon/steam.h"
-#include "../steamshim/src/parent/parent.h"
-#include <string.h>
+#include "../steamshim/src/steamshim_types.h"
+#include "./../steamshim/src/mod_steam.h"
 
-static const SteamshimEvent* blockOnEvent(SteamshimEventType type){
+struct authsessioncb_self {
+	int result;
+};
 
-	//while( 1 ) {
-	//	const SteamshimEvent *evt = STEAMSHIM_pump();
-	//	if (!evt) continue;
-
-	//	if (evt->type == type){
-	//		return evt;
-	//	} else {
-	//		printf("warning: ignoring event %i\n",evt->type);
-	//	}
-	//}
-	return NULL;
-}
-
-/*
-* Steam_GetAuthSessionTicket
-*/
-int Steam_GetAuthSessionTicket( void ( *callback )( void *, size_t ) )
-{
-	// coolelectronics: not implementing anything here until i have a better understanding of cl_mm.c
-	return 0;
+static void BeginAuthSessionCB(struct authsessioncb_self *self, struct steam_result_recv_s *rec) {
+	self->result = rec->result;
 }
 
 int Steam_BeginAuthSession(uint64_t steamid, SteamAuthTicket_t *ticket){
-	return 0;
-	//STEAMSHIM_beginAuthSession(steamid,ticket);
-	//const SteamshimEvent *evt = blockOnEvent(EVT_SV_AUTHSESSIONVALIDATED);
+	struct begin_auth_session_req_s s;
+	s.steamID = steamid;
+	s.cmd = RPC_BEGIN_AUTH_SESSION;
 
-	//return evt->sv_authsessionvalidated;
+	uint32_t sync;
+	struct authsessioncb_self self = {};
+	self.result = -1;
+
+	STEAMSHIM_sendRPC(&s, sizeof s, &self, (STEAMSHIM_rpc_handle)BeginAuthSessionCB, &sync);
+	STEAMSHIM_waitDispatchSync(sync);
+
+	return self.result;
 }
 
-void Steam_EndAuthSession(uint64_t steamid){
-	//STEAMSHIM_endAuthSession(steamid);
+
+void Steam_EndAuthSession(uint64_t steamid) {
+	struct steam_id_rpc_s s;
+	s.id = steamid;
+	s.cmd = RPC_END_AUTH_SESSION;
+
+	uint32_t sync;
+	STEAMSHIM_sendRPC(&s, sizeof s, NULL, NULL, &sync);
+	STEAMSHIM_waitDispatchSync(sync);
 }

@@ -579,6 +579,5 @@ void SV_Web_GameFrame( http_game_query_cb cb );
 // sv_steam.c
 //
 #include "../steamshim/src/steamshim_types.h"
-int Steam_GetAuthSessionTicket( void (*callback)( void *, size_t ) );
 int Steam_BeginAuthSession(uint64_t steamid, SteamAuthTicket_t *ticket);
 void Steam_EndAuthSession(uint64_t steamid);
