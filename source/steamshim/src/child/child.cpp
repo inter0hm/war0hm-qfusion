@@ -296,6 +296,7 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 		}
 		case RPC_GETVOICE: {
 			uint32 size;
+
 			SteamUser()->GetAvailableVoice(&size);
 			if (size == 0) {
 				break;
@@ -464,6 +465,7 @@ static bool initSteamworks( PipeType fd )
 		GServerBrowser->RefreshInternetServers();
 
 		SteamNetworkingUtils()->InitRelayNetworkAccess();
+		SteamUser()->StopVoiceRecording();
 	}
 
 	if( GRunServer ) {

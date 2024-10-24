@@ -569,7 +569,8 @@ void ServerBrowserDataSource::addServerToTable( ServerInfo &info, const String &
 	// Show/sort with referenceList
 	ReferenceList::iterator it;
 
-	if (info.p2p) {
+	if (info.steamid != 0) {
+		// TODO: this is really abusable
 		it = find_if( referenceList,
 								ServerInfo::EqualUnary<uint64_t, &ServerInfo::steamid>( info.steamid) );
 	} else {

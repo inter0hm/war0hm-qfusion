@@ -479,20 +479,16 @@ static void IN_ZoomUp( void ) { KeyUp( &in_zoom ); }
 
 static void IN_VoiceRecordDown( void )
 {
-	if( cls.key_dest == key_game ) {
-		struct steam_rpc_shim_common_s req;
-		req.cmd = RPC_START_VOICE_RECORDING;
-		STEAMSHIM_sendRPC(&req, sizeof req, NULL, NULL, NULL);
-	}
+	struct steam_rpc_shim_common_s req;
+	req.cmd = RPC_START_VOICE_RECORDING;
+	STEAMSHIM_sendRPC(&req, sizeof req, NULL, NULL, NULL);
 }
 
 static void IN_VoiceRecordUp( void )
 {
-	if( cls.key_dest == key_game ) {
-		struct steam_rpc_shim_common_s req;
-		req.cmd = RPC_STOP_VOICE_RECORDING;
-		STEAMSHIM_sendRPC(&req, sizeof req, NULL, NULL, NULL);
-	}
+	struct steam_rpc_shim_common_s req;
+	req.cmd = RPC_STOP_VOICE_RECORDING;
+	STEAMSHIM_sendRPC(&req, sizeof req, NULL, NULL, NULL);
 }
 
 
