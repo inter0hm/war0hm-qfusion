@@ -19,7 +19,7 @@ int Steam_BeginAuthSession(uint64_t steamid, SteamAuthTicket_t *ticket){
 	memcpy(s.authTicket, ticket->pTicket, ticket->pcbTicket);
 
 	uint32_t sync;
-	struct authsessioncb_self self = {};
+	struct authsessioncb_self self;
 	self.result = -1;
 
 	STEAMSHIM_sendRPC(&s, sizeof s, &self, (STEAMSHIM_rpc_handle)BeginAuthSessionCB, &sync);
