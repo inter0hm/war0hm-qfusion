@@ -34,7 +34,5 @@ void Steam_EndAuthSession(uint64_t steamid) {
 	s.id = steamid;
 	s.cmd = RPC_END_AUTH_SESSION;
 
-	uint32_t sync;
-	STEAMSHIM_sendRPC(&s, sizeof s, NULL, NULL, &sync);
-	STEAMSHIM_waitDispatchSync(sync);
+	STEAMSHIM_sendRPC(&s, sizeof s, NULL, NULL, NULL);
 }
