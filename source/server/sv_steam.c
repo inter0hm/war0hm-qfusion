@@ -15,6 +15,8 @@ int Steam_BeginAuthSession(uint64_t steamid, SteamAuthTicket_t *ticket){
 	struct begin_auth_session_req_s s;
 	s.steamID = steamid;
 	s.cmd = RPC_BEGIN_AUTH_SESSION;
+	s.cbAuthTicket = ticket->pcbTicket;
+	memcpy(s.authTicket, ticket->pTicket, ticket->pcbTicket);
 
 	uint32_t sync;
 	struct authsessioncb_self self = {};
