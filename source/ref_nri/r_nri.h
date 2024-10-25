@@ -21,7 +21,6 @@ const static NriSwapChainFormat DefaultSwapchainFormat = NriSwapChainFormat_BT70
 const static NriSPIRVBindingOffsets DefaultBindingOffset = { 100, 200, 300, 400 }; // just ShaderMake defaults for simplicity
 
 
-
 // DirectX 12 requires ubo's be aligned by 256
 const static uint32_t UBOBlockerBufferSize = 256 * 128;
 const static uint32_t UBOBlockerBufferAlignmentReq = 256;
@@ -110,7 +109,8 @@ typedef struct {
 
 bool R_InitNriBackend( const nri_init_desc_t *init, struct nri_backend_s *backend );
 void R_NRI_CallbackMessage( NriMessage msg, const char *file, uint32_t line, const char *message, void *userArg );
-NriFormat R_NRIFormat( enum texture_format_e format );
+NriFormat R_ToNRIFormat( enum texture_format_e format );
+enum texture_format_e R_FromNRIFormat( NriFormat format );
 
 //struct gl_layout_config_s {
 //

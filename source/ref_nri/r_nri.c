@@ -241,7 +241,83 @@ bool R_InitNriBackend(const nri_init_desc_t* init, struct nri_backend_s* backend
 	return true;
 }
 
-NriFormat R_NRIFormat(enum texture_format_e format) {
+enum texture_format_e R_FromNRIFormat( NriFormat format ) {
+  switch(format) {
+    case NriFormat_R8_UNORM: return R_FORMAT_R8_UNORM;
+    case NriFormat_R8_SNORM: return R_FORMAT_R8_SNORM;
+    case NriFormat_R8_UINT: return R_FORMAT_R8_UINT;
+    case NriFormat_R8_SINT: return R_FORMAT_R8_SINT;
+    case NriFormat_RG8_UNORM: return R_FORMAT_RG8_UNORM;
+    case NriFormat_RG8_SNORM: return R_FORMAT_RG8_SNORM;
+    case NriFormat_RG8_UINT: return R_FORMAT_RG8_UINT;
+    case NriFormat_RG8_SINT: return R_FORMAT_RG8_SINT;
+    case NriFormat_BGRA8_UNORM: return R_FORMAT_BGRA8_UNORM;
+    case NriFormat_BGRA8_SRGB: return R_FORMAT_BGRA8_SRGB;
+    case NriFormat_RGBA8_UNORM: return R_FORMAT_RGBA8_UNORM;
+    case NriFormat_RGBA8_SNORM: return R_FORMAT_RGBA8_SNORM;
+    case NriFormat_RGBA8_UINT: return R_FORMAT_RGBA8_UINT;
+    case NriFormat_RGBA8_SINT: return R_FORMAT_RGBA8_SINT;
+    case NriFormat_RGBA8_SRGB: return R_FORMAT_RGBA8_SRGB;
+    case NriFormat_R16_UNORM: return R_FORMAT_R16_UNORM;
+    case NriFormat_R16_SNORM: return R_FORMAT_R16_SNORM;
+    case NriFormat_R16_UINT: return R_FORMAT_R16_UINT;
+    case NriFormat_R16_SINT: return R_FORMAT_R16_SINT;
+    case NriFormat_R16_SFLOAT: return R_FORMAT_R16_SFLOAT;
+    case NriFormat_RG16_UNORM: return R_FORMAT_RG16_UNORM;
+    case NriFormat_RG16_SNORM: return R_FORMAT_RG16_SNORM;
+    case NriFormat_RG16_UINT: return R_FORMAT_RG16_UINT;
+    case NriFormat_RG16_SINT: return R_FORMAT_RG16_SINT;
+    case NriFormat_RG16_SFLOAT: return R_FORMAT_RG16_SFLOAT;
+    case NriFormat_RGBA16_UNORM: return R_FORMAT_RGBA16_UNORM;
+    case NriFormat_RGBA16_SNORM: return R_FORMAT_RGBA16_SNORM;
+    case NriFormat_RGBA16_UINT: return R_FORMAT_RGBA16_UINT;
+    case NriFormat_RGBA16_SINT: return R_FORMAT_RGBA16_SINT;
+    case NriFormat_RGBA16_SFLOAT: return R_FORMAT_RGBA16_SFLOAT;
+    case NriFormat_R32_UINT: return R_FORMAT_R32_UINT;
+    case NriFormat_R32_SINT: return R_FORMAT_R32_SINT;
+    case NriFormat_R32_SFLOAT: return R_FORMAT_R32_SFLOAT;
+    case NriFormat_RG32_UINT: return R_FORMAT_RG32_UINT;
+    case NriFormat_RG32_SINT: return R_FORMAT_RG32_SINT;
+    case NriFormat_RG32_SFLOAT: return R_FORMAT_RG32_SFLOAT;
+    case NriFormat_RGB32_UINT: return R_FORMAT_RGB32_UINT;
+    case NriFormat_RGB32_SINT: return R_FORMAT_RGB32_SINT;
+    case NriFormat_RGB32_SFLOAT: return R_FORMAT_RGB32_SFLOAT;
+    case NriFormat_RGBA32_UINT: return R_FORMAT_RGBA32_UINT;
+    case NriFormat_RGBA32_SINT: return R_FORMAT_RGBA32_SINT;
+    case NriFormat_RGBA32_SFLOAT: return R_FORMAT_RGBA32_SFLOAT;
+    case NriFormat_R10_G10_B10_A2_UNORM: return R_FORMAT_R10_G10_B10_A2_UNORM;
+    case NriFormat_R10_G10_B10_A2_UINT: return R_FORMAT_R10_G10_B10_A2_UINT;
+    case NriFormat_R11_G11_B10_UFLOAT: return R_FORMAT_R11_G11_B10_UFLOAT;
+    //case NriFormat_R9_G9_B9_E5_UFLOAT: return R_FORMAT_R9_G9_B9_E5_UFLOAT;
+    case NriFormat_BC1_RGBA_UNORM: return R_FORMAT_BC1_RGBA_UNORM;
+    case NriFormat_BC1_RGBA_SRGB: return R_FORMAT_BC1_RGBA_SRGB;
+    case NriFormat_BC2_RGBA_UNORM: return R_FORMAT_BC2_RGBA_UNORM;
+    case NriFormat_BC2_RGBA_SRGB: return R_FORMAT_BC2_RGBA_SRGB;
+    case NriFormat_BC3_RGBA_UNORM: return R_FORMAT_BC3_RGBA_UNORM;
+    case NriFormat_BC3_RGBA_SRGB: return R_FORMAT_BC3_RGBA_SRGB;
+    case NriFormat_BC4_R_UNORM: return R_FORMAT_BC4_R_UNORM;
+    case NriFormat_BC4_R_SNORM: return R_FORMAT_BC4_R_SNORM;
+    case NriFormat_BC5_RG_UNORM: return R_FORMAT_BC5_RG_UNORM;
+    case NriFormat_BC5_RG_SNORM: return R_FORMAT_BC5_RG_SNORM;
+    case NriFormat_BC6H_RGB_UFLOAT: return R_FORMAT_BC6H_RGB_UFLOAT;
+    case NriFormat_BC6H_RGB_SFLOAT: return R_FORMAT_BC6H_RGB_SFLOAT;
+    case NriFormat_BC7_RGBA_UNORM: return R_FORMAT_BC7_RGBA_UNORM;
+    case NriFormat_BC7_RGBA_SRGB: return R_FORMAT_BC7_RGBA_SRGB;
+    case NriFormat_D16_UNORM: return R_FORMAT_D16_UNORM;
+    case NriFormat_D24_UNORM_S8_UINT: return R_FORMAT_D24_UNORM_S8_UINT;
+    case NriFormat_D32_SFLOAT: return R_FORMAT_D32_SFLOAT;
+    case NriFormat_D32_SFLOAT_S8_UINT_X24: return R_FORMAT_D32_SFLOAT_S8_UINT_X24;
+    case NriFormat_R24_UNORM_X8: return R_FORMAT_R24_UNORM_X8;
+    //case NriFormat_X24_R8_UINT: return R_FORMAT_X24_R8_UINT;
+    //case NriFormat_X32_R8_UINT_X24: return R_FORMAT_X32_G8_UINT_X24;
+    case NriFormat_R32_SFLOAT_X8_X24: return R_FORMAT_R32_SFLOAT_X8_X24;
+    default:
+      break;
+  }
+  return R_FORMAT_UNKNOWN;
+}
+
+NriFormat R_ToNRIFormat(enum texture_format_e format) {
  switch(format) {
     case R_FORMAT_R8_UNORM: return NriFormat_R8_UNORM;
     case R_FORMAT_R8_SNORM: return NriFormat_R8_SNORM;

@@ -66,6 +66,7 @@ static void R_FreeImage( struct image_s *image );
 static NriTextureUsageBits __R_NRITextureUsageBits(int flags);
 static NriDescriptor *resolveSamplerDescriptor( int flags );
 static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mipOffset, int x, int y, int w, int h, enum texture_format_e srcFormat, uint8_t *data );
+static enum texture_format_e __R_GetImageFormat( struct image_s* image );
 
 int R_TextureTarget( int flags, int *uploadTarget )
 {
@@ -1486,7 +1487,7 @@ static bool __R_LoadKTX( image_t *image, const char *pathname )
 		goto error;
 	}
 	const struct base_format_def_s *definition = ktxContext.desc;
-	const enum texture_format_e dstFormat = R_FORMAT_RGBA8_UNORM;
+	const enum texture_format_e dstFormat = __R_GetImageFormat(image);
 	const uint32_t numberOfFaces = R_KTXGetNumberFaces( &ktxContext );
 	const size_t destBlockSize = RT_BlockSize(R_BaseFormatDef(dstFormat));
 	const uint16_t numberOfMipLevels = R_KTXIsCompressed( &ktxContext )  ? 1 : (( image->flags & IT_NOMIPMAP ) ? 1 : R_KTXGetNumberMips( &ktxContext ));
@@ -1496,7 +1497,7 @@ static bool __R_LoadKTX( image_t *image, const char *pathname )
 		.usage = __R_NRITextureUsageBits( image->flags ),
 		.layerNum = R_KTXIsCompressed( &ktxContext ) ? 1 : numberOfFaces,
 		.depth = 1,
-		.format = R_NRIFormat( dstFormat ),
+		.format = R_ToNRIFormat( dstFormat ),
 		.sampleNum = 1,
 		.type = NriTextureType_TEXTURE_2D,
 		.mipNum = numberOfMipLevels 
@@ -1706,7 +1707,6 @@ static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mip
 	const size_t srcBlockSize = RT_BlockSize( srcDef);
 	const size_t destBlockSize = RT_BlockSize( destDef);
 
-	assert(destDef->format == R_FORMAT_RGBA8_UNORM);
 
 	texture_upload_desc_t uploadDesc = { 
 		.sliceNum = h, 
@@ -1774,19 +1774,6 @@ static uint16_t __R_calculateMipMapLevel(int flags, int width, int height, uint3
 		return max(1, mip);
 	}
 	return  max(1,( flags & IT_NOMIPMAP ) ? 1 :ceil(log2(max(width, height))));
-}
-
-static enum texture_format_e __R_ToSupportedFormat(enum texture_format_e format) {
-  switch(format) {
-  	case R_FORMAT_RGB8_UNORM:
-  	case R_FORMAT_BGR8_UNORM:
-	case R_FORMAT_A8_UNORM:
-	case R_FORMAT_R8_UNORM:
-		return R_FORMAT_RGBA8_UNORM;
-  	default:
-  		break;
-  }
-  return format;
 }
 
 // static void __LoadImageInPlace(struct image_s* image, uint8_t **pic, int width, int height, int flags, int minmipsize, int tags, int samples ) {
@@ -1908,7 +1895,7 @@ struct image_s *R_LoadImage( const char *name, uint8_t **pic, int width, int hei
 								   .depth = 1,
 								   .usage = __R_NRITextureUsageBits( flags ),
 								   .layerNum = ( flags & IT_CUBEMAP ) ? 6 : 1,
-								   .format = R_NRIFormat( destFormat ),
+								   .format = R_ToNRIFormat( destFormat ),
 								   .sampleNum = 1,
 								   .type = NriTextureType_TEXTURE_2D,
 								   .mipNum = mipSize };
@@ -2144,30 +2131,30 @@ static void R_FreeImage( struct image_s *image )
 */
 void R_ReplaceImage( image_t *image, uint8_t **pic, int width, int height, int flags, int minmipsize, int samples )
 {
-	assert(false);
-	assert( image );
-	assert( image->texture );
-	// R_BindImage( image );
+	//assert(false);
+	//assert( image );
+	//assert( image->texture );
+	//// R_BindImage( image );
 
-	// if( image->width != width || image->height != height || image->samples != samples )
-	// 	R_Upload32( QGL_CONTEXT_MAIN, pic, 0, 0, 0, width, height, flags, minmipsize,
-	// 	&(image->upload_width), &(image->upload_height), samples, false, false );
-	// else
-	// 	R_Upload32( QGL_CONTEXT_MAIN, pic, 0, 0, 0, width, height, flags, minmipsize,
-	// 	&(image->upload_width), &(image->upload_height), samples, true, false );
+	//// if( image->width != width || image->height != height || image->samples != samples )
+	//// 	R_Upload32( QGL_CONTEXT_MAIN, pic, 0, 0, 0, width, height, flags, minmipsize,
+	//// 	&(image->upload_width), &(image->upload_height), samples, false, false );
+	//// else
+	//// 	R_Upload32( QGL_CONTEXT_MAIN, pic, 0, 0, 0, width, height, flags, minmipsize,
+	//// 	&(image->upload_width), &(image->upload_height), samples, true, false );
 
-	// if( !(image->flags & IT_NO_DATA_SYNC) )
-	// 	R_DeferDataSync();
-	// R_ReleaseNriTexture(image);
-	// __LoadImageInPlace(image, pic, width,height, flags, minmipsize, image->tags, samples);
-	
-	image->flags = flags;
-	image->width = width;
-	image->height = height;
-	image->layers = 1;
-	image->minmipsize = minmipsize;
-	image->samples = samples;
-	image->registrationSequence = rsh.registrationSequence;
+	//// if( !(image->flags & IT_NO_DATA_SYNC) )
+	//// 	R_DeferDataSync();
+	//// R_ReleaseNriTexture(image);
+	//// __LoadImageInPlace(image, pic, width,height, flags, minmipsize, image->tags, samples);
+	//
+	//image->flags = flags;
+	//image->width = width;
+	//image->height = height;
+	//image->layers = 1;
+	//image->minmipsize = minmipsize;
+	//image->samples = samples;
+	//image->registrationSequence = rsh.registrationSequence;
 }
 
 /*
@@ -2450,7 +2437,7 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 		.usage = __R_NRITextureUsageBits( flags ),
 		.layerNum = uploadCount,
 		.depth = 1,
-		.format = R_NRIFormat(destFormat),
+		.format = R_ToNRIFormat(destFormat),
 		.sampleNum = 1,
 		.type =  NriTextureType_TEXTURE_2D,
 		.mipNum = mipSize 

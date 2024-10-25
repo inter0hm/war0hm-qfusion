@@ -180,6 +180,19 @@ struct base_format_def_s {
 
 const struct base_format_def_s* R_BaseFormatDef(enum texture_format_e format);
 const size_t RT_BlockSize(const struct base_format_def_s* defs);
+static inline bool RT_IsSRGB(const struct base_format_def_s* def) {
+	switch( def->base ) {
+		case R_BASE_FORMAT_FIXED_8:
+			return def->fixed_8.srgb;
+		case R_BASE_FORMAT_FIXED_16:
+			return def->fixed_16.srgb;
+		case R_BASE_FORMAT_FIXED_32:
+			return def->fixed_32.srgb;
+		default:
+			break;
+	}
+	return false;
+} 
 const uint_fast16_t RT_NumberChannels(const struct base_format_def_s* defs);
 const enum texture_logical_channel_e* RT_Channels(const struct base_format_def_s* defs);
 const bool RT_ExpectChannelsMatch( const struct base_format_def_s *defs, const enum texture_logical_channel_e *channels, uint16_t numChannels );

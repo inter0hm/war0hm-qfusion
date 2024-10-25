@@ -1703,6 +1703,12 @@ static inline struct pipeline_hash_s* __resolvePipeline(struct glsl_program_s *p
 	return NULL;
 }
 
+static int compareVertAttribs(const void * a1, const void * a2) {
+	const NriVertexAttributeDesc* at1 = a1;  
+	const NriVertexAttributeDesc* at2 = a2;
+	return at1->vk.location > at2->vk.location;
+}
+
 struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, struct frame_cmd_state_s *def )
 {
 	size_t numAttribs = 0;
@@ -1719,8 +1725,9 @@ struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, stru
 			continue;
 		}
 		vertexInputAttribs[numAttribs++] = def->attribs[i];
-		hash = hash_data( hash, &def->attribs[i], sizeof( NriVertexAttributeDesc ));
 	}
+	qsort(vertexInputAttribs, numAttribs, sizeof(NriVertexAttributeDesc), compareVertAttribs);
+	hash = hash_data( hash, vertexInputAttribs, sizeof( NriVertexStreamDesc ) * numAttribs);
 	hash = hash_data( hash, &def->pipelineLayout.depthBias, sizeof( NriDepthBiasDesc ));
 	hash = hash_u32( hash, def->pipelineLayout.depthFormat );
 	for( size_t i = 0; i < def->numColorAttachments; i++ ) {
