@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // r_program.c - OpenGL Shading Language support
 
+#include "NRIDescs.h"
 #include "r_descriptor_pool.h"
 #include "r_local.h"
 #include "../qalgo/q_trie.h"
@@ -1713,6 +1714,18 @@ struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, stru
 {
 	size_t numAttribs = 0;
 	NriVertexAttributeDesc vertexInputAttribs[MAX_ATTRIBUTES];
+	NriCullMode cullMode = def->pipelineLayout.cullMode;
+	if(def->pipelineLayout.flippedViewport) {
+		switch(cullMode) {
+			case NriCullMode_BACK:
+				cullMode = NriCullMode_FRONT;
+				break;
+			case NriCullMode_FRONT:
+				cullMode = NriCullMode_BACK;
+				break;
+		}
+	}
+
 
 	hash_t hash = HASH_INITIAL_VALUE;
 	assert(def->numStreams < MAX_ATTRIBUTES);
@@ -1737,7 +1750,7 @@ struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, stru
 		hash = hash_u32( hash, def->pipelineLayout.colorSrcFactor );
 		hash = hash_u32( hash, def->pipelineLayout.colorDstFactor );
 	}
-	hash = hash_u32( hash, def->pipelineLayout.cullMode);
+	hash = hash_u32( hash, cullMode);
 	hash = hash_u32( hash, def->pipelineLayout.compareFunc);
 	hash = hash_u32( hash, def->pipelineLayout.depthWrite);
 
@@ -1762,7 +1775,7 @@ struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, stru
 
 	NriShaderDesc shaderDesc[4] = {0};
 	graphicsPipelineDesc.shaders = shaderDesc;
-	graphicsPipelineDesc.rasterization.cullMode = def->pipelineLayout.cullMode;
+	graphicsPipelineDesc.rasterization.cullMode = cullMode;
 	graphicsPipelineDesc.rasterization.fillMode = NriFillMode_SOLID;
 	graphicsPipelineDesc.rasterization.frontCounterClockwise = true;
 	graphicsPipelineDesc.rasterization.viewportNum = def->numColorAttachments;
@@ -1885,7 +1898,6 @@ void RP_BindDescriptorSets(struct frame_cmd_buffer_s* cmd, struct glsl_program_s
 		if( refl ) {
 			//const uint32_t setIndex = refl->setIndex;
 			//const uint32_t slotIndex = refl->baseRegisterIndex + bindings[i].registerOffset;
-			
 			struct glsl_descriptor_commit_s* glsl_commit = &commit[refl->setIndex];
 			struct glsl_commit_slots_s* slot = &glsl_commit->slots[glsl_commit->numBindings++];
 			slot->binding = &bindings[i]; 
@@ -1916,7 +1928,7 @@ void RP_BindDescriptorSets(struct frame_cmd_buffer_s* cmd, struct glsl_program_s
 				NriDescriptorRangeUpdateDesc updateDesc = { 0 };
 				const NriDescriptor *descriptors[] = { c->binding->descriptor.descriptor };
 				updateDesc.descriptorNum = 1;
-				updateDesc.baseDescriptor = 0;
+				updateDesc.baseDescriptor = c->binding->registerOffset;
 				updateDesc.descriptors = descriptors;
 				rsh.nri.coreI.UpdateDescriptorRanges( result.set, c->reflection->rangeOffset, 1, &updateDesc );
 			}

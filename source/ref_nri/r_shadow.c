@@ -365,7 +365,7 @@ void R_DrawShadowmaps( void )
 	if( !shadowBits )
 		return;
 
-	if( !R_PushRefInst() ) {
+	if( !R_PushRefInst(NULL) ) {
 		return;
 	}
 
@@ -453,5 +453,5 @@ void R_DrawShadowmaps( void )
 		rsc.renderedShadowBits |= group->bit;
 	}
 
-	R_PopRefInst();
+	R_PopRefInst(NULL);
 }

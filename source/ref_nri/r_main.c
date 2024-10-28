@@ -1080,7 +1080,7 @@ static void R_Clear(struct frame_cmd_buffer_s* frame, int bitMask )
 /*
 * R_SetupGL
 */
-static void R_SetupGL( void )
+static void R_SetupGL(struct frame_cmd_buffer_s* frame)
 {
 	RB_Scissor( rn.scissor[0], rn.scissor[1], rn.scissor[2], rn.scissor[3] );
 	RB_Viewport( rn.viewport[0], rn.viewport[1], rn.viewport[2], rn.viewport[3] );
@@ -1106,7 +1106,7 @@ static void R_SetupGL( void )
 	RB_LoadObjectMatrix( mat4x4_identity );
 
 	if( rn.renderFlags & RF_FLIPFRONTFACE )
-		RB_FlipFrontFace(NULL);
+		RB_FlipFrontFace(frame);
 
 	if( ( rn.renderFlags & RF_SHADOWMAPVIEW ) && glConfig.ext.shadow )
 		RB_SetShaderStateMask( ~0, GLSTATE_NO_COLORWRITE );
@@ -1115,13 +1115,13 @@ static void R_SetupGL( void )
 /*
 * R_EndGL
 */
-static void R_EndGL( void )
+static void R_EndGL( struct frame_cmd_buffer_s* frame )
 {
 	if( ( rn.renderFlags & RF_SHADOWMAPVIEW ) && glConfig.ext.shadow )
 		RB_SetShaderStateMask( ~0, 0 );
 
 	if( rn.renderFlags & RF_FLIPFRONTFACE )
-		RB_FlipFrontFace(NULL);
+		RB_FlipFrontFace(frame);
 }
 
 /*
@@ -1319,9 +1319,9 @@ void R_RenderView(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 
 	R_BindRefInstFBO();
 
-	R_SetupGL();
+	R_SetupGL(frame);
 
-	R_DrawPortals();
+	R_DrawPortals(frame);
 
 	if( r_portalonly->integer && !( rn.renderFlags & ( RF_MIRRORVIEW|RF_PORTALVIEW ) ) )
 		return;
@@ -1349,7 +1349,7 @@ void R_RenderView(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 
 	R_TransformForWorld();
 
-	R_EndGL();
+	R_EndGL(frame);
 }
 
 #define REFINST_STACK_SIZE	64
@@ -1367,20 +1367,20 @@ void R_ClearRefInstStack( void )
 /*
 * R_PushRefInst
 */
-bool R_PushRefInst( void )
+bool R_PushRefInst( struct frame_cmd_buffer_s* frame )
 {
 	if( riStackSize == REFINST_STACK_SIZE ) {
 		return false;
 	}
 	riStack[riStackSize++] = rn;
-	R_EndGL();
+	R_EndGL(frame);
 	return true;
 }
 
 /*
 * R_PopRefInst
 */
-void R_PopRefInst( void )
+void R_PopRefInst( struct frame_cmd_buffer_s* frame )
 {
 	if( !riStackSize ) {
 		return;
@@ -1389,12 +1389,7 @@ void R_PopRefInst( void )
 	rn = riStack[--riStackSize];
 	R_BindRefInstFBO();
 
-	R_SetupGL();
-}
-
-void R_Flush( void )
-{
-	qglFlush();
+	R_SetupGL(frame);
 }
 
 void R_DeferDataSync( void )

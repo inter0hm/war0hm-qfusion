@@ -223,7 +223,7 @@ static void __ConfigureLightCB (struct DynamicLightCB* cb,
 		cb->dynLights[(batchIndex * 4) + 2].diffuseAndInvRadius.v[batchOffset] = 0;
 		cb->dynLights[(batchIndex * 4) + 3].diffuseAndInvRadius.v[batchOffset] = 1.0;
 	}
-	assert(cb->numberLights <= 16);
+	assert(cb->numberLights <= 32);
 
 }
 
@@ -514,19 +514,18 @@ void RB_ApplyTCMods( const shaderpass_t *pass, mat4_t result )
 //	}
 //}
 
-/*
- * RB_ShaderpassTex
- */
 static inline image_t *RB_ShaderpassTex( const shaderpass_t *pass )
 {
 	const image_t *tex;
+	
 
 	if( pass->anim_fps ) {
 		return pass->images[(int)( pass->anim_fps * rb.currentShaderTime ) % pass->anim_numframes];
 	}
 
 	if( pass->flags & SHADERPASS_PORTALMAP ) {
-		return rb.currentPortalSurface && rb.currentPortalSurface->texures[0] ? rb.currentPortalSurface->texures[0] : rsh.blackTexture;
+		return rsh.blackTexture;
+		//return rb.currentPortalSurface && rb.currentPortalSurface->texures[0] ? rb.currentPortalSurface->texures[0] : rsh.blackTexture;
 	}
 
 	if( ( pass->flags & SHADERPASS_SKYBOXSIDE ) && rb.skyboxShader && rb.skyboxSide >= 0 ) {
@@ -1163,11 +1162,23 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 
 		memcpy( objectData.mv.v, rb.modelviewMatrix, sizeof( struct mat4 ) );
 		memcpy( objectData.mvp.v, rb.modelviewProjectionMatrix, sizeof( struct mat4 ) );
+		memcpy( frameData.viewOrigin.v, rb.cameraOrigin, sizeof( struct vec3 ) );
+		memcpy( frameData.viewAxis.v, rb.cameraAxis, sizeof( struct mat3 ) );
+		frameData.mirrorSide = ( rb.renderFlags & RF_MIRRORVIEW ) ? -1 : 1;
 		frameData.zNear = rb.zNear;
 		frameData.zFar = rb.zFar;
-		memcpy( frameData.viewOrigin.v, rb.cameraOrigin, sizeof( struct vec3 ) );
-		memcpy( frameData.viewAxis.v, rb.cameraAxis, sizeof( mat3_t ) );
-		frameData.mirrorSide = ( rb.renderFlags & RF_MIRRORVIEW ) ? -1 : 1;
+
+		frameData.viewAxis.col0[0] = rb.cameraAxis[0];
+		frameData.viewAxis.col0[1] = rb.cameraAxis[1];
+		frameData.viewAxis.col0[2] = rb.cameraAxis[2];
+		
+		frameData.viewAxis.col1[0] = rb.cameraAxis[3];
+		frameData.viewAxis.col1[1] = rb.cameraAxis[4];
+		frameData.viewAxis.col1[2] = rb.cameraAxis[5];
+		
+		frameData.viewAxis.col2[0] = rb.cameraAxis[6];
+		frameData.viewAxis.col2[1] = rb.cameraAxis[7];
+		frameData.viewAxis.col2[2] = rb.cameraAxis[8];
 
 		if( e->rtype != RT_MODEL ) {
 			VectorClear( objectData.entityOrigin.v );
@@ -1180,12 +1191,10 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 		}
 
 		if(pass->rgbgen.func.type != SHADER_FUNC_NONE) {
-			if(pass->rgbgen.func.args) {
 				objectData.rgbGenFuncArgs.x = pass->rgbgen.func.args[0];
 				objectData.rgbGenFuncArgs.y = pass->rgbgen.func.args[1];
 				objectData.rgbGenFuncArgs.z = pass->rgbgen.func.args[2];
 				objectData.rgbGenFuncArgs.w = pass->rgbgen.func.args[3];
-			}
 		} else {
 			if(pass->rgbgen.args) {
 				objectData.rgbGenFuncArgs.x = pass->rgbgen.args[0];
@@ -1196,12 +1205,10 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 		}
 
 		if(pass->alphagen.func.type != SHADER_FUNC_NONE) {
-			if(pass->alphagen.func.args) {
 				objectData.alphaGenFuncArgs.x = pass->alphagen.func.args[0];
 				objectData.alphaGenFuncArgs.y = pass->alphagen.func.args[1];
 				objectData.alphaGenFuncArgs.z = pass->alphagen.func.args[2];
 				objectData.alphaGenFuncArgs.w = pass->alphagen.func.args[3];
-			}
 		} else {
 			if(pass->alphagen.args) {
 				objectData.alphaGenFuncArgs.x = pass->alphagen.args[0];
@@ -1448,15 +1455,26 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 				// if( rb.currentDlightBits ) {
 				// 	programFeatures |= RB_DlightbitsToProgramFeatures( rb.currentDlightBits );
 				// }
+				if( pass->flags & SHADERPASS_PORTALMAP && rb.currentPortalSurface && rb.currentPortalSurface->portalfbs[0] ) {
+					descriptors[descriptorIndex++] =
+						( struct glsl_descriptor_binding_s ){ 
+							.descriptor = rb.currentPortalSurface->portalfbs[0]->shaderDescriptor, 
+							.handle = Create_DescriptorHandle( "u_BaseTexture" ) 
+					};
 
-				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
-					.descriptor = base->descriptor, 
-					.handle = Create_DescriptorHandle( "u_BaseTexture" ) 
-				};
-				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
-					.descriptor = base->samplerDescriptor, 
-					.handle = Create_DescriptorHandle( "u_BaseSampler" ) 
-				};
+					descriptors[descriptorIndex++] =
+						( struct glsl_descriptor_binding_s ){ 
+							.descriptor = rb.currentPortalSurface->portalfbs[0]->samplerDescriptor, 
+							.handle = Create_DescriptorHandle( "u_BaseSampler" ) };
+				} else {
+					descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+						.descriptor = base->descriptor, 
+						.handle = Create_DescriptorHandle( "u_BaseTexture" ) };
+					descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+						.descriptor = base->samplerDescriptor, 
+						.handle = Create_DescriptorHandle( "u_BaseSampler" ) 
+					};
+				}
 
 				// convert rgbgen and alphagen to GLSL feature defines
 				programFeatures |= RB_RGBAlphaGenToProgramFeatures( &pass->rgbgen, &pass->alphagen );
@@ -1550,7 +1568,8 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 							}
 							descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
 								.descriptor = lightmapImage->descriptor, 
-								.registerOffset = i, .handle = Create_DescriptorHandle( "lightmapTexture" ) 
+								.registerOffset = i, 
+								.handle = Create_DescriptorHandle( "lightmapTexture" ) 
 							};
 
 							float rgb[4] = {};
@@ -1831,7 +1850,16 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 					.handle = Create_DescriptorHandle( "u_DepthTexture" ) 
 				};
 			}
-			if( shaderPassImage ) {
+			if(pass->flags & SHADERPASS_PORTALMAP && rb.currentPortalSurface && rb.currentPortalSurface->portalfbs[0]  ) {
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+					.descriptor = rb.currentPortalSurface->portalfbs[0]->shaderDescriptor, 
+					.handle = Create_DescriptorHandle( "u_BaseTexture" ) };
+
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+					.descriptor = rb.currentPortalSurface->portalfbs[0]->samplerDescriptor, 
+					.handle = Create_DescriptorHandle( "u_BaseSampler" ) };
+
+			} else if( shaderPassImage ) {
 
 				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
 					.descriptor = shaderPassImage->descriptor, 
@@ -1871,7 +1899,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 				RP_ResolveProgram( GLSL_PROGRAM_TYPE_Q3A_SHADER, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
 			struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state);
 
-  			rsh.nri.coreI.CmdSetPipeline( cmd->cmd, pipeline->pipeline );
+			rsh.nri.coreI.CmdSetPipeline( cmd->cmd, pipeline->pipeline );
 			rsh.nri.coreI.CmdSetPipelineLayout( cmd->cmd, program->layout );
 
 			UpdateFrameUBO( cmd, &cmd->uboSceneFrame, &frameData, sizeof( struct FrameCB ) );
@@ -1905,46 +1933,63 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 		}
 		case GLSL_PROGRAM_TYPE_DISTORTION: {
 
-			int width = 1, height = 1;
-			image_t *portaltexture[2];
-			bool frontPlane;
+			struct distortion_push_constant_s {
+				float width;
+				float height;
+				float frontPlane;
+			} push;
 			mat4_t texMatrix;
-			const image_t *dudvmap, *normalmap;
 
 			if( !rb.currentPortalSurface ) {
 				break;
 			}
-
-			for(int i = 0; i < 2; i++ ) {
-				portaltexture[i] = rb.currentPortalSurface->texures[i];
-				if( !portaltexture[i] ) {
-					portaltexture[i] = rsh.blackTexture;
-				} else {
-					width = portaltexture[i]->upload_width;
-					height = portaltexture[i]->upload_height;
-				}
+			const struct portal_fb_s* reflectionFB = rb.currentPortalSurface->portalfbs[0];
+			const struct portal_fb_s* refractionFB = rb.currentPortalSurface->portalfbs[1];
+			if( reflectionFB ) {
+				const NriTextureDesc *textureDesc = rsh.nri.coreI.GetTextureDesc( reflectionFB->colorTexture );
+				push.width = textureDesc->width;
+				push.height = textureDesc->height;
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ .descriptor = reflectionFB->shaderDescriptor, .handle = Create_DescriptorHandle( "u_ReflectionTexture" ) };
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ .descriptor = reflectionFB->samplerDescriptor, .handle = Create_DescriptorHandle( "u_ReflectionSampler" ) };
+				programFeatures |= GLSL_SHADER_DISTORTION_REFLECTION;
+			} else {
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ .descriptor = rsh.blackTexture->descriptor, .handle = Create_DescriptorHandle( "u_ReflectionTexture" ) };
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ .descriptor = rsh.blackTexture->samplerDescriptor, .handle = Create_DescriptorHandle( "u_ReflectionSampler" ) };
 			}
-
-			dudvmap = pass->images[0] && !pass->images[0]->missing ? pass->images[0] : rsh.blankBumpTexture;
-			normalmap = pass->images[1] && !pass->images[1]->missing ? pass->images[1] : rsh.blankBumpTexture;
+			if(refractionFB) {
+				const NriTextureDesc* textureDesc = rsh.nri.coreI.GetTextureDesc(refractionFB->colorTexture);
+				push.width = textureDesc->width;
+				push.height = textureDesc->height;
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ .descriptor = reflectionFB->shaderDescriptor, .handle = Create_DescriptorHandle( "u_RefractionTexture" ) };
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ .descriptor = reflectionFB->samplerDescriptor, .handle = Create_DescriptorHandle( "u_RefractionSampler" ) };
+			} else {
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ .descriptor = rsh.blackTexture->descriptor, .handle = Create_DescriptorHandle( "u_RefractionTexture" ) };
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ .descriptor = rsh.blackTexture->samplerDescriptor, .handle = Create_DescriptorHandle( "u_RefractionSampler" ) };
+				programFeatures |= GLSL_SHADER_DISTORTION_REFRACTION;
+			}
+			
+			const image_t* dudvmap = pass->images[0] && !pass->images[0]->missing ? pass->images[0] : rsh.blankBumpTexture;
+			const image_t* normalmap = pass->images[1] && !pass->images[1]->missing ? pass->images[1] : rsh.blankBumpTexture;
 
 			if( dudvmap != rsh.blankBumpTexture )
 				programFeatures |= GLSL_SHADER_DISTORTION_DUDV;
-			if( portaltexture[0] != rsh.blackTexture )
-				programFeatures |= GLSL_SHADER_DISTORTION_REFLECTION;
-			if( portaltexture[1] != rsh.blackTexture )
-				programFeatures |= GLSL_SHADER_DISTORTION_REFRACTION;
 
-			frontPlane = ( PlaneDiff( rb.cameraOrigin, &rb.currentPortalSurface->untransformed_plane ) > 0 ? true : false );
+			const bool frontPlane = ( PlaneDiff( rb.cameraOrigin, &rb.currentPortalSurface->untransformed_plane ) > 0 ? true : false );
 
 			if( frontPlane ) {
 				if( pass->alphagen.type != ALPHA_GEN_IDENTITY )
 					programFeatures |= GLSL_SHADER_DISTORTION_DISTORTION_ALPHA;
 			}
+			push.frontPlane = frontPlane ? 1.0f : -1.0f;
 
 			Matrix4_Identity( texMatrix );
-
-			RB_BindImage( 0, dudvmap );
+			
+			descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+				.descriptor = dudvmap->descriptor, 
+				.handle = Create_DescriptorHandle( "u_DuDvMapTexture" ) };
+			descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+				.descriptor = dudvmap->samplerDescriptor, 
+				.handle = Create_DescriptorHandle( "u_DuDvMapSampler" ) };
 
 			// convert rgbgen and alphagen to GLSL feature defines
 			programFeatures |= RB_RGBAlphaGenToProgramFeatures( &pass->rgbgen, &pass->alphagen );
@@ -1956,19 +2001,33 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 			if( normalmap != rsh.blankBumpTexture ) {
 				// eyeDot
 				programFeatures |= GLSL_SHADER_DISTORTION_EYEDOT;
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+					.descriptor = normalmap->descriptor, 
+					.handle = Create_DescriptorHandle( "u_NormalmapTexture" ) };
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+					.descriptor = normalmap->samplerDescriptor, 
+					.handle = Create_DescriptorHandle( "u_NormalmapSampler" ) };
 
-				RB_BindImage( 1, normalmap );
+				//RB_BindImage( 1, normalmap );
 			}
 
-			RB_BindImage( 2, portaltexture[0] ); // reflection
-			RB_BindImage( 3, portaltexture[1] ); // refraction
+			UpdateFrameUBO( cmd, &cmd->uboSceneFrame, &frameData, sizeof( struct FrameCB ) );
+			UpdateFrameUBO( cmd, &cmd->uboSceneObject, &objectData, sizeof( struct ObjectCB ) );
+			descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+				.descriptor = cmd->uboSceneFrame.descriptor, 
+				.handle = Create_DescriptorHandle( "frame" ) };
+			descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+				.descriptor = cmd->uboSceneObject.descriptor, 
+				.handle = Create_DescriptorHandle( "obj" ) 
+			};
 
 			struct glsl_program_s *program =
 				RP_ResolveProgram( GLSL_PROGRAM_TYPE_DISTORTION, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
 			struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state);
-				
+			
 			rsh.nri.coreI.CmdSetPipeline( cmd->cmd, pipeline->pipeline );
 			rsh.nri.coreI.CmdSetPipelineLayout( cmd->cmd, program->layout );
+			rsh.nri.coreI.CmdSetRootConstants( cmd->cmd, 0, &push, sizeof(struct distortion_push_constant_s) );
 			RP_BindDescriptorSets( cmd, program, descriptors, descriptorIndex );
 			FR_CmdDrawElements(cmd, 
 				cmd->drawElements.numElems,

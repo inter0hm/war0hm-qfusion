@@ -125,7 +125,7 @@ static void R_UploadCinematicFrame( r_cinhandle_t *handle )
 			fbo = RFB_BoundObject();
 
 			if( !in2D ) {
-				R_PushRefInst();
+				R_PushRefInst(NULL);
 			}
 
 			R_InitViewportTexture( &handle->image, handle->name, 0, 
@@ -153,7 +153,7 @@ static void R_UploadCinematicFrame( r_cinhandle_t *handle )
 				handle->yuv_images, 2 );
 
 			if( !in2D ) {
-				R_PopRefInst();
+				R_PopRefInst(NULL);
 			}
 			R_BindFrameBufferObject( fbo );
 

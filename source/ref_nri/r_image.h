@@ -74,9 +74,6 @@ enum
 
 typedef struct image_s
 {
-	// uint32_t cookie; 
-	// const struct base_format_def_s* formatDef;
-
 	struct nri_descriptor_s descriptor;
 	struct nri_descriptor_s samplerDescriptor;
 	NriTexture* texture;
@@ -132,5 +129,8 @@ image_t *R_Create3DImage( const char *name, int width, int height, int layers, i
 void R_ReplaceImage( image_t *image, uint8_t **pic, int width, int height, int flags, int minmipsize, int samples );
 void R_ReplaceSubImage( image_t *image, int layer, int x, int y, uint8_t **pic, int width, int height );
 void R_ReplaceImageLayer( image_t *image, int layer, uint8_t **pic );
+
+
+NriDescriptor *R_ResolveSamplerDescriptor( int flags );
 
 #endif // R_IMAGE_H

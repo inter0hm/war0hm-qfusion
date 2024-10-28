@@ -34,7 +34,7 @@ void main(void)
 	v_StrMatrix[2] = Normal;
 	v_StrMatrix[1] = TangentDir * cross(Normal, Tangent);
 
-	vec3 EyeVectorWorld = (frame.viewOrigin - Position.xyz) * pass.frontPlane;
+	vec3 EyeVectorWorld = (frame.viewOrigin - Position.xyz) * push.frontPlane;
 	v_EyeVector = EyeVectorWorld * v_StrMatrix;
 #endif
 

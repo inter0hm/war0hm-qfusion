@@ -64,7 +64,6 @@ static int gl_anisotropic_filter = 0;
 
 static void R_FreeImage( struct image_s *image );
 static NriTextureUsageBits __R_NRITextureUsageBits(int flags);
-static NriDescriptor *resolveSamplerDescriptor( int flags );
 static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mipOffset, int x, int y, int w, int h, enum texture_format_e srcFormat, uint8_t *data );
 static enum texture_format_e __R_GetImageFormat( struct image_s* image );
 
@@ -88,7 +87,7 @@ int R_TextureTarget( int flags, int *uploadTarget )
 	return target;
 }
 
-static NriDescriptor *resolveSamplerDescriptor( int flags )
+NriDescriptor *R_ResolveSamplerDescriptor( int flags )
 {
 #define __SAMPLER_HASH_SIZE 1024
 	static struct {
@@ -252,7 +251,7 @@ void R_AnisotropicFilter( int value )
 		if( (glt->flags & (IT_NOFILTERING|IT_DEPTH|IT_NOMIPMAP)) ) {
 			continue;
 		}
-		glt->samplerDescriptor = R_CreateDescriptorWrapper(&rsh.nri, resolveSamplerDescriptor(glt->flags)); 
+		glt->samplerDescriptor = R_CreateDescriptorWrapper(&rsh.nri, R_ResolveSamplerDescriptor(glt->flags)); 
 
 	}
 }
@@ -1528,7 +1527,7 @@ static bool __R_LoadKTX( image_t *image, const char *pathname )
 	NriDescriptor* descriptor = NULL;
 	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &descriptor) );
 	image->descriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
-	image->samplerDescriptor = R_CreateDescriptorWrapper(&rsh.nri, resolveSamplerDescriptor(image->flags)); 
+	image->samplerDescriptor = R_CreateDescriptorWrapper(&rsh.nri, R_ResolveSamplerDescriptor(image->flags)); 
 	assert(image->samplerDescriptor.descriptor);
 	rsh.nri.coreI.SetTextureDebugName( image->texture, image->name );
 
@@ -1923,7 +1922,7 @@ struct image_s *R_LoadImage( const char *name, uint8_t **pic, int width, int hei
 	NriDescriptor* descriptor = NULL;
 	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &descriptor) );
 	image->descriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
-	image->samplerDescriptor = R_CreateDescriptorWrapper(&rsh.nri, resolveSamplerDescriptor(image->flags)); 
+	image->samplerDescriptor = R_CreateDescriptorWrapper(&rsh.nri, R_ResolveSamplerDescriptor(image->flags)); 
 	assert(image->samplerDescriptor.descriptor);
 
 	if( pic ) {
@@ -2477,7 +2476,7 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 	NriDescriptor* descriptor = NULL;
 	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &descriptor) );
 	image->descriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
-	image->samplerDescriptor = R_CreateDescriptorWrapper(&rsh.nri, resolveSamplerDescriptor(image->flags)); 
+	image->samplerDescriptor = R_CreateDescriptorWrapper(&rsh.nri, R_ResolveSamplerDescriptor(image->flags)); 
 	assert(image->samplerDescriptor.descriptor);
 
 	struct texture_buf_s transformBuffer = { 0 };
@@ -2911,6 +2910,7 @@ static int R_GetPortalTextureId( const int viewportWidth, const int viewportHeig
 
 	return best;
 }
+
 
 /*
 * R_GetPortalTexture

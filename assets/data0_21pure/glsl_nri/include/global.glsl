@@ -60,7 +60,7 @@ struct DynLight {
 
 layout(set = DESCRIPTOR_OBJECT_SET, binding = 3) uniform DynamicLightCB {
     int numberLights;
-    DynLight dynLights[16];
+    DynLight dynLights[32];
 } lights;
 
 

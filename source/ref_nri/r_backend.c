@@ -580,7 +580,6 @@ void RB_SetState( int state )
 
 void RB_FlipFrontFace( struct frame_cmd_buffer_s *cmd )
 {
-	assert( cmd );
 	if( cmd->state.pipelineLayout.cullMode == NriCullMode_FRONT ) {
 		cmd->state.pipelineLayout.cullMode = NriCullMode_FRONT;
 	} else {

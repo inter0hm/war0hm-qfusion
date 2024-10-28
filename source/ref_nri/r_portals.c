@@ -18,10 +18,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "NRIDescs.h"
+#include "r_image.h"
 #include "r_local.h"
+#include "stb_ds.h"
 
-static void R_DrawSkyportal( const entity_t *e, skyportal_t *skyportal );
-
+static void R_DrawSkyportal(struct frame_cmd_buffer_s* frame, const entity_t *e, skyportal_t *skyportal );
+static const NriFormat PortalTextureFormat = NriFormat_RGBA8_UNORM; 
+static const NriFormat PortalTextureDepthFormat = NriFormat_D32_SFLOAT; 
 /*
 * R_AddPortalSurface
 */
@@ -135,7 +139,7 @@ portalSurface_t *R_AddPortalSurface( const entity_t *ent, const mesh_t *mesh,
 	portalSurface->untransformed_plane = untransformed_plane;
 	portalSurface->skyPortal = NULL;
 	ClearBounds( portalSurface->mins, portalSurface->maxs );
-	memset( portalSurface->texures, 0, sizeof( portalSurface->texures ) );
+	memset( portalSurface->portalfbs, 0, sizeof( portalSurface->portalfbs ) );
 
 	if( depthPortal ) {
 		rn.numDepthPortalSurfaces++;
@@ -150,6 +154,106 @@ addsurface:
 	return portalSurface;
 }
 
+
+
+static struct portal_fb_s* __ResolvePortalSurface(struct frame_cmd_buffer_s *cmd, int width, int height, bool filtered) {
+	assert(Q_ARRAY_COUNT(rsh.portalFBs) >= MAX_PORTAL_TEXTURES);
+	struct portal_fb_s* bestFB = NULL; 
+	for(size_t i = 0; i < MAX_PORTAL_TEXTURES; i++ )
+	{
+		struct portal_fb_s* portalFB = &rsh.portalFBs[i];
+		if((portalFB->frameNum + NUMBER_FRAMES_FLIGHT) >= cmd->frameCount) {
+			continue;
+		}
+		if( portalFB->colorTexture ) {
+			const NriTextureDesc *textureDesc = rsh.nri.coreI.GetTextureDesc( portalFB->colorTexture );
+			if( textureDesc->width == width && textureDesc->height == height ) {
+				portalFB->samplerDescriptor = R_CreateDescriptorWrapper( &rsh.nri, R_ResolveSamplerDescriptor( filtered ? 0 : IT_NOFILTERING ) );
+				portalFB->frameNum = cmd->frameCount;
+				return portalFB;
+			}
+		}
+		bestFB = portalFB;
+	}
+	if(bestFB) {
+		bestFB->samplerDescriptor = R_CreateDescriptorWrapper( &rsh.nri, R_ResolveSamplerDescriptor( filtered ? 0 : IT_NOFILTERING ) );
+		bestFB->frameNum = cmd->frameCount;
+		if( bestFB->depthTexture )
+			arrpush( cmd->freeTextures, bestFB->depthTexture );
+		if( bestFB->colorTexture )
+			arrpush( cmd->freeTextures, bestFB->colorTexture );
+		if(bestFB->colorAttachment.descriptor)
+			arrpush( cmd->frameTemporaryDesc, bestFB->colorAttachment.descriptor);
+		if(bestFB->shaderDescriptor.descriptor)
+			arrpush( cmd->frameTemporaryDesc, bestFB->shaderDescriptor.descriptor);
+		if(bestFB->depthAttachment.descriptor)
+			arrpush( cmd->frameTemporaryDesc, bestFB->depthAttachment.descriptor);
+		for( size_t i = 0; i < bestFB->numAllocations; i++ )
+			arrpush( cmd->freeMemory, bestFB->memory[i] );
+		bestFB->numAllocations = 0;
+
+		const NriTextureDesc textureDesc = { 
+										 .width = width,
+									   .height = height,
+									   .depth = 1,
+									   .usage = NriTextureUsageBits_COLOR_ATTACHMENT | NriTextureUsageBits_SHADER_RESOURCE,
+									   .layerNum = 1,
+									   .format = PortalTextureFormat,
+									   .sampleNum = 1,
+									   .type = NriTextureType_TEXTURE_2D,
+									   .mipNum = 1 };
+		NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &bestFB->colorTexture) );
+		const NriTextureDesc depthTextureDesc = { 
+										  .width = width,
+											.height = height,
+											.depth = 1,
+											.usage = NriTextureUsageBits_DEPTH_STENCIL_ATTACHMENT,
+											.layerNum = 1,
+											.format = PortalTextureDepthFormat ,
+											.sampleNum = 1,
+											.type = NriTextureType_TEXTURE_2D,
+											.mipNum = 1 };
+		NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &depthTextureDesc, &bestFB->depthTexture ) );
+		NriTexture* textures[] = {bestFB->colorTexture, bestFB->depthTexture};
+
+		const NriResourceGroupDesc resourceGroupDesc = {
+			.textureNum = Q_ARRAY_COUNT(textures),
+			.textures = textures,
+			.memoryLocation = NriMemoryLocation_DEVICE,
+		};
+		const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
+		bestFB->numAllocations = numAllocations;
+		assert(numAllocations <= Q_ARRAY_COUNT(bestFB->memory));
+		NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, bestFB->memory) )
+		NriDescriptor* descriptor = NULL;
+		const NriTexture2DViewDesc textureAttachmentViewDesc = {
+				.texture = bestFB->colorTexture,
+				.viewType = NriTexture2DViewType_COLOR_ATTACHMENT,
+				.format = textureDesc.format
+		};
+		NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureAttachmentViewDesc, &descriptor) );
+		bestFB->colorAttachment = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
+		const NriTexture2DViewDesc depthAttachmentViewDesc = {
+				.texture = bestFB->depthTexture,
+				.viewType = NriTexture2DViewType_DEPTH_STENCIL_ATTACHMENT,
+				.format = depthTextureDesc.format
+		};
+		NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &depthAttachmentViewDesc , &descriptor) );
+		bestFB->depthAttachment = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
+
+		const NriTexture2DViewDesc textureShaderViewDesc = {
+				.texture = bestFB->colorTexture,
+				.viewType = NriTexture2DViewType_SHADER_RESOURCE_2D,
+				.format = textureDesc.format
+		};
+		NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureShaderViewDesc, &descriptor) );
+		bestFB->shaderDescriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
+
+	}
+	return bestFB;
+}
+
+
 /*
 * R_DrawPortalSurface
 * 
@@ -157,10 +261,10 @@ addsurface:
 * we need to do a $portalmap stage. Note that for $portalmaps we must
 * use a different viewport.
 */
-static void R_DrawPortalSurface( portalSurface_t *portalSurface )
+static void R_DrawPortalSurface( struct frame_cmd_buffer_s *cmd, portalSurface_t *portalSurface )
 {
+
 	unsigned int i;
-	int x, y, w, h;
 	float dist, d, best_d;
 	vec3_t viewerOrigin;
 	vec3_t origin;
@@ -170,19 +274,17 @@ static void R_DrawPortalSurface( portalSurface_t *portalSurface )
 	const shader_t *shader = portalSurface->shader;
 	vec_t *portal_centre = portalSurface->centre;
 	bool mirror, refraction = false;
-	image_t *captureTexture;
 	int captureTextureId = -1;
 	int prevRenderFlags = 0;
 	bool prevFlipped;
 	bool doReflection, doRefraction;
-	image_t *portalTexures[2] = { NULL, NULL };
+	struct portal_fb_s* portalTexures[2] = { NULL, NULL };
 
 	doReflection = doRefraction = true;
 	if( shader->flags & SHADER_PORTAL_CAPTURE )
 	{
 		shaderpass_t *pass;
 
-		captureTexture = NULL;
 		captureTextureId = 0;
 
 		for( i = 0, pass = shader->passes; i < shader->numpasses; i++, pass++ )
@@ -199,13 +301,9 @@ static void R_DrawPortalSurface( portalSurface_t *portalSurface )
 	}
 	else
 	{
-		captureTexture = NULL;
 		captureTextureId = -1;
 	}
 
-	x = y = 0;
-	w = rn.refdef.width;
-	h = rn.refdef.height;
 
 	dist = PlaneDiff( rn.viewOrigin, portal_plane );
 	if( dist <= BACKFACE_EPSILON || !doReflection )
@@ -216,7 +314,6 @@ static void R_DrawPortalSurface( portalSurface_t *portalSurface )
 		// even if we're behind the portal, we still need to capture
 		// the second portal image for refraction
 		refraction = true;
-		captureTexture = NULL;
 		captureTextureId = 1;
 		if( dist < 0 )
 		{
@@ -252,8 +349,8 @@ static void R_DrawPortalSurface( portalSurface_t *portalSurface )
 	{
 		if( captureTextureId < 0 ) {
 			// still do a push&pop because to ensure the clean state
-			if( R_PushRefInst() ) {
-				R_PopRefInst();
+			if( R_PushRefInst(cmd) ) {
+				R_PopRefInst(cmd);
 			}
 			return;
 		}
@@ -267,7 +364,7 @@ static void R_DrawPortalSurface( portalSurface_t *portalSurface )
 
 	prevRenderFlags = rn.renderFlags;
 	prevFlipped = ( rn.refdef.rdflags & RDF_FLIPPED ) != 0;
-	if( !R_PushRefInst() ) {
+	if( !R_PushRefInst(cmd) ) {
 		return;
 	}
 
@@ -371,60 +468,100 @@ setup_and_render:
 
 	// if we want to render to a texture, initialize texture
 	// but do not try to render to it more than once
+	const NriAccessLayoutStage layoutTransition = (NriAccessLayoutStage){	
+		.layout = NriLayout_COLOR_ATTACHMENT, 
+		.access = NriAccessBits_COLOR_ATTACHMENT, 
+		.stages = NriStageBits_COLOR_ATTACHMENT 
+	};
 	if( captureTextureId >= 0 )
 	{
-		int texFlags = shader->flags & SHADER_NO_TEX_FILTERING ? IT_NOFILTERING : 0;
-
-		captureTexture = R_GetPortalTexture( rsc.refdef.width, rsc.refdef.height, texFlags,
-			rsc.frameCount );
-		portalTexures[captureTextureId] = captureTexture;
-
-		if( !captureTexture ) {
+		struct portal_fb_s *const fb = __ResolvePortalSurface( cmd, rsc.refdef.width, rsc.refdef.height, ( shader->flags & SHADER_NO_TEX_FILTERING ) );
+		portalTexures[captureTextureId] = fb;
+		if(fb == NULL) {
 			// couldn't register a slot for this plane
 			goto done;
 		}
-
-		x = y = 0;
-		w = captureTexture->upload_width;
-		h = captureTexture->upload_height;
-		rn.refdef.width = w;
-		rn.refdef.height = h;
 		rn.refdef.x = 0;
 		rn.refdef.y = 0;
-		rn.fbColorAttachment = captureTexture;
+		rn.refdef.width = rsc.refdef.width;
+		rn.refdef.height = rsc.refdef.height;
+		
+		Vector4Set( rn.viewport, rn.refdef.x, rn.refdef.y, rsc.refdef.width, rsc.refdef.height );
+		Vector4Set( rn.scissor, rn.refdef.x, rn.refdef.y, rsc.refdef.width, rsc.refdef.height );
+		const NriDescriptor *colorAttachments[] = { fb->colorAttachment.descriptor};
+		const struct NriViewport viewports[] = {
+			( NriViewport ){ 
+				.x = rn.viewport[0], 
+				.y = rn.viewport[1], 
+				.width = rn.viewport[2], 
+				.height = rn.viewport[3], 
+				.depthMin = 0.0f, 
+				.depthMax = 1.0f,
+				.originBottomLeft = true
+			} 
+		};
+		const struct NriRect scissors[] = { (NriRect){
+			.x = rn.scissor[0],
+			.y = rn.scissor[1],
+			.width = rn.scissor[2],
+			.height = rn.scissor[3]
+		} };
+		const NriFormat colorFormats[] = { PortalTextureFormat };
+		FR_CmdSetTextureAttachment( cmd, colorFormats, colorAttachments, viewports, scissors, 1, PortalTextureDepthFormat, fb->depthAttachment.descriptor );
+
+		{
+			NriTextureBarrierDesc transitionBarriers = { 0 };
+			transitionBarriers.texture = fb->colorTexture;
+			transitionBarriers.after = layoutTransition; 
+	
+			NriBarrierGroupDesc barrierGroupDesc = { 0 };
+			barrierGroupDesc.textureNum = 1;
+			barrierGroupDesc.textures = &transitionBarriers;
+			rsh.nri.coreI.CmdBarrier( cmd->cmd, &barrierGroupDesc );
+		}
+
 		rn.renderFlags |= RF_PORTAL_CAPTURE;
-		// no point in capturing the depth buffer due to oblique frustum messing up
-		// the far plane and depth values
-		rn.fbDepthAttachment = NULL;
-		Vector4Set( rn.viewport, rn.refdef.x + x, rn.refdef.y + y, w, h );
-		Vector4Set( rn.scissor, rn.refdef.x + x, rn.refdef.y + y, w, h );
-	}
-	else {
-		// no point in capturing the depth buffer due to oblique frustum messing up
-		// the far plane and depth values
-		rn.fbDepthAttachment = NULL;
+	} else {
 		rn.renderFlags &= ~RF_PORTAL_CAPTURE;
 	}
 
 	VectorCopy( origin, rn.refdef.vieworg );
 	Matrix3_Copy( axis, rn.refdef.viewaxis );
+	assert(cmd->stackCmdBeingRendered == 0);
 
-	R_RenderView(NULL, &rn.refdef );
+	cmd->state.pipelineLayout.flippedViewport = true;
+	R_RenderView(cmd, &rn.refdef );
+	cmd->state.pipelineLayout.flippedViewport = false;
+
+
+	if(captureTextureId != -1 && portalTexures[captureTextureId]) {
+			NriTextureBarrierDesc transitionBarriers = { 0 };
+			transitionBarriers.texture = portalTexures[captureTextureId]->colorTexture;
+			transitionBarriers.before = layoutTransition; 
+			transitionBarriers.after = (NriAccessLayoutStage) {
+				.layout = NriLayout_SHADER_RESOURCE,
+				.access = NriAccessBits_SHADER_RESOURCE,
+				.stages = NriStageBits_FRAGMENT_SHADER 
+			};
+	
+			NriBarrierGroupDesc barrierGroupDesc = { 0 };
+			barrierGroupDesc.textureNum = 1;
+			barrierGroupDesc.textures = &transitionBarriers;
+			rsh.nri.coreI.CmdBarrier( cmd->cmd, &barrierGroupDesc );
+	}
 
 	if( doRefraction && !refraction && ( shader->flags & SHADER_PORTAL_CAPTURE2 ) )
 	{
 		rn.renderFlags = prevRenderFlags;
 		refraction = true;
-		captureTexture = NULL;
 		captureTextureId = 1;
 		goto setup_and_render;
 	}
 
 done:
-	portalSurface->texures[0] = portalTexures[0];
-	portalSurface->texures[1] = portalTexures[1];
-
-	R_PopRefInst();
+	portalSurface->portalfbs[0] = portalTexures[0];
+	portalSurface->portalfbs[1] = portalTexures[1];
+	R_PopRefInst(cmd);
 }
 
 /*
@@ -460,13 +597,14 @@ static void R_DrawPortalsDepthMask( void )
 /*
 * R_DrawPortals
 */
-void R_DrawPortals( void )
+void R_DrawPortals(struct frame_cmd_buffer_s* cmd)
 {
 	unsigned int i;
 
 	if( rf.viewcluster == -1 ) {
 		return;
 	}
+	const struct frame_cmd_save_attachment_s stash = R_CmdState_StashAttachment(cmd); 
 
 	if( !( rn.renderFlags & ( RF_MIRRORVIEW|RF_PORTALVIEW|RF_SHADOWMAPVIEW ) ) ) {
 		R_DrawPortalsDepthMask();
@@ -474,18 +612,19 @@ void R_DrawPortals( void )
 		// render skyportal
 		if( rn.skyportalSurface ) {
 			portalSurface_t *ps = rn.skyportalSurface;
-			R_DrawSkyportal( ps->entity, ps->skyPortal );
+			R_DrawSkyportal( cmd, ps->entity, ps->skyPortal );
 		}
-		
+
 		// render regular portals
 		for( i = 0; i < rn.numPortalSurfaces; i++ ) {
 			portalSurface_t ps = rn.portalSurfaces[i];
 			if( !ps.skyPortal ) {
-				R_DrawPortalSurface( &ps );
+				R_DrawPortalSurface( cmd, &ps );
 				rn.portalSurfaces[i] = ps;
 			}
 		}
 	}
+	R_CmdState_RestoreAttachment(cmd, &stash);
 }
 
 /*
@@ -520,9 +659,9 @@ portalSurface_t *R_AddSkyportalSurface( const entity_t *ent, const shader_t *sha
 /*
 * R_DrawSkyportal
 */
-static void R_DrawSkyportal( const entity_t *e, skyportal_t *skyportal )
+static void R_DrawSkyportal(struct frame_cmd_buffer_s* frame, const entity_t *e, skyportal_t *skyportal )
 {
-	if( !R_PushRefInst() ) {
+	if( !R_PushRefInst(frame) ) {
 		return;
 	}
 
@@ -579,8 +718,8 @@ static void R_DrawSkyportal( const entity_t *e, skyportal_t *skyportal )
 		AdjustFov( &rn.refdef.fov_x, &rn.refdef.fov_y, glConfig.width, glConfig.height, false );
 	}
 
-	R_RenderView( NULL, &rn.refdef );
+	R_RenderView( frame, &rn.refdef );
 
 	// restore modelview and projection matrices, scissoring, etc for the main view
-	R_PopRefInst();
+	R_PopRefInst(frame);
 }

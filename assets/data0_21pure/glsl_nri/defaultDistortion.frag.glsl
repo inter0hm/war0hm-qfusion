@@ -15,7 +15,6 @@ layout(set = DESCRIPTOR_PASS_SET, binding = 5) uniform sampler u_ReflectionSampl
 layout(set = DESCRIPTOR_PASS_SET, binding = 6) uniform texture2D u_RefractionTexture;
 layout(set = DESCRIPTOR_PASS_SET, binding = 7) uniform sampler u_RefractionSampler;
 
-
 layout(location = 0) out vec4 outFragColor;
 
 void main(void)
@@ -33,8 +32,8 @@ void main(void)
 
 	// get projective texcoords
 	float scale = float(1.0 / float(v_ProjVector.w));
-	float inv2NW = pass.textureParams.z * 0.5; // .z - inverse width
-	float inv2NH = pass.textureParams.w * 0.5; // .w - inverse height
+	float inv2NW = push.textureWidth * 0.5; // .z - inverse width
+	float inv2NH = push.textureHeight * 0.5; // .w - inverse height
 	vec2 projCoord = (vec2(v_ProjVector.xy) * scale + vec2 (1.0)) * vec2 (0.5) + vec2(fdist.xy);
 	projCoord.s = float (clamp (float(projCoord.s), inv2NW, 1.0 - inv2NW));
 	projCoord.t = float (clamp (float(projCoord.t), inv2NH, 1.0 - inv2NH));

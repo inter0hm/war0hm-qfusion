@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 #include "r_cmdque.h"
-#include "r_scene_2.h"
 #include "r_nri.h"
 
 // sync-to-async frontend adapter
@@ -47,7 +46,7 @@ typedef struct
 	
 	//ref_back_buffer_t* backBufferArr;
 	//ref_frame_t cmdFrames[2]; // two cmd buffers for double buffer
-	r_scene_2_t* scene;
+	//r_scene_2_t* scene;
 
 	uint32_t frameIndex;
 	NriFence* frameFence;

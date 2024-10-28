@@ -30,6 +30,15 @@ enum CmdStateDirtyBits {
 	CMD_DIRT_SCISSOR = 0x4,
 };
 
+struct frame_cmd_save_attachment_s {
+	uint32_t numColorAttachments;
+	NriFormat colorFormats[MAX_COLOR_ATTACHMENTS];
+	NriDescriptor const *colorAttachment[MAX_COLOR_ATTACHMENTS];
+	NriRect scissors[MAX_COLOR_ATTACHMENTS];
+	NriViewport viewports[MAX_COLOR_ATTACHMENTS];
+	NriDescriptor const *depthAttachment;
+};
+
 // the serialized state of the pipeline
 struct frame_cmd_state_s {
 	uint32_t dirty;
@@ -56,7 +65,7 @@ struct frame_cmd_state_s {
 	// binding
 	struct NriDescriptor *bindings[DESCRIPTOR_SET_MAX][DESCRIPTOR_MAX_BINDINGS];
 
-	struct {
+	struct pipeline_state_s {
 		NriFormat colorFormats[MAX_COLOR_ATTACHMENTS];
 		NriFormat depthFormat;
 	
@@ -70,6 +79,8 @@ struct frame_cmd_state_s {
 		NriColorWriteBits colorWriteMask;
 		NriCompareFunc compareFunc;
 		bool depthWrite;
+		
+		bool flippedViewport; // bodge for portals ... 
 	} pipelineLayout;
 };
 
@@ -136,6 +147,9 @@ struct frame_cmd_buffer_s {
 
 	int stackCmdBeingRendered;
 };
+
+struct frame_cmd_save_attachment_s R_CmdState_StashAttachment(struct frame_cmd_buffer_s* cmd);
+void R_CmdState_RestoreAttachment(struct frame_cmd_buffer_s* cmd, const struct frame_cmd_save_attachment_s* stashed);
 
 void ResetFrameCmdBuffer(struct nri_backend_s* backend,struct frame_cmd_buffer_s* cmd);
 void UpdateFrameUBO( struct frame_cmd_buffer_s *cmd, struct ubo_frame_instance_s *frame, void *data, size_t size );

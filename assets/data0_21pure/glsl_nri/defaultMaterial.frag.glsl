@@ -217,7 +217,7 @@ void main()
 
 #if defined(NUM_DLIGHTS)
 {
-	for (int dlight = 0; dlight < min(lights.numberLights, 16); dlight += 4)
+	for (int dlight = 0; dlight < min(lights.numberLights, 32); dlight += 4)
 	{
 		vec3 STR0 = vec3(lights.dynLights[dlight].position.xyz - v_Position);
 		vec3 STR1 = vec3(lights.dynLights[dlight + 1].position.xyz - v_Position);

@@ -63,6 +63,7 @@ void FR_CmdSetViewportAll( struct frame_cmd_buffer_s *cmd, const NriViewport vie
 		cmd->state.viewports[i] = viewport;
 	}
 	cmd->state.dirty |= CMD_DIRT_VIEWPORT;
+
 }
 
 void FR_CmdSetTextureAttachment( struct frame_cmd_buffer_s *cmd,
@@ -74,6 +75,7 @@ void FR_CmdSetTextureAttachment( struct frame_cmd_buffer_s *cmd,
 								 const NriFormat depthFormat,
 								 NriDescriptor *depthAttachment )
 {
+	assert(cmd->stackCmdBeingRendered == 0);
 	assert( numAttachments < MAX_COLOR_ATTACHMENTS );
 	assert( viewports );
 	assert( scissors );
@@ -118,11 +120,6 @@ void FR_CmdResetCommandState( struct frame_cmd_buffer_s *cmd, enum CmdResetBits 
 	
 }
 
-static inline bool __isValidFog( const mfog_t *fog )
-{
-	return fog && fog->shader;
-}
-
 void UpdateFrameUBO( struct frame_cmd_buffer_s *cmd, struct ubo_frame_instance_s *ubo, void *data, size_t size )
 {
 	const hash_t hash = hash_data( HASH_INITIAL_VALUE, data, size );
@@ -142,6 +139,30 @@ void UpdateFrameUBO( struct frame_cmd_buffer_s *cmd, struct ubo_frame_instance_s
 		ubo->req = poolReq;
 	}
 }
+
+void R_CmdState_RestoreAttachment(struct frame_cmd_buffer_s* cmd, const struct frame_cmd_save_attachment_s* save) {
+	assert(cmd->stackCmdBeingRendered == 0);
+	cmd->state.numColorAttachments = save->numColorAttachments;
+	memcpy(cmd->state.pipelineLayout.colorFormats, save->colorFormats, sizeof(NriFormat) * save->numColorAttachments);
+	memcpy(cmd->state.colorAttachment, save->colorAttachment, sizeof(NriDescriptor*) * save->numColorAttachments);
+	memcpy(cmd->state.scissors, save->scissors, sizeof(NriRect) * save->numColorAttachments);
+	memcpy(cmd->state.viewports, save->viewports, sizeof(NriViewport) * save->numColorAttachments);
+	cmd->state.depthAttachment = save->depthAttachment;
+	cmd->state.dirty |= (CMD_DIRT_SCISSOR | CMD_DIRT_VIEWPORT);
+}
+
+
+struct frame_cmd_save_attachment_s R_CmdState_StashAttachment(struct frame_cmd_buffer_s* cmd) {
+	struct frame_cmd_save_attachment_s save;
+	save.numColorAttachments = cmd->state.numColorAttachments;
+	memcpy(save.colorFormats, cmd->state.pipelineLayout.colorFormats, sizeof(NriFormat) * cmd->state.numColorAttachments);
+	memcpy(save.colorAttachment, cmd->state.colorAttachment, sizeof(NriDescriptor*) * cmd->state.numColorAttachments);
+	memcpy(save.scissors, cmd->state.scissors, sizeof(NriRect) * cmd->state.numColorAttachments);
+	memcpy(save.viewports, cmd->state.viewports, sizeof(NriViewport) * cmd->state.numColorAttachments);
+	save.depthAttachment = cmd->state.depthAttachment;
+	return save;
+}
+
 
 void ResetFrameCmdBuffer( struct nri_backend_s *backend, struct frame_cmd_buffer_s *cmd )
 {
@@ -170,34 +191,7 @@ void ResetFrameCmdBuffer( struct nri_backend_s *backend, struct frame_cmd_buffer
 	memset( &cmd->uboPassObject, 0, sizeof( struct ubo_frame_instance_s ) );
 	memset( &cmd->uboBoneObject, 0, sizeof( struct ubo_frame_instance_s ) );
 	memset( &cmd->uboLight, 0, sizeof( struct ubo_frame_instance_s ) );
-
 }
-
-// struct block_buffer_pool_req_s FR_ShaderObjReqCB(struct frame_cmd_buffer_s *cmd, const struct ObjectCB* cb)
-//{
-//	const hash_t hash = hash_data(HASH_INITIAL_VALUE, cb, sizeof(struct ObjectCB));
-//	if( cmd->objHash  != hash ) {
-//		struct block_buffer_pool_req_s poolReq = BlockBufferPoolReq( &rsh.nri, &cmd->uboBlockBuffer, sizeof( struct ObjectCB ) );
-//		memcpy(poolReq.address, cb, sizeof(struct ObjectCB));
-//		cmd->objHash = hash;
-//		cmd->objBlock = poolReq;
-//	}
-//	return cmd->objBlock;
-// }
-//
-// struct block_buffer_pool_req_s FR_ShaderFrameReqCB( struct frame_cmd_buffer_s *cmd, const struct FrameCB* cb)
-//{
-//
-//	const hash_t hash = hash_data(HASH_INITIAL_VALUE, cb, sizeof(struct FrameCB));
-//	if( cmd->frameHash != hash ) {
-//		struct block_buffer_pool_req_s poolReq = BlockBufferPoolReq( &rsh.nri, &cmd->uboBlockBuffer, sizeof( struct FrameCB ) );
-//		memcpy(poolReq.address, cb, sizeof(struct FrameCB  ));
-//		cmd->frameBlock = poolReq;
-//		cmd->frameHash = hash;
-//	}
-//	return cmd->frameBlock;
-//
-// }
 
 void FR_CmdDrawElements( struct frame_cmd_buffer_s *cmd, uint32_t indexNum, uint32_t instanceNum, uint32_t baseIndex, uint32_t baseVertex, uint32_t baseInstance )
 {

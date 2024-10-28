@@ -43,7 +43,7 @@ frontColor = vec4(outColor);
 	#if defined(APPLY_TC_GEN_ENV)
 			vec3 Projection;
 
-			Projection = u_EntityDist - Position.xyz;
+			Projection = obj.entityDist - Position.xyz;
 			Projection = normalize(Projection);
 
 			float Depth = dot(Normal.xyz, Projection) * 2.0;

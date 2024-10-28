@@ -85,7 +85,7 @@ void main(void)
 
 #if defined(APPLY_FOG) && !defined(APPLY_FOG_COLOR)
 	float fogDensity = FogDensity(v_FogCoord);
-	outColor.rgb = mix(outColor.rgb, pass.fogColor, fogDensity);
+	outColor.rgb = mix(outColor.rgb, frame.fogColor, fogDensity);
 #endif
 
 	outFragColor = vec4(outColor);

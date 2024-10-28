@@ -141,14 +141,29 @@ typedef struct superLightStyle_s
 #define DEPTH_EPSILON (1.0 / ( 1 << 14 ))
 //===================================================================
 
+struct portal_fb_s {
+	struct nri_descriptor_s shaderDescriptor;
+	
+	struct nri_descriptor_s colorAttachment;
+	struct nri_descriptor_s depthAttachment;
+	struct nri_descriptor_s samplerDescriptor;
+	
+	NriTexture* colorTexture;
+	NriTexture* depthTexture;
+	size_t numAllocations;
+	NriMemory* memory[4];
+	size_t frameNum;
+};
+
 typedef struct portalSurface_s
 {
 	const entity_t	*entity;
 	cplane_t		plane, untransformed_plane;
 	const shader_t	*shader;
 	vec3_t			mins, maxs, centre;
-	image_t			*texures[2];			// front and back portalmaps
 	skyportal_t		*skyPortal;
+	struct portal_fb_s* portalfbs[2];
+
 } portalSurface_t;
 
 typedef struct
@@ -258,6 +273,8 @@ typedef struct
 	shader_t		*skyShader;
 	shader_t		*whiteShader;
 	shader_t		*emptyFogShader;
+	
+	struct portal_fb_s portalFBs[MAX_PORTAL_TEXTURES];
  
  	struct nri_backend_s nri;
 	
@@ -608,8 +625,6 @@ void		R_RenderView(struct frame_cmd_buffer_s* frame, const refdef_t *fd );
 const msurface_t *R_GetDebugSurface( void );
 const char *R_WriteSpeedsMessage( char *out, size_t size );
 void		R_RenderDebugSurface( const refdef_t *fd );
-//void 		R_Finish( void );
-void		R_Flush( void );
 
 /**
  * Calls R_Finish if data sync was previously deferred.
@@ -659,9 +674,8 @@ void		R_ShutdownCustomColors( void );
 #define ENTITY_OUTLINE(ent) (( !(rn.renderFlags & RF_MIRRORVIEW) && ((ent)->renderfx & RF_VIEWERMODEL) ) ? 0 : (ent)->outlineHeight)
 
 void		R_ClearRefInstStack( void );
-bool		R_PushRefInst( void );
-void		R_PopRefInst( void );
-
+bool		R_PushRefInst( struct frame_cmd_buffer_s* frame);
+void		R_PopRefInst( struct frame_cmd_buffer_s* frame );
 void		R_BindFrameBufferObject( int object );
 
 void		R_Scissor( int x, int y, int w, int h );
@@ -702,7 +716,7 @@ portalSurface_t *R_AddPortalSurface( const entity_t *ent, const mesh_t *mesh,
 	const vec3_t mins, const vec3_t maxs, const shader_t *shader, void *drawSurf );
 portalSurface_t *R_AddSkyportalSurface( const entity_t *ent, const shader_t *shader, 
 	void *drawSurf );
-void R_DrawPortals( void );
+void R_DrawPortals(struct frame_cmd_buffer_s* cmd);
 
 //
 // r_poly.c

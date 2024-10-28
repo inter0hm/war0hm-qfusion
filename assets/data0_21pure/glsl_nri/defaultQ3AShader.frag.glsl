@@ -76,11 +76,11 @@ void main(void)
 	vec4 diffuse;
 
 #if defined(APPLY_CUBEMAP)
-	diffuse = texture(samplerCube(u_BaseTexture,u_BaseSampler), reflect(v_Position - u_EntityDist, normalize(v_Normal)));
+	diffuse = texture(samplerCube(u_BaseTexture,u_BaseSampler), reflect(v_Position - obj.entityDist, normalize(v_Normal)));
 #elif defined(APPLY_CUBEMAP_VERTEX)
 	diffuse = texture(samplerCube(u_BaseTexture,u_BaseSampler), v_TexCoord);
 #elif defined(APPLY_SURROUNDMAP)
-	diffuse = texture(samplerCube(u_BaseTexture,u_BaseSampler), v_Position - u_EntityDist);
+	diffuse = texture(samplerCube(u_BaseTexture,u_BaseSampler), v_Position - obj.entityDist);
 #else
 	diffuse = texture(sampler2D(u_BaseTexture,u_BaseSampler), v_TexCoord);
 #endif

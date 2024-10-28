@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef R_RESOURCE_H
 #define R_RESOURCE_H
 
-#include "../gameshared/q_arch.h"
-
 #define MAX_GLSL_BONE_UNIFORMS 128
 
 struct mat4 {
@@ -108,10 +106,7 @@ struct FrameCB {
   int pad[2];
 	struct vec3 fogColor;
 	float mirrorSide;
-  union {
-	  struct mat3 viewAxis;
-    struct mat4 viewAxisPadding0;
-  };
+  struct mat4 viewAxis;
 };
 
 struct DynLight {
@@ -122,7 +117,7 @@ struct DynLight {
 struct DynamicLightCB {
     int numberLights;
     int pad3[3];
-    struct DynLight dynLights[16];
+    struct DynLight dynLights[32];
 };
 
 static inline size_t DynamicLightCB_Size(int numLights) {

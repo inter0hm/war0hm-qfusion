@@ -603,7 +603,6 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 	FR_CmdResetAttachmentToBackbuffer(frame);
 	if(forceClear)
 	{
-	
 		NriAttachmentsDesc attachmentsDesc = {};
 		attachmentsDesc.depthStencil = frame->state.depthAttachment;
 		attachmentsDesc.colorNum = frame->state.numColorAttachments;

@@ -34,7 +34,7 @@ typedef uint64_t r_glslfeat_t;
 #define GLSL_BIT(x)							(1ULL << (x))
 #define GLSL_BITS_VERSION					16
 
-#define PIPELINE_LAYOUT_HASH_SIZE 4096
+#define PIPELINE_LAYOUT_HASH_SIZE 10000// need to handle this large number of pipelines 
 #define PIPELINE_REFLECTION_HASH_SIZE 256
 #define VERTEX_POS_BINDING_SLOT (0)
 
