@@ -1489,13 +1489,12 @@ static bool __R_LoadKTX( image_t *image, const char *pathname )
 	const struct base_format_def_s *definition = ktxContext.desc;
 	const enum texture_format_e dstFormat = __R_GetImageFormat(image);
 	const uint32_t numberOfFaces = R_KTXGetNumberFaces( &ktxContext );
-	const size_t destBlockSize = RT_BlockSize(R_BaseFormatDef(dstFormat));
 	const uint16_t numberOfMipLevels = R_KTXIsCompressed( &ktxContext )  ? 1 : (( image->flags & IT_NOMIPMAP ) ? 1 : R_KTXGetNumberMips( &ktxContext ));
 	NriTextureDesc textureDesc = { 
 		.width = R_KTXWidth( &ktxContext ),
 		.height = R_KTXHeight( &ktxContext ),
 		.usage = __R_NRITextureUsageBits( image->flags ),
-		.layerNum = R_KTXIsCompressed( &ktxContext ) ? 1 : numberOfFaces,
+		.layerNum = ( image->flags & IT_CUBEMAP ) ? 6 : 1,
 		.depth = 1,
 		.format = R_ToNRIFormat( dstFormat ),
 		.sampleNum = 1,
@@ -1522,7 +1521,7 @@ static bool __R_LoadKTX( image_t *image, const char *pathname )
 
 	NriTexture2DViewDesc textureViewDesc = {
 		.texture = image->texture,
-		.viewType = (textureDesc.layerNum > 1) ? NriTexture2DViewType_SHADER_RESOURCE_CUBE: NriTexture2DViewType_SHADER_RESOURCE_2D,
+		.viewType = (image->flags & IT_CUBEMAP) ? NriTexture2DViewType_SHADER_RESOURCE_CUBE: NriTexture2DViewType_SHADER_RESOURCE_2D,
 		.format = textureDesc.format
 	};
 	NriDescriptor* descriptor = NULL;
@@ -1544,7 +1543,7 @@ static bool __R_LoadKTX( image_t *image, const char *pathname )
 			};
 			T_ReallocTextureBuf( &uncomp, &desc );
 			DecompressETC1( tex->buffer, tex->width, tex->height, uncomp.buffer, false );
-			__R_CopyTextureDataTexture(image, faceIdx, faceIdx, 0, 0, uncomp.width, uncomp.height, R_FORMAT_RGB8_UNORM, uncomp.buffer);
+			__R_CopyTextureDataTexture(image, faceIdx, 0, 0, 0, uncomp.width, uncomp.height, R_FORMAT_RGB8_UNORM, uncomp.buffer);
 			
 		}
 		T_FreeTextureBuf(&uncomp);
@@ -2342,6 +2341,16 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 			extensionWAL,
 			extensionKTX
 	};
+	
+	const char *ext = FS_FirstExtension2( resolvedPath, extensions, Q_ARRAY_COUNT( extensions ) ); // last is KTX
+	if( ext != NULL ) {
+		resolvedPath = sdscat( resolvedPath, ext );
+		image->extension = ext;
+	}
+		
+	if( ext == extensionKTX && __R_LoadKTX( image, resolvedPath ) ) {
+		goto done;
+	}
 
 	if( flags & IT_CUBEMAP ) {
 		static struct cubemapSufAndFlip {
@@ -2402,18 +2411,8 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 		}
 	} else {
 	
-		sdssubstr(resolvedPath, 0, basePathLen);
-		const char* ext = FS_FirstExtension2( resolvedPath, extensions, Q_ARRAY_COUNT(extensions)); // last is KTX
-		if(ext != NULL) {
-			resolvedPath = sdscat(resolvedPath, ext);
-			image->extension = ext;
-		}
 		struct UploadImgBuffer *upload = &uploads[uploadCount++];
 		upload->flags = flags;
-		if( ext == extensionKTX && __R_LoadKTX( image, resolvedPath ) ) {
-			goto done;
-		}
-
 		if( ( ext == extensionPNG || ext == extensionJPG || ext == extensionTGA ) && T_LoadImageSTBI( resolvedPath, &upload->buffer ) ) {
 			image->width = image->upload_width = T_PixelW( &upload->buffer );
 			image->height = image->upload_height = T_PixelH( &upload->buffer );
@@ -2437,7 +2436,6 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 
 	const uint32_t mipSize = __R_calculateMipMapLevel( flags, uploads[0].buffer.width, uploads[0].buffer.height, minmipsize );
 	enum texture_format_e destFormat = __R_GetImageFormat(image);
-	const uint32_t destBlockSize = R_FormatBitSizePerBlock( destFormat ) / 8;
 	NriTextureDesc textureDesc = { 
 		.width = uploads[0].buffer.width,
 		.height = uploads[0].buffer.height,

@@ -1,3 +1,10 @@
+#if defined(APPLY_TC_GEN_REFLECTION)
+#define APPLY_CUBEMAP
+#elif defined(APPLY_TC_GEN_CELSHADE)
+#define APPLY_CUBEMAP_VERTEX
+#elif defined(APPLY_TC_GEN_SURROUND)
+#define APPLY_SURROUNDMAP
+#endif
 
 #if defined(APPLY_FOG_COLOR)
   #define APPLY_ENV_MODULATE_COLOR
