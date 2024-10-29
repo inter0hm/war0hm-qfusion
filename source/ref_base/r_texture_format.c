@@ -445,6 +445,7 @@ uint32_t R_FormatBlockHeight( enum texture_format_e format )
 uint32_t R_FormatBitSizePerBlock(enum texture_format_e format) {
   switch(format) {
     case R_FORMAT_R8_UNORM: return 8;
+    case R_FORMAT_A8_UNORM: return 8;
     case R_FORMAT_R8_SNORM: return 8;
     case R_FORMAT_R8_UINT: return 8;
     case R_FORMAT_R8_SINT: return 8;

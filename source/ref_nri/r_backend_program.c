@@ -1119,7 +1119,8 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 	}
 	NriDepthBiasDesc depthBiasDesc = {};
 	if(((rb.currentShader->flags & SHADER_POLYGONOFFSET) > 0)) {
-		depthBiasDesc.slope = -1.0f;
+		depthBiasDesc.slope = -1.3f;
+		depthBiasDesc.constant = -.3f;
 	}
 	cmd->state.pipelineLayout.depthBias = depthBiasDesc;
 
@@ -1860,7 +1861,6 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 					.handle = Create_DescriptorHandle( "u_BaseSampler" ) };
 
 			} else if( shaderPassImage ) {
-
 				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
 					.descriptor = shaderPassImage->descriptor, 
 					.handle = Create_DescriptorHandle( "u_BaseTexture" ) };

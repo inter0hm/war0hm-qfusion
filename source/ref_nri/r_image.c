@@ -17,6 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "r_image.h"
 #include "r_local.h"
 #include "r_imagelib.h"
 #include "r_nri.h"
@@ -1664,7 +1665,7 @@ static enum texture_format_e __R_ResolveDataFormat( int flags, int samples )
 	} else if( samples == 2 ) {
 		return R_FORMAT_RG8_UNORM;
 	} else if( flags & IT_ALPHAMASK ) {
-		return R_FORMAT_R8_UNORM;
+		return R_FORMAT_A8_UNORM;
 	}
 	return R_FORMAT_R8_UNORM;
 }
@@ -1737,11 +1738,18 @@ static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mip
 					uint8_t color[4] = { luminance, luminance, luminance, alpha };
 					memcpy( &( (uint8_t *)uploadDesc.data )[dstRowStart + ( destBlockSize * column )], color, min( sizeof( color ), destBlockSize ) );
 					break;
-				case R_FORMAT_A8_UNORM:
+				case R_FORMAT_A8_UNORM: 
 				case R_FORMAT_R8_UNORM: {
 					const uint8_t c1 = data[( uploadDesc.width * srcBlockSize * slice ) + ( column * srcBlockSize )];
-					const uint8_t color[4] = { c1, c1, c1, c1 };
-					memcpy( &( (uint8_t *)uploadDesc.data )[dstRowStart + ( destBlockSize * column )], color, min( sizeof( color ), destBlockSize ) );
+					uint8_t color[4]; //= { c1, c1, c1, c1 };
+					if(image->flags & IT_ALPHAMASK) {
+						color[0] = color[1] = color[2] = 0.0f;
+						color[3] = c1;
+					} else {
+						color[0] = color[1] = color[2] = c1;
+						color[3] = 255;
+					}
+					memcpy( &( (uint8_t *)uploadDesc.data )[dstRowStart + ( destBlockSize * column )], color, min( 4, destBlockSize ) );
 					break;
 				}
 				default:

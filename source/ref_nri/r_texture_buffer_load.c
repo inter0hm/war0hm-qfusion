@@ -131,7 +131,7 @@ bool T_LoadImageSTBI(char *filename, struct texture_buf_s* buffer ) {
 	desc.height = h;
 	switch(channelCount) {
 		case 1:
-			desc.def = R_BaseFormatDef(R_FORMAT_A8_UNORM);
+			desc.def = R_BaseFormatDef(R_FORMAT_R8_UNORM);
 			break;
 		case 2:
 			desc.def = R_BaseFormatDef(R_FORMAT_L8_A8_UNORM);

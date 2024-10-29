@@ -1726,31 +1726,32 @@ struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, stru
 		}
 	}
 
-
 	hash_t hash = HASH_INITIAL_VALUE;
-	assert(def->numStreams < MAX_ATTRIBUTES);
-	assert(def->numStreams < MAX_STREAMS);
-	for( size_t i = 0; i < def->numStreams; i++ ) {
-		hash = hash_data( hash, &def->streams[i], sizeof( NriVertexStreamDesc ) );
-	}
-	for( size_t i = 0; i < def->numAttribs; i++ ) {	
-		if(!((1 << def->attribs[i].vk.location ) & program->vertexInputMask)) {
+	assert( def->numStreams < MAX_ATTRIBUTES );
+	assert( def->numStreams < MAX_STREAMS );
+	for( size_t i = 0; i < def->numAttribs; i++ ) {
+		if( !( ( 1 << def->attribs[i].vk.location ) & program->vertexInputMask ) ) {
 			continue;
 		}
 		vertexInputAttribs[numAttribs++] = def->attribs[i];
 	}
-	qsort(vertexInputAttribs, numAttribs, sizeof(NriVertexAttributeDesc), compareVertAttribs);
-	hash = hash_data( hash, vertexInputAttribs, sizeof( NriVertexStreamDesc ) * numAttribs);
-	hash = hash_data( hash, &def->pipelineLayout.depthBias, sizeof( NriDepthBiasDesc ));
+	qsort( vertexInputAttribs, numAttribs, sizeof( NriVertexAttributeDesc ), compareVertAttribs );
+	for( size_t i = 0; i < numAttribs; i++ ) {
+		hash = hash_u32( hash, vertexInputAttribs[i].offset );
+		hash = hash_u32( hash, vertexInputAttribs[i].format );
+		hash = hash_u32( hash, vertexInputAttribs[i].streamIndex );
+	}
+	hash = hash_data( hash, &def->streams, sizeof( NriVertexStreamDesc ) * def->numStreams );
+	hash = hash_data( hash, &def->pipelineLayout.depthBias, sizeof( NriDepthBiasDesc ) );
 	hash = hash_u32( hash, def->pipelineLayout.depthFormat );
 	for( size_t i = 0; i < def->numColorAttachments; i++ ) {
 		hash = hash_u32( hash, def->pipelineLayout.colorFormats[i] );
 	}
-	if(def->pipelineLayout.blendEnabled) {
+	if( def->pipelineLayout.blendEnabled ) {
 		hash = hash_u32( hash, def->pipelineLayout.colorSrcFactor );
 		hash = hash_u32( hash, def->pipelineLayout.colorDstFactor );
 	}
-	hash = hash_u32( hash, cullMode);
+	hash = hash_u32( hash, cullMode );
 	hash = hash_u32( hash, def->pipelineLayout.compareFunc);
 	hash = hash_u32( hash, def->pipelineLayout.depthWrite);
 
