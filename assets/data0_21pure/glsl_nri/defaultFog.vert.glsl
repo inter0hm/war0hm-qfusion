@@ -1,9 +1,8 @@
 #include "include/global.glsl"
-#include "defaultFXAA.res.glsl"
-
-layout(location = 0) out vec2 v_FogCoord;
 
 #include "include/qf_vert_utils.glsl"
+
+layout(location = 0) out vec2 v_FogCoord;
 
 void main(void)
 {

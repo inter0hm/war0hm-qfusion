@@ -1155,10 +1155,12 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 			float fog_color[3] = { 0, 0, 0 };
 			VectorScale( rb.fog->shader->fog_color, ( 1.0 / 255.0 ), fog_color );
 			frameData.eyeDist = RB_TransformFogPlanes( rb.fog, fogPlane.normal, &fogPlane.dist, vpnPlane.normal, &vpnPlane.dist );
-			frameData.fogScale = 1.0 / ( rb.fog->shader->fog_dist - rb.fog->shader->fog_clearDist );
+			frameData.fogScale = 1.0f / ( rb.fog->shader->fog_dist - rb.fog->shader->fog_clearDist );
 			memcpy( frameData.fogColor.v, fog_color, sizeof( float ) * 3 );
 			memcpy( objectData.fogPlane.v, fogPlane.normal, sizeof( float ) * 3 );
+			objectData.fogPlane.w = fogPlane.dist;
 			memcpy( objectData.fogEyePlane.v, vpnPlane.normal, sizeof( float ) * 3 );
+			objectData.fogEyePlane.w = vpnPlane.dist;
 		}
 
 		memcpy( objectData.mv.v, rb.modelviewMatrix, sizeof( struct mat4 ) );
@@ -2367,18 +2369,43 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 			break;
 		}
 		case GLSL_PROGRAM_TYPE_FOG: {
-			const mfog_t *fog = rb.fog;
-			mat4_t texMatrix = { 0 };
+			mat4_t texMatrix;
+			Matrix4_Identity( texMatrix );
+			if(pass->numtcmods) {
+				RB_ApplyTCMods( pass, texMatrix );
+			}
+			ObjectCB_SetTextureMatrix( &objectData, texMatrix );
 
 			programFeatures |= GLSL_SHADER_COMMON_FOG;
 
 			// set shaderpass state (blending, depthwrite, etc)
-			RB_SetShaderpassState( pass->flags );
+			RB_SetShaderpassState_2(cmd, pass->flags );
 
-			// update uniforms
+			UpdateFrameUBO( cmd, &cmd->uboSceneFrame, &frameData, sizeof( struct FrameCB ) );
+			UpdateFrameUBO( cmd, &cmd->uboSceneObject, &objectData, sizeof( struct ObjectCB ) );
+			descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
+				.descriptor = cmd->uboSceneFrame.descriptor, 
+				.handle = Create_DescriptorHandle( "frame" ) 
+			};
+			descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
+				.descriptor = cmd->uboSceneObject.descriptor, 
+				.handle = Create_DescriptorHandle( "obj" ) 
+			};
 			
 			struct glsl_program_s *program = RP_ResolveProgram( GLSL_PROGRAM_TYPE_FOG, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
 			struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state );
+
+			rsh.nri.coreI.CmdSetPipeline( cmd->cmd, pipeline->pipeline );
+			rsh.nri.coreI.CmdSetPipelineLayout( cmd->cmd, program->layout );
+			RP_BindDescriptorSets( cmd, program, descriptors, descriptorIndex );
+			
+			FR_CmdDrawElements(cmd, 
+				cmd->drawElements.numElems,
+				cmd->drawElements.numInstances,
+				cmd->drawElements.firstElem,
+				cmd->drawElements.firstVert,
+				0);
+
 
 		 // program = RB_RegisterProgram( GLSL_PROGRAM_TYPE_FOG, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
 		 // if( RB_BindProgram( program ) ) {

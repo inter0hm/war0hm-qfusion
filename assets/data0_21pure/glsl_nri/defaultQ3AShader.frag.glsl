@@ -23,7 +23,7 @@ layout(location = 3) in vec4 frontColor;
 layout(location = 4) in vec4 v_LightmapTexCoord01;
 layout(location = 5) in vec4 v_LightmapTexCoord23;
 layout(location = 6) flat in ivec4 v_LightmapLayer0123;
-
+layout(location = 7) in vec2 v_FogCoord;
 
 layout(location = 0) out vec4 outFragColor;
 
