@@ -39,7 +39,7 @@ jobs:
         working-directory: ./source
         run: |
           export CC=clang CXX=clang++
-          cmake -DBUILD_STEAMLIB=1 .
+          cmake -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 .
 
       - name: Build project
         working-directory: ./source
@@ -90,7 +90,7 @@ jobs:
         working-directory: ./source
         run: |
           export CC=clang CXX=clang++
-          cmake -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 .
+          cmake -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 .
 
       - name: Build project
         working-directory: ./source
@@ -207,7 +207,7 @@ jobs:
 
       - name: Generate makefiles
         working-directory: .\source
-        run: cmake -G "Visual Studio 16 2019" -A x64 -T "v142" -DBUILD_STEAMLIB=1 .
+        run: cmake -G "Visual Studio 16 2019" -A x64 -T "v142" -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 .
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1
@@ -241,7 +241,7 @@ jobs:
 
       - name: Generate makefiles
         working-directory: .\source
-        run: cmake -G "Visual Studio 16 2019" -A x64 -T "v142" -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 .
+        run: cmake -G "Visual Studio 16 2019" -A x64 -T "v142" -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 .
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1
