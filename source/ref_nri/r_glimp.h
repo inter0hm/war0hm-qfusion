@@ -151,26 +151,15 @@ typedef struct
 				,texture_cube_map
 				,texture_edge_clamp
 				,texture_filter_anisotropic
-				,texture_compression
-				,compressed_ETC1_RGB8_texture
-				,GLSL
-				,GLSL_core
-				,GLSL130
 				,depth_texture
 				,framebuffer_object
-				,vertex_shader
-				,fragment_shader
-				,shader_objects
-				,gamma_control
 				,swap_control
 				,draw_instanced
 				,instanced_arrays
-				,gpu_memory_info
 				,meminfo
 				,framebuffer_blit
 				,depth24
 				,depth_nonlinear
-				,get_program_binary
 				,rgb8_rgba8
 				,ES3_compatibility
 				,blend_func_separate
@@ -183,7 +172,6 @@ typedef struct
 	union { char shadow, shadow_samplers; };
 	union { char texture3D, texture_3D; };
 	union { char texture_non_power_of_two, texture_npot; };
-	union { char half_float_vertex, vertex_half_float; };
 } glextinfo_t;
 
 typedef struct

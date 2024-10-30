@@ -787,48 +787,48 @@ static void R_MipMap16( unsigned short *in, int width, int height, int rMask, in
 	}
 }
 
-/*
-* R_TextureInternalFormat
-*/
-#ifndef GL_ES_VERSION_2_0
-static int R_TextureInternalFormat( int samples, int flags, int pixelType )
-{
-	int bits = r_texturebits->integer;
-
-	if( !( flags & IT_NOCOMPRESS ) && r_texturecompression->integer && glConfig.ext.texture_compression )
-	{
-		if( samples == 4 )
-			return GL_COMPRESSED_RGBA_ARB;
-		if( samples == 3 )
-			return GL_COMPRESSED_RGB_ARB;
-		if( samples == 2 )
-			return GL_COMPRESSED_LUMINANCE_ALPHA_ARB;
-		if( ( samples == 1 ) && !( flags & IT_ALPHAMASK ) )
-			return GL_COMPRESSED_LUMINANCE_ARB;
-	}
-
-	if( samples == 3 )
-	{
-		if( bits == 16 )
-			return GL_RGB5;
-		return GL_RGB;
-	}
-
-	if( samples == 2 )
-	{
-		return GL_LUMINANCE_ALPHA;
-	}
-
-	if( samples == 1 )
-	{
-		return ( ( flags & IT_ALPHAMASK ) ? GL_ALPHA : GL_LUMINANCE );
-	}
-
-	if( ( bits == 16 ) && ( pixelType != GL_UNSIGNED_SHORT_5_5_5_1 ) )
-		return GL_RGBA4;
-	return GL_RGBA;
-}
-#endif
+///*
+//* R_TextureInternalFormat
+//*/
+//#ifndef GL_ES_VERSION_2_0
+//static int R_TextureInternalFormat( int samples, int flags, int pixelType )
+//{
+//	int bits = r_texturebits->integer;
+//
+//	if( !( flags & IT_NOCOMPRESS ) && r_texturecompression->integer && glConfig.ext.texture_compression )
+//	{
+//		if( samples == 4 )
+//			return GL_COMPRESSED_RGBA_ARB;
+//		if( samples == 3 )
+//			return GL_COMPRESSED_RGB_ARB;
+//		if( samples == 2 )
+//			return GL_COMPRESSED_LUMINANCE_ALPHA_ARB;
+//		if( ( samples == 1 ) && !( flags & IT_ALPHAMASK ) )
+//			return GL_COMPRESSED_LUMINANCE_ARB;
+//	}
+//
+//	if( samples == 3 )
+//	{
+//		if( bits == 16 )
+//			return GL_RGB5;
+//		return GL_RGB;
+//	}
+//
+//	if( samples == 2 )
+//	{
+//		return GL_LUMINANCE_ALPHA;
+//	}
+//
+//	if( samples == 1 )
+//	{
+//		return ( ( flags & IT_ALPHAMASK ) ? GL_ALPHA : GL_LUMINANCE );
+//	}
+//
+//	if( ( bits == 16 ) && ( pixelType != GL_UNSIGNED_SHORT_5_5_5_1 ) )
+//		return GL_RGBA4;
+//	return GL_RGBA;
+//}
+//#endif
 
 /*
 // * R_TextureFormat
@@ -2887,78 +2887,6 @@ void R_InitViewportTexture( image_t **texture, const char *name, int id,
 }
 
 /*
-* R_GetPortalTextureId
-*/
-static int R_GetPortalTextureId( const int viewportWidth, const int viewportHeight, 
-	const int flags, unsigned frameNum )
-{
-	int i;
-	int best = -1;
-	int realwidth, realheight;
-	int realflags = IT_SPECIAL|IT_FRAMEBUFFER|IT_DEPTHRB|flags;
-	image_t *image;
-
-	R_GetViewportTextureSize( viewportWidth, viewportHeight, r_portalmaps_maxtexsize->integer, 
-		flags, &realwidth, &realheight );
-
-	for( i = 0; i < MAX_PORTAL_TEXTURES; i++ )
-	{
-		image = rsh.portalTextures[i];
-		if( !image )
-			return i;
-
-		if( image->framenum == frameNum ) {
-			// the texture is used in the current scene
-			continue;
-		}
-
-		if( image->width == realwidth && 
-			image->height == realheight && 
-			image->flags == realflags ) {
-			// 100% match
-			return i;
-		}
-
-		if( best < 0 ) {
-			// in case we don't get a 100% matching texture later,
-			// reuse this one
-			best = i;
-		}
-	}
-
-	return best;
-}
-
-
-/*
-* R_GetPortalTexture
-*/
-image_t *R_GetPortalTexture( int viewportWidth, int viewportHeight, 
-	int flags, unsigned frameNum )
-{
-	int id;
-
-	if( glConfig.stencilBits )
-		flags |= IT_STENCIL;
-
-	id = R_GetPortalTextureId( viewportWidth, viewportHeight, flags, frameNum );
-	if( id < 0 || id >= MAX_PORTAL_TEXTURES ) {
-		return NULL;
-	}
-
-	R_InitViewportTexture( &rsh.portalTextures[id], "r_portaltexture", id, 
-		viewportWidth, viewportHeight, r_portalmaps_maxtexsize->integer, 
-		IT_SPECIAL|IT_FRAMEBUFFER|IT_DEPTHRB|flags, IMAGE_TAG_GENERIC,
-		glConfig.forceRGBAFramebuffers ? 4 : 3 );
-
-	if( rsh.portalTextures[id] ) {
-		rsh.portalTextures[id]->framenum = frameNum;
-	}
-
-	return rsh.portalTextures[id];
-}
-
-/*
 * R_GetShadowmapTexture
 */
 image_t *R_GetShadowmapTexture( int id, int viewportWidth, int viewportHeight, int flags )
@@ -2984,99 +2912,6 @@ image_t *R_GetShadowmapTexture( int id, int viewportWidth, int viewportHeight, i
 
 	return rsh.shadowmapTextures[id];
 }
-
-/*
-* R_InitScreenImagePair
-*/
-static void R_InitScreenImagePair( const char *name, image_t **color, image_t **depth, bool stencil )
-{
-	char tn[128];
-	int flags, colorFlags, depthFlags;
-
-	assert( !depth || glConfig.ext.depth_texture );
-
-	if( !glConfig.stencilBits )
-		stencil = false;
-
-	flags = IT_SPECIAL;
-
-	colorFlags = flags | IT_FRAMEBUFFER;
-	depthFlags = flags | ( IT_DEPTH|IT_NOFILTERING );
-	if( !depth ) {
-		colorFlags |= IT_DEPTHRB;
-	}
-	if( stencil ) {
-		if( depth ) {
-			depthFlags |= IT_STENCIL;
-		} else {
-			colorFlags |= IT_STENCIL;
-		}
-	}
-
-	if( color ) {
-		R_InitViewportTexture( color, name, 
-			0, glConfig.width, glConfig.height, 0, colorFlags, IMAGE_TAG_BUILTIN,
-			glConfig.forceRGBAFramebuffers ? 4 : 3 );
-	}
-	if( depth && *color ) {
-		R_InitViewportTexture( depth, va_r( tn, sizeof( tn ), "%s_depth", name ), 
-			0, glConfig.width, glConfig.height, 0, depthFlags, IMAGE_TAG_BUILTIN, 1 );
-		RFB_AttachTextureToObject( (*color)->fbo, *depth );
-	}
-}
-
-/*
-* R_InitBuiltinScreenImages
-*
- * Screen textures may only be used in or referenced from the rendering context/thread.
-*/
-void R_InitBuiltinScreenImages( void )
-{
-	assert(false);
-	// if( glConfig.ext.depth_texture && glConfig.ext.fragment_precision_high && glConfig.ext.framebuffer_blit )
-	// {
-	// 	R_InitScreenImagePair( "r_screentex", &rsh.screenTexture, &rsh.screenDepthTexture, true );
-
-	// 	// Stencil is required in the copy for depth/stencil formats to match when blitting.
-	// 	R_InitScreenImagePair( "r_screentexcopy", &rsh.screenTextureCopy, &rsh.screenDepthTextureCopy, true );
-	// }
-
-	// R_InitScreenImagePair( "rsh.screenPPCopy0", &rsh.screenPPCopies[0], NULL, true );
-	// R_InitScreenImagePair( "rsh.screenPPCopy1", &rsh.screenPPCopies[1], NULL, false );
-}
-
-/*
-* R_ReleaseBuiltinScreenImages
-*/
-//void R_ReleaseBuiltinScreenImages( void )
-//{
-//	if( rsh.screenTexture ) {
-//		R_FreeImage( rsh.screenTexture );
-//	}
-//	if( rsh.screenDepthTexture ) {
-//		R_FreeImage( rsh.screenDepthTexture );
-//	}
-//
-//	if( rsh.screenTextureCopy ) {
-//		R_FreeImage( rsh.screenTextureCopy );
-//	}
-//	if( rsh.screenDepthTextureCopy ) {
-//		R_FreeImage( rsh.screenDepthTextureCopy );
-//	}
-//
-//	if( rsh.screenPPCopies[0] ) {
-//		R_FreeImage( rsh.screenPPCopies[0] );
-//	}
-//	if( rsh.screenPPCopies[1] ) {
-//		R_FreeImage( rsh.screenPPCopies[1] );
-//	}
-//
-//	rsh.screenTexture = rsh.screenDepthTexture = NULL;
-//	rsh.screenTextureCopy = rsh.screenDepthTextureCopy = NULL;
-//	rsh.screenPPCopies[0] = NULL;
-//	rsh.screenPPCopies[1] = NULL;
-//}
-
 
 /*
 * R_ReleaseBuiltinImages
@@ -3199,9 +3034,6 @@ void R_FreeUnusedImages( void )
 {
 	R_FreeUnusedImagesByTags( ~IMAGE_TAG_BUILTIN );
 
-	//R_FinishLoadingImages();
-
-	memset( rsh.portalTextures, 0, sizeof( image_t * ) * MAX_PORTAL_TEXTURES );
 	memset( rsh.shadowmapTextures, 0, sizeof( image_t * ) * MAX_SHADOWGROUPS );
 }
 
@@ -3242,7 +3074,6 @@ void R_ShutdownImages( void )
 	r_screenShotBuffer = NULL;
 	r_screenShotBufferSize = 0;
 
-	memset( rsh.portalTextures, 0, sizeof( rsh.portalTextures ) );
 	memset( rsh.shadowmapTextures, 0, sizeof( rsh.shadowmapTextures ) );
 
 }

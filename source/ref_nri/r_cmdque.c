@@ -823,7 +823,7 @@ static unsigned R_HandleInitReliableCmd( void *pcmd )
 
 	RFB_Init();
 
-	R_InitBuiltinScreenImages();
+	//R_InitBuiltinScreenImages();
 
 	R_BindFrameBufferObject( 0 );
 

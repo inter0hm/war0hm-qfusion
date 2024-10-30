@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_frame_cmd_buffer.h"
 #include "r_image.h"
 #include "r_local.h"
-#include "r_cmdque.h"
 #include "r_nri.h"
 #include "r_resource_upload.h"
 #include "r_frontend.h"
@@ -29,7 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "stb_ds.h"
 
 static ref_frontend_t rrf;
-static ref_cmdbuf_t *RF_GetNextAdapterFrame( ref_frontendAdapter_t *adapter );
 
 static void __R_InitVolatileAssets( void )
 {
@@ -56,133 +54,6 @@ static void __R_InitVolatileAssets( void )
 	else {
 		R_TouchMeshVBO( rsh.postProcessingVBO );
 	}
-}
-
-static void RF_AdapterFrame( ref_frontendAdapter_t *adapter )
-{
-	static unsigned lastTime = 0;
-	static int bias = 0;
-	unsigned time = ri.Sys_Milliseconds();
-	unsigned wait, frameTime;
-	unsigned minMsec;
-	ref_cmdbuf_t *frame;
-
-	if( adapter->maxfps > 0 )
-		minMsec = 1000 / adapter->maxfps;
-	else
-		minMsec = 1;
-	frameTime = (int)(time - lastTime);
-	
-	bias += frameTime - minMsec;
-	if( bias > (int)minMsec )
-		bias = (int)minMsec;
-
-    // Adjust minMsec if previous frame took too long to render so
-    // that framerate is stable at the requested value.
-	bias -= minMsec;
-
-	wait = frameTime;
-	do {
-		if( wait >= minMsec )
-			wait = 0;
-		else
-			wait = minMsec - wait;
-		if( wait < 1 )
-			ri.Sys_Sleep( 0 );
-		else
-			ri.Sys_Sleep( wait - 1 );
-		wait = ri.Sys_Milliseconds() - lastTime;
-	} while( wait < minMsec );
-	
-	lastTime = ri.Sys_Milliseconds();
-
-	frame = RF_GetNextAdapterFrame( adapter );
-	if( frame ) {
-		frame->RunCmds( frame );
-		adapter->readFrameId = frame->GetFrameId( frame );
-	}
-
-	adapter->cmdPipe->RunCmds( adapter->cmdPipe );
-}
-
-/*
-* RF_AdapterThreadProc
-*/
-//static void *RF_AdapterThreadProc( void *param )
-//{
-//	ref_frontendAdapter_t *adapter = param;
-//
-//	GLimp_MakeCurrent( adapter->GLcontext, GLimp_GetWindowSurface( NULL ) );
-//
-//	while( !adapter->shutdown ) {
-//		RF_AdapterFrame( adapter );
-//	}
-//
-//	GLimp_MakeCurrent( NULL, NULL );
-//
-//	return NULL;
-//}
-
-static void RF_AdapterShutdown( ref_frontendAdapter_t *adapter )
-{
-	if( !adapter->cmdPipe ) {
-		return;
-	}
-
-	adapter->cmdPipe->Shutdown( adapter->cmdPipe );
-	adapter->cmdPipe->FinishCmds( adapter->cmdPipe );
-
-	if( adapter->thread ) {
-		adapter->shutdown = true;
-		ri.Thread_Join( adapter->thread );
-		ri.Mutex_Destroy( &adapter->frameLock );
-	}
-
-	RF_DestroyCmdPipe( &adapter->cmdPipe );
-
-	//if( adapter->GLcontext ) {
-	//	GLimp_SharedContext_Destroy( adapter->GLcontext, NULL );
-	//}
-
-	GLimp_EnableMultithreadedRendering( false );
-
-	memset( adapter, 0, sizeof( *adapter ) );
-}
-
-/*
-* RF_AdapterWait
-*
-* Blocks the current thread until adapter is finished processing frame and inter-frame commands.
-*/
-//static void RF_AdapterWait( ref_frontendAdapter_t *adapter )
-//{
-//	if( adapter->thread == NULL ) {
-//		return;
-//	}
-//
-//	while( adapter->frameId != adapter->readFrameId ) {
-//		ri.Sys_Sleep( 0 );
-//	}
-//	
-//	adapter->cmdPipe->FinishCmds( adapter->cmdPipe );
-//}
-
-static ref_cmdbuf_t *RF_GetNextAdapterFrame( ref_frontendAdapter_t *adapter )
-{
-	//ref_cmdbuf_t *result = NULL;
-	//ref_frontend_t *fe = adapter->owner;
-
-	//ri.Mutex_Lock( adapter->frameLock );
-	//if( adapter->frameNum != fe->lastFrameNum ) {
-	//	adapter->frameId = fe->frameId;
-	//	adapter->frameNum = fe->lastFrameNum;
-
-	//	result = fe->frames[adapter->frameNum];
-	//	result->SetFrameId( result, fe->frameId );
-	//}
-	//ri.Mutex_Unlock( adapter->frameLock );
-
-	return NULL;
 }
 
 
@@ -484,7 +355,7 @@ void RF_AppActivate( bool active, bool destroy )
 
 void RF_Shutdown( bool verbose )
 {
-	RF_AdapterShutdown( &rrf.adapter );
+	//RF_AdapterShutdown( &rrf.adapter );
 	memset( &rrf, 0, sizeof( rrf ) );
 	rsh.nri.helperI.WaitForIdle( rsh.cmdQueue );
 
@@ -634,7 +505,7 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 	// run cinematic passes on shaders
 	R_RunAllCinematics();
 
-	rrf.adapter.maxfps = r_maxfps->integer;
+	//rrf.adapter.maxfps = r_maxfps->integer;
 
 	const uint32_t bufferedFrameIndex = rsh.frameCnt % NUMBER_FRAMES_FLIGHT;
 	struct frame_cmd_buffer_s *frame = &rsh.frameCmds[bufferedFrameIndex];
@@ -1019,7 +890,7 @@ void RF_WriteAviFrame( int frame, bool scissor )
 	
 //	RF_AdapterWait( &rrf.adapter );
 	
-	rrf.adapter.cmdPipe->AviShot( rrf.adapter.cmdPipe, path, name, x, y, w, h );
+	//rrf.adapter.cmdPipe->AviShot( rrf.adapter.cmdPipe, path, name, x, y, w, h );
 }
 
 void RF_StopAviDemo( void )
