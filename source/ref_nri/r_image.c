@@ -41,6 +41,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define	MAX_GLIMAGES	    8192
 #define IMAGES_HASH_SIZE    64
+#define IMAGE_SAMPLER_HASH_SIZE 1024
+
+static struct {
+	hash_t hash;
+	NriDescriptor *descriptor;
+} samplerDescriptors[IMAGE_SAMPLER_HASH_SIZE] = {};
 
 typedef struct
 {
@@ -62,8 +68,7 @@ static int gl_anisotropic_filter = 0;
 
 #define MAX_MIP_SAMPLES 16
 
-
-static void R_FreeImage( struct image_s *image );
+static void __FreeImage(struct frame_cmd_buffer_s* cmd, struct image_s *image );
 static NriTextureUsageBits __R_NRITextureUsageBits(int flags);
 static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mipOffset, int x, int y, int w, int h, enum texture_format_e srcFormat, uint8_t *data );
 static enum texture_format_e __R_GetImageFormat( struct image_s* image );
@@ -88,13 +93,10 @@ int R_TextureTarget( int flags, int *uploadTarget )
 	return target;
 }
 
+
+
 NriDescriptor *R_ResolveSamplerDescriptor( int flags )
 {
-#define __SAMPLER_HASH_SIZE 1024
-	static struct {
-		hash_t hash;
-		NriDescriptor *descriptor;
-	} samplerDescriptors[__SAMPLER_HASH_SIZE] = {};
 
 	NriSamplerDesc samplerDesc = {};
 
@@ -132,7 +134,7 @@ NriDescriptor *R_ResolveSamplerDescriptor( int flags )
 	}
 
 	const hash_t hash = hash_data( HASH_INITIAL_VALUE, &samplerDesc, sizeof( NriSamplerDesc ) );
-	const size_t startIndex = ( hash % __SAMPLER_HASH_SIZE );
+	const size_t startIndex = ( hash % IMAGE_SAMPLER_HASH_SIZE );
 	size_t index = startIndex;
 
 	do {
@@ -143,11 +145,13 @@ NriDescriptor *R_ResolveSamplerDescriptor( int flags )
 			rsh.nri.coreI.CreateSampler( rsh.nri.device, &samplerDesc, &samplerDescriptors[index].descriptor );
 			return samplerDescriptors[index].descriptor;
 		}
-		index = ( index + 1 ) % __SAMPLER_HASH_SIZE;
+		index = ( index + 1 ) % IMAGE_SAMPLER_HASH_SIZE ;
 	} while( index != startIndex );
-#undef __SAMPLER_HASH_SIZE
 	return NULL;
 }
+
+
+#undef __SAMPLER_HASH_SIZE
 
 /*
 * R_BindImage
@@ -1512,8 +1516,10 @@ static bool __R_LoadKTX( image_t *image, const char *pathname )
 		ri.Com_Printf( S_COLOR_YELLOW "Failed to Create Image: %s\n", image->name );
 		return false;
 	}
-
-	image->numAllocations = 0;
+	
+	const uint32_t allocationNum = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
+	assert( allocationNum <= Q_ARRAY_COUNT( image->memory ) );
+	image->numAllocations = allocationNum;
 	if( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, image->memory ) ) {
 		ri.Com_Printf( S_COLOR_YELLOW "Failed Allocation: %s\n", image->name );
 		return false;
@@ -1915,9 +1921,9 @@ struct image_s *R_LoadImage( const char *name, uint8_t **pic, int width, int hei
 
 	const uint32_t allocationNum = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
 	assert( allocationNum <= Q_ARRAY_COUNT( image->memory ) );
+	image->numAllocations = allocationNum;
 	NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, image->memory ) );
 	uint8_t *tmpBuffer = NULL;
-	image->numAllocations = allocationNum;
 	const size_t reservedSize = width * height * samples;
 	
 	NriTexture2DViewDesc textureViewDesc = {
@@ -2085,21 +2091,32 @@ image_t *R_Create3DImage( const char *name, int width, int height, int layers, i
 	// return image;
 }
 
-
-static void R_FreeImage( struct image_s *image )
+static void __FreeImage( struct frame_cmd_buffer_s *cmd, struct image_s *image )
 {
 	{
-		struct frame_cmd_buffer_s *cmd = R_ActiveFrameCmd();	
+		//struct frame_cmd_buffer_s *cmd = R_ActiveFrameCmd();	
 		if( image->texture ) {
-			arrpush( cmd->freeTextures, image->texture );
+			if(cmd) {
+				arrpush( cmd->freeTextures, image->texture );
+			} else {
+				rsh.nri.coreI.DestroyTexture(image->texture);
+			}
 		}
 
 		for( size_t i = 0; i < image->numAllocations; i++ ) {
-			arrpush( cmd->freeMemory, image->memory[i] );
+			if(cmd) {
+				arrpush( cmd->freeMemory, image->memory[i] );
+			} else {
+				rsh.nri.coreI.FreeMemory(image->memory[i]);
+			}
 		}
 	
 		if(image->descriptor.descriptor) {
-			arrpush( cmd->frameTemporaryDesc, image->descriptor.descriptor);
+			if(cmd) {
+				arrpush( cmd->frameTemporaryDesc, image->descriptor.descriptor);
+			} else {
+				rsh.nri.coreI.DestroyDescriptor(image->descriptor.descriptor);
+			}
 		}
 		
 		// R_ReleaseNriTexture(image);
@@ -2113,7 +2130,8 @@ static void R_FreeImage( struct image_s *image )
 		image->name = NULL;
 		image->registrationSequence = 0;
 		image->texture = NULL;
-		// image->cookie = 0;
+		image->descriptor = (struct nri_descriptor_s){};
+		image->samplerDescriptor= (struct nri_descriptor_s){};
 		image->numAllocations = 0;
 	}
 	{
@@ -2121,7 +2139,6 @@ static void R_FreeImage( struct image_s *image )
 		// remove from linked active list
 		image->prev->next = image->next;
 		image->next->prev = image->prev;
-
 
 		// insert into linked free list
 		image->next = free_images;
@@ -2405,7 +2422,7 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 		sdssetlen( resolvedPath, basePathLen ); // truncate the pathext + cubemap
 		if( uploadCount != 6 ) {
 			ri.Com_DPrintf( S_COLOR_YELLOW "Missing image: %s\n", image->name );
-			R_FreeImage( image );
+			__FreeImage( R_ActiveFrameCmd(),image );
 			image = NULL;
 			goto done;
 		}
@@ -2423,7 +2440,7 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 			image->samples = RT_NumberChannels( upload->buffer.def );
 		} else {
 			ri.Com_Printf( S_COLOR_YELLOW "Missing image: %s\n", image->name );
-			R_FreeImage( image );
+			__FreeImage( R_ActiveFrameCmd(),image );
 			image = NULL;
 			goto done;
 		}
@@ -2449,7 +2466,7 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 	};
 	if( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &image->texture ) != NriResult_SUCCESS ) {
 		ri.Com_Printf( S_COLOR_YELLOW "Failed to Create Image: %s\n", image->name );
-		R_FreeImage( image );
+		__FreeImage( R_ActiveFrameCmd(),image );
 		image = NULL;
 		goto done;
 	}
@@ -2461,16 +2478,11 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 		.memoryLocation = NriMemoryLocation_DEVICE,
 	};
 	const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
-	if( numAllocations >= Q_ARRAY_COUNT( image->memory ) ) {
-		ri.Com_Printf( S_COLOR_YELLOW "Failed Allocation: %s\n", image->name );
-		R_FreeImage( image );
-		image = NULL;
-		goto done;
-	}
+	assert( numAllocations <= Q_ARRAY_COUNT( image->memory ) );
 	image->numAllocations = numAllocations;
 	if( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, image->memory ) ) {
 		ri.Com_Printf( S_COLOR_YELLOW "Failed Allocation: %s\n", image->name );
-		R_FreeImage( image );
+		__FreeImage(R_ActiveFrameCmd(), image );
 		image = NULL;
 		goto done;
 	}
@@ -3036,34 +3048,34 @@ void R_InitBuiltinScreenImages( void )
 /*
 * R_ReleaseBuiltinScreenImages
 */
-void R_ReleaseBuiltinScreenImages( void )
-{
-	if( rsh.screenTexture ) {
-		R_FreeImage( rsh.screenTexture );
-	}
-	if( rsh.screenDepthTexture ) {
-		R_FreeImage( rsh.screenDepthTexture );
-	}
-
-	if( rsh.screenTextureCopy ) {
-		R_FreeImage( rsh.screenTextureCopy );
-	}
-	if( rsh.screenDepthTextureCopy ) {
-		R_FreeImage( rsh.screenDepthTextureCopy );
-	}
-
-	if( rsh.screenPPCopies[0] ) {
-		R_FreeImage( rsh.screenPPCopies[0] );
-	}
-	if( rsh.screenPPCopies[1] ) {
-		R_FreeImage( rsh.screenPPCopies[1] );
-	}
-
-	rsh.screenTexture = rsh.screenDepthTexture = NULL;
-	rsh.screenTextureCopy = rsh.screenDepthTextureCopy = NULL;
-	rsh.screenPPCopies[0] = NULL;
-	rsh.screenPPCopies[1] = NULL;
-}
+//void R_ReleaseBuiltinScreenImages( void )
+//{
+//	if( rsh.screenTexture ) {
+//		R_FreeImage( rsh.screenTexture );
+//	}
+//	if( rsh.screenDepthTexture ) {
+//		R_FreeImage( rsh.screenDepthTexture );
+//	}
+//
+//	if( rsh.screenTextureCopy ) {
+//		R_FreeImage( rsh.screenTextureCopy );
+//	}
+//	if( rsh.screenDepthTextureCopy ) {
+//		R_FreeImage( rsh.screenDepthTextureCopy );
+//	}
+//
+//	if( rsh.screenPPCopies[0] ) {
+//		R_FreeImage( rsh.screenPPCopies[0] );
+//	}
+//	if( rsh.screenPPCopies[1] ) {
+//		R_FreeImage( rsh.screenPPCopies[1] );
+//	}
+//
+//	rsh.screenTexture = rsh.screenDepthTexture = NULL;
+//	rsh.screenTextureCopy = rsh.screenDepthTextureCopy = NULL;
+//	rsh.screenPPCopies[0] = NULL;
+//	rsh.screenPPCopies[1] = NULL;
+//}
 
 
 /*
@@ -3176,7 +3188,7 @@ void R_FreeUnusedImagesByTags( int tags )
 			continue;
 		}
 
-		R_FreeImage( image );
+		__FreeImage( R_ActiveFrameCmd(),image );
 	}
 }
 
@@ -3204,9 +3216,12 @@ void R_ShutdownImages( void )
 	if( !r_imagesPool )
 		return;
 
- // for( i = 0; i < NUM_LOADER_THREADS; i++ ) {
- // 	R_ShutdownImageLoader( i );
- // }
+	for(size_t i = 0; i < IMAGE_SAMPLER_HASH_SIZE; i++) {
+		if(samplerDescriptors[i].descriptor) {
+			rsh.nri.coreI.DestroyDescriptor(samplerDescriptors[i].descriptor);
+		}
+	}
+	memset(samplerDescriptors, 0, sizeof(samplerDescriptors));
 
 	R_ReleaseBuiltinImages();
 
@@ -3215,7 +3230,7 @@ void R_ShutdownImages( void )
 			// free texture
 			continue;
 		}
-		R_FreeImage( image );
+		__FreeImage(NULL, image );
 	}
 
 	R_FreeImageBuffers();

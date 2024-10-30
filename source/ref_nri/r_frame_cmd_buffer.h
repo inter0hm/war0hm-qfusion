@@ -84,10 +84,14 @@ struct frame_cmd_state_s {
 	} pipelineLayout;
 };
 
+
 struct frame_tex_buffers_s {
 	NriRect screen; 	
 	NriDescriptor *colorAttachment;
 	NriTexture *colorTexture;
+	
+	NriDescriptor *depthAttachment;
+	NriTexture* depthTexture;
 
 	// used for post processing
 	struct pogo_buffers_s {
@@ -95,8 +99,6 @@ struct frame_tex_buffers_s {
 		NriTexture *colorTexture;
 	} pogoBuffers[2];
 
-	NriDescriptor *depthAttachment;
-	NriTexture* depthTexture;
 
 	NriAccessLayoutStage currentLayout;
 
@@ -127,9 +129,8 @@ struct frame_cmd_buffer_s {
 	NriCommandAllocator *allocator;
 	NriCommandBuffer *cmd;
 
-	NriDescriptor** frameTemporaryDesc; // temporary frame descriptors that are recycled at the end of the frame	
-
 	// list of objects to free
+	NriDescriptor** frameTemporaryDesc; // temporary frame descriptors that are recycled at the end of the frame	
 	NriTexture**  freeTextures;
 	NriBuffer** freeBuffers;
 	NriMemory** freeMemory;
@@ -151,6 +152,7 @@ struct frame_cmd_buffer_s {
 struct frame_cmd_save_attachment_s R_CmdState_StashAttachment(struct frame_cmd_buffer_s* cmd);
 void R_CmdState_RestoreAttachment(struct frame_cmd_buffer_s* cmd, const struct frame_cmd_save_attachment_s* stashed);
 
+void FrameCmdBufferFree(struct frame_cmd_buffer_s* cmd);
 void ResetFrameCmdBuffer(struct nri_backend_s* backend,struct frame_cmd_buffer_s* cmd);
 void UpdateFrameUBO( struct frame_cmd_buffer_s *cmd, struct ubo_frame_instance_s *frame, void *data, size_t size );
 

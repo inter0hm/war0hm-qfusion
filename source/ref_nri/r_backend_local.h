@@ -210,11 +210,8 @@ void RB_DrawElementsReal( rbDrawElements_t *de );
 	( (blendsrc) == GLSTATE_SRCBLEND_SRC_ALPHA || (blenddst) == GLSTATE_DSTBLEND_SRC_ALPHA ) || \
 	( (blendsrc) == GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA || (blenddst) == GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA )
 
-// r_backend_program.c
-void RB_DrawShadedElements();
 
 void RB_InitShading( void );
-void RB_DrawOutlinedElements( void );
 void RB_DrawShadedElements( void );
 int RB_RegisterProgram( int type, const char *name, const char *deformsKey, 
 	const deformv_t *deforms, int numDeforms, r_glslfeat_t features );

@@ -75,6 +75,12 @@ static const char* R_PhysicalDeviceTypeToString(VkPhysicalDeviceType deviceType)
   return "Unknown";
 }
 
+bool R_FreeNriBackend(struct nri_backend_s *backend ) {
+
+  nriDestroyDevice(backend->device);
+  return true;
+}
+
 bool R_InitNriBackend(const nri_init_desc_t* init, struct nri_backend_s* backend) {
 	backend->api = init->api;
 	switch( init->api ) {

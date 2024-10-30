@@ -106,6 +106,7 @@ typedef struct {
 	bool enableNriValidation;
 } nri_init_desc_t;
 
+bool R_FreeNriBackend(struct nri_backend_s *backend );
 bool R_InitNriBackend( const nri_init_desc_t *init, struct nri_backend_s *backend );
 void R_NRI_CallbackMessage( NriMessage msg, const char *file, uint32_t line, const char *message, void *userArg );
 NriFormat R_ToNRIFormat( enum texture_format_e format );

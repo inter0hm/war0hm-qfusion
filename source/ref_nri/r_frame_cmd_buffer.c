@@ -164,6 +164,35 @@ struct frame_cmd_save_attachment_s R_CmdState_StashAttachment(struct frame_cmd_b
 }
 
 
+void FrameCmdBufferFree(struct frame_cmd_buffer_s* cmd) {
+	for( size_t i = 0; i < arrlen( cmd->freeTextures ); i++ ) {
+		rsh.nri.coreI.DestroyTexture( cmd->freeTextures[i] );
+	}
+	for( size_t i = 0; i < arrlen( cmd->freeBuffers ); i++ ) {
+		rsh.nri.coreI.DestroyBuffer( cmd->freeBuffers[i] );
+	}
+	for( size_t i = 0; i < arrlen( cmd->freeMemory ); i++ ) {
+		rsh.nri.coreI.FreeMemory( cmd->freeMemory[i] );
+	}
+	for( size_t i = 0; i < arrlen( cmd->frameTemporaryDesc ); i++ ) {
+		rsh.nri.coreI.DestroyDescriptor( cmd->frameTemporaryDesc[i] );
+	}
+	arrfree(cmd->freeMemory);
+	arrfree(cmd->freeTextures);
+	arrfree(cmd->freeBuffers);
+	arrfree(cmd->frameTemporaryDesc);
+	BlockBufferPoolFree( &rsh.nri, &cmd->uboBlockBuffer );
+	
+	memset( &cmd->uboSceneFrame, 0, sizeof( struct ubo_frame_instance_s ) );
+	memset( &cmd->uboSceneObject, 0, sizeof( struct ubo_frame_instance_s ) );
+	memset( &cmd->uboPassObject, 0, sizeof( struct ubo_frame_instance_s ) );
+	memset( &cmd->uboBoneObject, 0, sizeof( struct ubo_frame_instance_s ) );
+	memset( &cmd->uboLight, 0, sizeof( struct ubo_frame_instance_s ) );
+
+	rsh.nri.coreI.DestroyCommandBuffer(cmd->cmd);
+	rsh.nri.coreI.DestroyCommandAllocator(cmd->allocator);
+
+}
 void ResetFrameCmdBuffer( struct nri_backend_s *backend, struct frame_cmd_buffer_s *cmd )
 {
 	cmd->textureBuffers = rsh.backBuffers[rsh.nri.swapChainI.AcquireNextSwapChainTexture( rsh.swapchain )];
@@ -226,6 +255,30 @@ void FR_CmdDrawElements( struct frame_cmd_buffer_s *cmd, uint32_t indexNum, uint
 	drawDesc.baseInstance = baseInstance;
 	rsh.nri.coreI.CmdDrawIndexed( cmd->cmd, &drawDesc );
 }
+
+
+//void FR_FreeTexBuffer(struct frame_tex_buffers_s* tex) {
+//	if(tex->depthTexture) 
+//		rsh.nri.coreI.DestroyTexture(tex->depthTexture);
+//	if(tex->colorTexture) 
+//		rsh.nri.coreI.DestroyTexture(tex->colorTexture);
+//	if(tex->colorAttachment)
+//		rsh.nri.coreI.DestroyDescriptor(tex->colorAttachment);
+//	if(tex->depthAttachment)
+//		rsh.nri.coreI.DestroyDescriptor(tex->depthAttachment);
+//	for(size_t i = 0; i < tex->memoryLen; i++) {
+//		rsh.nri.coreI.FreeMemory(tex->memory[i]);
+//	}
+//	for(size_t i = 0; i < 2; i++) {
+//		if(tex->pogoBuffers[i].colorAttachment)
+//			rsh.nri.coreI.DestroyDescriptor(tex->pogoBuffers[i].colorAttachment);
+//		if(tex->pogoBuffers[i].colorTexture)
+//			rsh.nri.coreI.DestroyTexture(tex->pogoBuffers[i].colorTexture);
+//	}
+//
+//	memset(tex, 0, sizeof(struct frame_tex_buffers_s));
+//}
+
 
 void FR_CmdBeginRendering( struct frame_cmd_buffer_s *cmd )
 {

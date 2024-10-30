@@ -147,6 +147,7 @@ struct descriptor_set_result_s ResolveDescriptorSet( struct nri_backend_s *backe
 		NRI_ABORT_ON_FAILURE( backend->coreI.CreateDescriptorPool( backend->device, &poolDesc, &descriptorPool ) );
 		NriDescriptorSet* sets[DESCRIPTOR_MAX_SIZE];
 		backend->coreI.AllocateDescriptorSets( descriptorPool, layout, setIndex, sets, DESCRIPTOR_MAX_SIZE, 0 );
+		arrpush(alloc->pools, descriptorPool);
 		for( size_t i = 0; i < DESCRIPTOR_MAX_SIZE; i++ ) {
 			struct descriptor_set_slot_s *slot = ReserveDescriptorSetSlot( alloc );
 			assert(sets[i]);

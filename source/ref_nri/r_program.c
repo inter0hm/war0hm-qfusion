@@ -501,25 +501,27 @@ static void RF_DeleteProgram( struct glsl_program_s *program )
 {
 	struct glsl_program_s *hash_next;
 
- // if( program->vertexShader ) {
- // 	qglDetachShader( program->object, program->vertexShader );
- // 	qglDeleteShader( program->vertexShader );
- // 	program->vertexShader = 0;
- // }
-
- // if( program->fragmentShader ) {
- // 	qglDetachShader( program->object, program->fragmentShader );
- // 	qglDeleteShader( program->fragmentShader );
- // 	program->fragmentShader = 0;
- // }
-
-//	if( program->object )
-//		qglDeleteProgram( program->object );
-
 	if( program->name )
 		R_Free( program->name );
 	if( program->deformsKey )
 		R_Free( program->deformsKey );
+
+	if(program->layout)
+		rsh.nri.coreI.DestroyPipelineLayout(program->layout);
+
+	for( size_t i = 0; i < PIPELINE_LAYOUT_HASH_SIZE; i++ ) {
+		if( program->pipelines[i].pipeline )
+			rsh.nri.coreI.DestroyPipeline( program->pipelines[i].pipeline );
+	}
+	for( size_t i = 0; i < GLSL_STAGE_MAX; i++ ) {
+		if( program->shaderBin[i].bin)
+			R_Free(program->shaderBin[i].bin);
+	}
+
+	for( size_t i = 0; i < DESCRIPTOR_SET_MAX; i++ ) {
+		if( program->descriptorSetInfo[i].alloc )
+			FreeDescriptorSetAlloc( &rsh.nri, program->descriptorSetInfo[i].alloc );
+	}
 
 	hash_next = program->hash_next;
 	memset( program, 0, sizeof( struct glsl_program_s ) );
@@ -1320,350 +1322,6 @@ void RP_UpdateViewUniforms( int elem,
 	// 	qglUniform1fARB( program->loc.builtin.MirrorSide, mirrorSide );
 }
 
-/*
- * RP_UpdateBlendMixUniform
- *
- * The first component corresponds to RGB, the second to ALPHA.
- * Whenever the program needs to scale source colors, the mask needs
- * to be used in the following manner:
- * color *= mix(vec4(1.0), vec4(scale), u_BlendMix.xxxy);
- */
-void RP_UpdateBlendMixUniform( int elem, vec2_t blendMix )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( program->loc.BlendMix >= 0 ) {
-	// 	qglUniform2fvARB( program->loc.BlendMix, 1, blendMix );
-	// }
-}
-
-/*
- * RP_UpdateSoftParticlesUniforms
- */
-void RP_UpdateSoftParticlesUniforms( int elem, float scale )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( program->loc.SoftParticlesScale >= 0 ) {
-	// 	qglUniform1fARB( program->loc.SoftParticlesScale, scale );
-	// }
-}
-
-/*
- * RP_UpdateDiffuseLightUniforms
- */
-void RP_UpdateDiffuseLightUniforms( int elem, const vec3_t lightDir, const vec4_t lightAmbient, const vec4_t lightDiffuse )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( program->loc.LightDir >= 0 && lightDir )
-	// 	qglUniform3fvARB( program->loc.LightDir, 1, lightDir );
-	// if( program->loc.LightAmbient >= 0 && lightAmbient )
-	// 	qglUniform3fARB( program->loc.LightAmbient, lightAmbient[0], lightAmbient[1], lightAmbient[2] );
-	// if( program->loc.LightDiffuse >= 0 && lightDiffuse )
-	// 	qglUniform3fARB( program->loc.LightDiffuse, lightDiffuse[0], lightDiffuse[1], lightDiffuse[2] );
-}
-
-/*
- * RP_UpdateMaterialUniforms
- */
-void RP_UpdateMaterialUniforms( int elem, float offsetmappingScale, float glossIntensity, float glossExponent )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( program->loc.GlossFactors >= 0 )
-	// 	qglUniform2fARB( program->loc.GlossFactors, glossIntensity, glossExponent );
-	// if( program->loc.OffsetMappingScale >= 0 )
-	// 	qglUniform1fARB( program->loc.OffsetMappingScale, offsetmappingScale );
-}
-
-/*
- * RP_UpdateDistortionUniforms
- */
-void RP_UpdateDistortionUniforms( int elem, bool frontPlane )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( program->loc.FrontPlane >= 0 )
-	// 	qglUniform1fARB( program->loc.FrontPlane, frontPlane ? 1 : -1 );
-}
-
-/*
- * RP_UpdateTextureUniforms
- */
-void RP_UpdateTextureUniforms( int elem, int TexWidth, int TexHeight )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( program->loc.TextureParams >= 0 )
-	// 	qglUniform4fARB( program->loc.TextureParams, TexWidth, TexHeight, TexWidth ? 1.0 / TexWidth : 1.0, TexHeight ? 1.0 / TexHeight : 1.0 );
-}
-
-/*
- * RP_UpdateOutlineUniforms
- */
-void RP_UpdateOutlineUniforms( int elem, float projDistance )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( program->loc.OutlineHeight >= 0 )
-	// 	qglUniform1fARB( program->loc.OutlineHeight, projDistance );
-	// if( program->loc.OutlineCutOff >= 0 )
-	// 	qglUniform1fARB( program->loc.OutlineCutOff, max( 0, r_outlines_cutoff->value ) );
-}
-
-/*
- * RP_UpdateFogUniforms
- */
-void RP_UpdateFogUniforms( int elem, byte_vec4_t color, float clearDist, float opaqueDist, cplane_t *fogPlane, cplane_t *eyePlane, float eyeDist )
-{
-	assert(false);
-	// GLfloat fog_color[3] = { 0, 0, 0 };
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// VectorScale( color, ( 1.0 / 255.0 ), fog_color );
-
-	// if( program->loc.Fog.Color >= 0 )
-	// 	qglUniform3fvARB( program->loc.Fog.Color, 1, fog_color );
-	// if( program->loc.Fog.ScaleAndEyeDist >= 0 )
-	// 	qglUniform2fARB( program->loc.Fog.ScaleAndEyeDist, 1.0 / ( opaqueDist - clearDist ), eyeDist );
-	// if( program->loc.Fog.Plane >= 0 )
-	// 	qglUniform4fARB( program->loc.Fog.Plane, fogPlane->normal[0], fogPlane->normal[1], fogPlane->normal[2], fogPlane->dist );
-	// if( program->loc.Fog.EyePlane >= 0 )
-	// 	qglUniform4fARB( program->loc.Fog.EyePlane, eyePlane->normal[0], eyePlane->normal[1], eyePlane->normal[2], eyePlane->dist );
-}
-
-/*
- * RP_UpdateDynamicLightsUniforms
- */
-unsigned int RP_UpdateDynamicLightsUniforms( int elem, const superLightStyle_t *superLightStyle, const vec3_t entOrigin, const mat3_t entAxis, unsigned int dlightbits )
-{
-	assert(false);
-	// int i, n, c;
-	// dlight_t *dl;
-	// float colorScale = mapConfig.mapLightColorScale;
-	// vec3_t dlorigin, tvec, dlcolor;
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-	// bool identityAxis = Matrix3_Compare( entAxis, axis_identity );
-	// vec4_t shaderColor[4];
-
-	// if( superLightStyle ) {
-	// 	int i;
-	// 	GLfloat rgb[3];
-	// 	static float deluxemapOffset[( MAX_LIGHTMAPS + 3 ) & ( ~3 )];
-
-	// 	for( i = 0; i < MAX_LIGHTMAPS && superLightStyle->lightmapStyles[i] != 255; i++ ) {
-	// 		VectorCopy( rsc.lightStyles[superLightStyle->lightmapStyles[i]].rgb, rgb );
-	// 		if( mapConfig.lightingIntensity )
-	// 			VectorScale( rgb, mapConfig.lightingIntensity, rgb );
-
-	// 		if( program->loc.LightstyleColor[i] >= 0 )
-	// 			qglUniform3fvARB( program->loc.LightstyleColor[i], 1, rgb );
-	// 		if( program->loc.DeluxemapOffset >= 0 )
-	// 			deluxemapOffset[i] = superLightStyle->stOffset[i][0];
-	// 	}
-
-	// 	if( i && ( program->loc.DeluxemapOffset >= 0 ) )
-	// 		qglUniform4fvARB( program->loc.DeluxemapOffset, ( i + 3 ) / 4, deluxemapOffset );
-	// }
-
-	// if( dlightbits ) {
-	// 	memset( shaderColor, 0, sizeof( vec4_t ) * 3 );
-	// 	Vector4Set( shaderColor[3], 1.0f, 1.0f, 1.0f, 1.0f );
-	// 	n = 0;
-	// 	for( i = 0; i < MAX_DLIGHTS; i++ ) {
-	// 		dl = rsc.dlights + i;
-	// 		if( !dl->intensity ) {
-	// 			continue;
-	// 		}
-	// 		if( program->loc.DynamicLightsPosition[n] < 0 ) {
-	// 			break;
-	// 		}
-
-	// 		VectorSubtract( dl->origin, entOrigin, dlorigin );
-	// 		if( !identityAxis ) {
-	// 			VectorCopy( dlorigin, tvec );
-	// 			Matrix3_TransformVector( entAxis, tvec, dlorigin );
-	// 		}
-	// 		VectorScale( dl->color, colorScale, dlcolor );
-
-	// 		qglUniform3fvARB( program->loc.DynamicLightsPosition[n], 1, dlorigin );
-
-	// 		c = n & 3;
-	// 		shaderColor[0][c] = dlcolor[0];
-	// 		shaderColor[1][c] = dlcolor[1];
-	// 		shaderColor[2][c] = dlcolor[2];
-	// 		shaderColor[3][c] = 1.0f / dl->intensity;
-
-	// 		// DynamicLightsDiffuseAndInvRadius is transposed for SIMD, but it's still 4x4
-	// 		if( c == 3 ) {
-	// 			qglUniform4fvARB( program->loc.DynamicLightsDiffuseAndInvRadius[n >> 2], 4, shaderColor[0] );
-	// 			memset( shaderColor, 0, sizeof( vec4_t ) * 3 );
-	// 			Vector4Set( shaderColor[3], 1.0f, 1.0f, 1.0f, 1.0f );
-	// 		}
-
-	// 		n++;
-	// 		dlightbits &= ~( 1 << i );
-	// 		if( !dlightbits ) {
-	// 			break;
-	// 		}
-	// 	}
-
-	// 	if( n & 3 ) {
-	// 		qglUniform4fvARB( program->loc.DynamicLightsDiffuseAndInvRadius[n >> 2], 4, shaderColor[0] );
-	// 		memset( shaderColor, 0, sizeof( vec4_t ) * 3 ); // to set to zero for the remaining lights
-	// 		Vector4Set( shaderColor[3], 1.0f, 1.0f, 1.0f, 1.0f );
-	// 		n = ALIGN( n, 4 );
-	// 	}
-
-	// 	if( program->loc.NumDynamicLights >= 0 ) {
-	// 		qglUniform1iARB( program->loc.NumDynamicLights, n );
-	// 	}
-
-	// 	for( ; n < MAX_DLIGHTS; n += 4 ) {
-	// 		if( program->loc.DynamicLightsPosition[n] < 0 ) {
-	// 			break;
-	// 		}
-	// 		qglUniform4fvARB( program->loc.DynamicLightsDiffuseAndInvRadius[n >> 2], 4, shaderColor[0] );
-	// 	}
-	// }
-
-	return 0;
-}
-
-/*
- * RP_UpdateTexGenUniforms
- */
-void RP_UpdateTexGenUniforms( int elem, const mat4_t reflectionMatrix, const mat4_t vectorMatrix )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( program->loc.ReflectionTexMatrix >= 0 ) {
-	// 	mat3_t m;
-	// 	memcpy( &m[0], &reflectionMatrix[0], 3 * sizeof( vec_t ) );
-	// 	memcpy( &m[3], &reflectionMatrix[4], 3 * sizeof( vec_t ) );
-	// 	memcpy( &m[6], &reflectionMatrix[8], 3 * sizeof( vec_t ) );
-	// 	qglUniformMatrix3fvARB( program->loc.ReflectionTexMatrix, 1, GL_FALSE, m );
-	// }
-	// if( program->loc.VectorTexMatrix >= 0 )
-	// 	qglUniformMatrix4fvARB( program->loc.VectorTexMatrix, 1, GL_FALSE, vectorMatrix );
-}
-
-/*
- * RP_UpdateShadowsUniforms
- */
-void RP_UpdateShadowsUniforms( int elem, int numShadows, const shadowGroup_t **groups, const mat4_t objectMatrix, const vec3_t objectOrigin, const mat3_t objectAxis )
-{
-	assert(false);
-	// int i;
-	// const shadowGroup_t *group;
-	// mat4_t matrix;
-	// vec4_t alpha;
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// assert( groups != NULL );
-	// assert( numShadows <= GLSL_SHADOWMAP_LIMIT );
-
-	// if( numShadows > GLSL_SHADOWMAP_LIMIT ) {
-	// 	numShadows = GLSL_SHADOWMAP_LIMIT;
-	// }
-
-	// for( i = 0; i < numShadows; i++ ) {
-	// 	group = groups[i];
-
-	// 	if( program->loc.ShadowmapTextureParams[i] >= 0 ) {
-	// 		qglUniform4fARB( program->loc.ShadowmapTextureParams[i], group->viewportSize[0], group->viewportSize[1], 1.0f / group->textureSize[0], 1.0 / group->textureSize[1] );
-	// 	}
-
-	// 	if( program->loc.ShadowmapMatrix[i] >= 0 ) {
-	// 		Matrix4_Multiply( group->cameraProjectionMatrix, objectMatrix, matrix );
-	// 		qglUniformMatrix4fvARB( program->loc.ShadowmapMatrix[i], 1, GL_FALSE, matrix );
-	// 	}
-
-	// 	if( program->loc.ShadowAlpha[i >> 2] >= 0 ) {
-	// 		alpha[i & 3] = group->alpha;
-	// 		if( ( i & 3 ) == 3 ) {
-	// 			qglUniform4fvARB( program->loc.ShadowAlpha[i >> 2], 1, alpha );
-	// 		}
-	// 	}
-
-	// 	if( program->loc.ShadowDir[i] >= 0 ) {
-	// 		vec4_t lightDir;
-	// 		Matrix3_TransformVector( objectAxis, group->lightDir, lightDir );
-	// 		lightDir[3] = group->projDist;
-	// 		qglUniform4fvARB( program->loc.ShadowDir[i], 1, lightDir );
-	// 	}
-
-	// 	if( program->loc.ShadowEntityDist[i] >= 0 ) {
-	// 		vec3_t tmp, entDist;
-	// 		VectorSubtract( group->origin, objectOrigin, tmp );
-	// 		Matrix3_TransformVector( objectAxis, tmp, entDist );
-	// 		qglUniform3fvARB( program->loc.ShadowEntityDist[i], 1, entDist );
-	// 	}
-	// }
-
-	// if( ( i & 3 ) && ( program->loc.ShadowAlpha[i >> 2] >= 0 ) ) {
-	// 	qglUniform4fvARB( program->loc.ShadowAlpha[i >> 2], 1, alpha );
-	// }
-}
-
-/*
- * RP_UpdateBonesUniforms
- *
- * Set uniform values for animation dual quaternions
- */
-void RP_UpdateBonesUniforms( int elem, unsigned int numBones, dualquat_t *animDualQuat )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( numBones > glConfig.maxGLSLBones ) {
-	// 	return;
-	// }
-	// if( program->loc.DualQuats < 0 ) {
-	// 	return;
-	// }
-	// qglUniform4fvARB( program->loc.DualQuats, numBones * 2, &animDualQuat[0][0] );
-}
-
-/*
- * RP_UpdateInstancesUniforms
- *
- * Set uniform values for instance points (quaternion + xyz + scale)
- */
-void RP_UpdateInstancesUniforms( int elem, unsigned int numInstances, instancePoint_t *instances )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( numInstances > MAX_GLSL_UNIFORM_INSTANCES ) {
-	// 	numInstances = MAX_GLSL_UNIFORM_INSTANCES;
-	// }
-	// if( program->loc.InstancePoints < 0 ) {
-	// 	return;
-	// }
-	// qglUniform4fvARB( program->loc.InstancePoints, numInstances * 2, &instances[0][0] );
-}
-
-void RP_UpdateDrawFlatUniforms( int elem, const vec3_t wallColor, const vec3_t floorColor )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( program->loc.WallColor >= 0 )
-	// 	qglUniform3fARB( program->loc.WallColor, wallColor[0], wallColor[1], wallColor[2] );
-	// if( program->loc.FloorColor >= 0 )
-	// 	qglUniform3fARB( program->loc.FloorColor, floorColor[0], floorColor[1], floorColor[2] );
-}
-
 const char *RP_GLSLStageToShaderPrefix( const glsl_program_stage_t stage )
 {
 	switch( stage ) {
@@ -1727,31 +1385,31 @@ struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, stru
 	}
 
 	hash_t hash = HASH_INITIAL_VALUE;
-	assert( def->numStreams < MAX_ATTRIBUTES );
-	assert( def->numStreams < MAX_STREAMS );
-	for( size_t i = 0; i < def->numAttribs; i++ ) {
-		if( !( ( 1 << def->attribs[i].vk.location ) & program->vertexInputMask ) ) {
+	assert(def->numStreams < MAX_ATTRIBUTES);
+	assert(def->numStreams < MAX_STREAMS);
+	for( size_t i = 0; i < def->numAttribs; i++ ) {	
+		if(!((1 << def->attribs[i].vk.location ) & program->vertexInputMask)) {
 			continue;
 		}
 		vertexInputAttribs[numAttribs++] = def->attribs[i];
 	}
-	qsort( vertexInputAttribs, numAttribs, sizeof( NriVertexAttributeDesc ), compareVertAttribs );
-	for( size_t i = 0; i < numAttribs; i++ ) {
-		hash = hash_u32( hash, vertexInputAttribs[i].offset );
-		hash = hash_u32( hash, vertexInputAttribs[i].format );
-		hash = hash_u32( hash, vertexInputAttribs[i].streamIndex );
+	qsort(vertexInputAttribs, numAttribs, sizeof(NriVertexAttributeDesc), compareVertAttribs);
+	for( size_t i = 0; i < numAttribs; i++ ) {	
+		hash = hash_u32(hash, vertexInputAttribs[i].offset);
+		hash = hash_u32(hash, vertexInputAttribs[i].format);
+		hash = hash_u32(hash, vertexInputAttribs[i].streamIndex);
 	}
-	hash = hash_data( hash, &def->streams, sizeof( NriVertexStreamDesc ) * def->numStreams );
-	hash = hash_data( hash, &def->pipelineLayout.depthBias, sizeof( NriDepthBiasDesc ) );
+	hash = hash_data( hash, &def->streams, sizeof( NriVertexStreamDesc ) * def->numStreams);
+	hash = hash_data( hash, &def->pipelineLayout.depthBias, sizeof( NriDepthBiasDesc ));
 	hash = hash_u32( hash, def->pipelineLayout.depthFormat );
 	for( size_t i = 0; i < def->numColorAttachments; i++ ) {
 		hash = hash_u32( hash, def->pipelineLayout.colorFormats[i] );
 	}
-	if( def->pipelineLayout.blendEnabled ) {
+	if(def->pipelineLayout.blendEnabled) {
 		hash = hash_u32( hash, def->pipelineLayout.colorSrcFactor );
 		hash = hash_u32( hash, def->pipelineLayout.colorDstFactor );
 	}
-	hash = hash_u32( hash, cullMode );
+	hash = hash_u32( hash, cullMode);
 	hash = hash_u32( hash, def->pipelineLayout.compareFunc);
 	hash = hash_u32( hash, def->pipelineLayout.depthWrite);
 
@@ -2268,7 +1926,7 @@ struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const cha
 					reflc.hash = Create_DescriptorHandle(reflectionBinding->name).hash;
 					reflc.setIndex = info->setIndex;
 					reflc.baseRegisterIndex = reflectionBinding->binding;
-					ri.Com_Printf( "SPV Register %s set: %d binding: %d hash: %luu", reflectionBinding->name, reflectionBinding->set, reflectionBinding->binding, reflc.hash );
+					//ri.Com_Printf( "SPV Register %s set: %d binding: %d hash: %luu", reflectionBinding->name, reflectionBinding->set, reflectionBinding->binding, reflc.hash );
 
 					NriDescriptorRangeDesc *rangeDesc = NULL;
 					for( size_t i = 0; i < arrlen( descRangeDescs[info->setIndex] ); i++ ) {
@@ -2412,7 +2070,6 @@ struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const cha
 	return program;
 }
 
-
 /*
  * RP_Shutdown
  */
@@ -2420,8 +2077,6 @@ void RP_Shutdown( void )
 {
 	unsigned int i;
 	struct glsl_program_s *program;
-
-	// qglUseProgram( 0 );
 
 	for( i = 0, program = r_glslprograms; i < r_numglslprograms; i++, program++ ) {
 		RF_DeleteProgram( program );

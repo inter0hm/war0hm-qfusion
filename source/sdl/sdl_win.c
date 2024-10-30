@@ -20,6 +20,7 @@ void R_WIN_Init(const char *applicationName, void *hinstance, void *wndproc, voi
 	}
 }
 
+
 bool R_WIN_SetFullscreen(int displayFrequency, bool fullscreen) {
 	assert( r_winState.sdl_window );
 	uint32_t flags = 0;
@@ -88,6 +89,7 @@ bool R_WIN_SetWindowSize(int x, int y, uint16_t width, uint16_t height) {
 	SDL_SetWindowPosition(r_winState.sdl_window, x, y);
 	return true;
 }
+
 bool R_WIN_InitWindow(win_init_t* init) {
   assert(init);
   assert(r_winState.sdl_window == NULL);
@@ -128,4 +130,14 @@ bool R_WIN_InitWindow(win_init_t* init) {
 	}
 #endif
 	return true;
+}
+
+void R_WIN_Shutdown() {
+
+	SDL_DestroyWindow(r_winState.sdl_window);
+	
+	free( r_winState.applicationName );
+	free( r_winState.applicationIcon );
+
+	memset(&r_winState, 0, sizeof(r_winState) );
 }

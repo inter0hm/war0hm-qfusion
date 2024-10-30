@@ -1232,7 +1232,7 @@ void R_DrawSkeletalSurf(struct frame_cmd_buffer_s* cmd, const entity_t *e, const
 		// fastpath: render static frame 0 as is
 		RB_BindVBO( skmesh->vbo->index, GL_TRIANGLES );
 
-		RB_DrawElements(NULL, 0, skmesh->numverts, 0, skmesh->numtris * 3, 
+		RB_DrawShadedElements_2(cmd, 0, skmesh->numverts, 0, skmesh->numtris * 3, 
 			0, skmesh->numverts, 0, skmesh->numtris * 3 );
 
 		return;

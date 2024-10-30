@@ -44,7 +44,6 @@ struct descriptor_set_allloc_s {
 		uint32_t accelerationStructureMaxNum;
 	} config;
 	
-
 	struct descriptor_set_slot_s *hashSlots[ALLOC_HASH_RESERVE];
 	struct descriptor_set_slot_s *queueBegin;
 	struct descriptor_set_slot_s *queueEnd;

@@ -135,7 +135,6 @@ static bool	r_verbose;
 static bool	r_postinit;
 
 static void R_InitVolatileAssets( void );
-static void R_DestroyVolatileAssets( void );
 
 static void R_Register( const char *screenshotsPrefix )
 {
@@ -390,7 +389,7 @@ static void R_InitVolatileAssets( void )
 /*
 * R_DestroyVolatileAssets
 */
-static void R_DestroyVolatileAssets( void )
+void R_DestroyVolatileAssets( void )
 {
 	// kill volatile data
 	R_ShutdownCustomColors();
@@ -447,52 +446,3 @@ void R_EndRegistration( void )
 	R_DataSync();
 }
 
-/*
-* R_Shutdown
-*/
-void R_Shutdown( bool verbose )
-{
-	ri.Cmd_RemoveCommand( "modellist" );
-	ri.Cmd_RemoveCommand( "screenshot" );
-	ri.Cmd_RemoveCommand( "envshot" );
-	ri.Cmd_RemoveCommand( "imagelist" );
-	ri.Cmd_RemoveCommand( "gfxinfo" );
-	ri.Cmd_RemoveCommand( "shaderdump" );
-	ri.Cmd_RemoveCommand( "shaderlist" );
-	ri.Cmd_RemoveCommand( "glslprogramlist" );
-	ri.Cmd_RemoveCommand( "cinlist" );
-
-	// free shaders, models, etc.
-
-	R_DestroyVolatileAssets();
-
-	R_ShutdownModels();
-
-	R_ShutdownSkinFiles();
-
-	R_ShutdownVBO();
-
-	R_ShutdownShaders();
-
-	R_ShutdownCinematics();
-
-	R_ShutdownImages();
-
-	// destroy compiled GLSL programs
-	RP_Shutdown();
-
-	// restore original gamma
-	if( glConfig.hwGamma )
-		GLimp_SetGammaRamp( GAMMARAMP_STRIDE, glConfig.gammaRampSize, glConfig.originalGammaRamp );
-
-    ri.Mutex_Destroy( &rf.speedsMsgLock );
-	ri.Mutex_Destroy( &rf.debugSurfaceLock );
-
-	// shut down OS specific OpenGL stuff like contexts, etc.
-	GLimp_Shutdown();
-
-	// shutdown our QGL subsystem
-	QGL_Shutdown();
-
-	R_FreePool( &r_mempool );
-}

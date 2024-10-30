@@ -313,29 +313,28 @@ mesh_vbo_t *R_GetVBOByIndex( int index )
 	return NULL;
 }
 
-void R_ReleaseMeshVBO( mesh_vbo_t *vbo )
+void R_ReleaseMeshVBO(struct frame_cmd_buffer_s *cmd, mesh_vbo_t *vbo )
 {
-	// TODO: need to see if this crashes because of unrefrenced assets
-	
-	struct frame_cmd_buffer_s *cmd = R_ActiveFrameCmd();	
-	if( vbo->vertexBuffer ) {
-		// rsh.nri.coreI.DestroyBuffer( vbo->vertexBuffer );
-		arrpush( cmd->freeBuffers, vbo->vertexBuffer );
-	}
-	if( vbo->indexBuffer ) {
-		// rsh.nri.coreI.DestroyBuffer( vbo->indexBuffer );
-		arrpush( cmd->freeBuffers, vbo->indexBuffer );
-	}
-	if( vbo->instanceBuffer ) {
-		// rsh.nri.coreI.DestroyBuffer( vbo->instanceBuffer );
-		arrpush( cmd->freeBuffers, vbo->instanceBuffer );
-	}
-	for( size_t i = 0; i < vbo->numAllocations; i++ ) {
-		// rsh.nri.coreI.FreeMemory( vbo->memory[i] );
-		arrpush( cmd->freeMemory, vbo->memory[i] );
-		
-	}
+	if( cmd ) {
+		if( vbo->vertexBuffer )
+			arrpush( cmd->freeBuffers, vbo->vertexBuffer );
+		if( vbo->indexBuffer )
+			arrpush( cmd->freeBuffers, vbo->indexBuffer );
+		if( vbo->instanceBuffer )
+			arrpush( cmd->freeBuffers, vbo->instanceBuffer );
+		for( size_t i = 0; i < vbo->numAllocations; i++ )
+			arrpush( cmd->freeMemory, vbo->memory[i] );
+	} else {
+		if( vbo->vertexBuffer )
+			rsh.nri.coreI.DestroyBuffer(vbo->vertexBuffer );
+		if( vbo->indexBuffer )
+			rsh.nri.coreI.DestroyBuffer( vbo->indexBuffer );
+		if( vbo->instanceBuffer )
+			rsh.nri.coreI.DestroyBuffer( vbo->instanceBuffer );
+		for( size_t i = 0; i < vbo->numAllocations; i++ )
+			rsh.nri.coreI.FreeMemory( vbo->memory[i] );
 
+	}
 	if( vbo->index >= 1 && vbo->index <= MAX_MESH_VERTEX_BUFFER_OBJECTS ) {
 		vbohandle_t *vboh = &r_vbohandles[vbo->index - 1];
 
@@ -929,7 +928,7 @@ void R_FreeVBOsByTag( vbo_tag_t tag )
 		vbo = &r_mesh_vbo[vboh->index];
 
 		if( vbo->tag == tag ) {
-			R_ReleaseMeshVBO( vbo );
+			R_ReleaseMeshVBO( R_ActiveFrameCmd(),vbo );
 		}
 	}
 
@@ -951,7 +950,7 @@ void R_FreeUnusedVBOs( void )
 		vbo = &r_mesh_vbo[vboh->index];
 
 		if( vbo->registrationSequence != rsh.registrationSequence ) {
-			R_ReleaseMeshVBO( vbo );
+			R_ReleaseMeshVBO( R_ActiveFrameCmd(),vbo );
 		}
 	}
 
@@ -975,7 +974,7 @@ void R_ShutdownVBO( void )
 		next = vboh->prev;
 		vbo = &r_mesh_vbo[vboh->index];
 
-		R_ReleaseMeshVBO( vbo );
+		R_ReleaseMeshVBO(NULL, vbo );
 	}
 
 	if( r_vbo_tempelems ) {

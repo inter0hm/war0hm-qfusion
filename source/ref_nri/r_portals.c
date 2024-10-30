@@ -154,7 +154,27 @@ addsurface:
 	return portalSurface;
 }
 
+void R_ShutdownPortals() {
+	for(size_t i = 0; i < MAX_PORTAL_TEXTURES; i++ )
+	{
+		struct portal_fb_s* portalFB = &rsh.portalFBs[i];
+		
+		if(portalFB->colorTexture) {
+			rsh.nri.coreI.DestroyTexture(portalFB->colorTexture);
+			rsh.nri.coreI.DestroyDescriptor(portalFB->shaderDescriptor.descriptor);
+			rsh.nri.coreI.DestroyDescriptor(portalFB->colorAttachment.descriptor);
+		}
+		if(portalFB->depthTexture) {
+			rsh.nri.coreI.DestroyTexture(portalFB->depthTexture);
+			rsh.nri.coreI.DestroyDescriptor(portalFB->depthAttachment.descriptor);
+		}
+		for( size_t i = 0; i < portalFB->numAllocations; i++ )
+			rsh.nri.coreI.FreeMemory(portalFB->memory[i]);
+		portalFB->numAllocations = 0;
+	}
+	memset(rsh.portalFBs, 0, sizeof(rsh.portalFBs));
 
+}
 
 static struct portal_fb_s* __ResolvePortalSurface(struct frame_cmd_buffer_s *cmd, int width, int height, bool filtered) {
 	assert(Q_ARRAY_COUNT(rsh.portalFBs) >= MAX_PORTAL_TEXTURES);
@@ -222,8 +242,8 @@ static struct portal_fb_s* __ResolvePortalSurface(struct frame_cmd_buffer_s *cmd
 			.memoryLocation = NriMemoryLocation_DEVICE,
 		};
 		const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
-		bestFB->numAllocations = numAllocations;
 		assert(numAllocations <= Q_ARRAY_COUNT(bestFB->memory));
+		bestFB->numAllocations = numAllocations;
 		NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, bestFB->memory) )
 		NriDescriptor* descriptor = NULL;
 		const NriTexture2DViewDesc textureAttachmentViewDesc = {

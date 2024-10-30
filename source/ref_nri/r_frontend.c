@@ -274,7 +274,6 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 	NRI_ABORT_ON_FAILURE( rsh.nri.swapChainI.CreateSwapChain( rsh.nri.device, &swapChainDesc, &rsh.swapchain) );
 	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateFence( rsh.nri.device, 0, &rsh.frameFence ) );
 	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.GetCommandQueue(rsh.nri.device, NriCommandQueueType_GRAPHICS, &rsh.cmdQueue) )
-	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateFence( rsh.nri.device, 0, &rsh.frameFence) );
 
 	const struct block_buffer_pool_desc_s uboBlockBufferDesc = {
 		.blockSize = UBOBlockerBufferSize,
@@ -312,7 +311,8 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &rsh.backBuffers[i].colorAttachment) );
 			}
 			{
-				NriTextureDesc textureDesc = { .width = swapChainDesc->width,
+				NriTextureDesc textureDesc = { 
+											   .width = swapChainDesc->width,
 											   .height = swapChainDesc->height,
 											   .depth = 1,
 											   .usage = NriTextureUsageBits_DEPTH_STENCIL_ATTACHMENT,
@@ -329,6 +329,7 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 				};
 
 				const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
+				assert(numAllocations + rsh.backBuffers[i].memoryLen <= Q_ARRAY_COUNT(rsh.backBuffers[i].memory));
 				NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, rsh.backBuffers[i].memoryLen + rsh.backBuffers[i].memory ) )
 				rsh.backBuffers[i].memoryLen += numAllocations;
 
@@ -484,19 +485,79 @@ void RF_AppActivate( bool active, bool destroy )
 void RF_Shutdown( bool verbose )
 {
 	RF_AdapterShutdown( &rrf.adapter );
-
- // if( glConfig.multithreading ) {
- // 	int i;
- // 	for( i = 0; i < 3; i++ )
- // 		RF_DestroyCmdBuf( &rrf.frames[i] );
- // }
- // else {
-		//RF_DestroyCmdBuf( &rrf.frame );
-//	}
 	memset( &rrf, 0, sizeof( rrf ) );
 	rsh.nri.helperI.WaitForIdle( rsh.cmdQueue );
 
-	R_Shutdown( verbose );
+	ri.Cmd_RemoveCommand( "modellist" );
+	ri.Cmd_RemoveCommand( "screenshot" );
+	ri.Cmd_RemoveCommand( "envshot" );
+	ri.Cmd_RemoveCommand( "imagelist" );
+	ri.Cmd_RemoveCommand( "gfxinfo" );
+	ri.Cmd_RemoveCommand( "shaderdump" );
+	ri.Cmd_RemoveCommand( "shaderlist" );
+	ri.Cmd_RemoveCommand( "glslprogramlist" );
+	ri.Cmd_RemoveCommand( "cinlist" );
+
+	// free shaders, models, etc.
+
+	// kill volatile data
+	R_DestroyVolatileAssets();
+
+	R_ShutdownModels();
+
+	R_ShutdownSkinFiles();
+
+	R_ShutdownVBO();
+
+	R_ShutdownShaders();
+
+	R_ShutdownCinematics();
+
+	R_ShutdownImages();
+
+	R_ShutdownPortals();
+
+	// destroy compiled GLSL programs
+	RP_Shutdown();
+
+	R_ExitResourceUpload();
+
+	for(size_t i = 0; i < arrlen(rsh.backBuffers); i++) {
+		struct frame_tex_buffers_s *backBuffer = &rsh.backBuffers[i];
+		assert(backBuffer->colorAttachment);
+		assert(backBuffer->colorTexture);
+		assert(backBuffer->depthAttachment);
+		assert(backBuffer->depthTexture);
+
+		rsh.nri.coreI.DestroyDescriptor(backBuffer->colorAttachment);
+		rsh.nri.coreI.DestroyDescriptor(backBuffer->depthAttachment);
+		rsh.nri.coreI.DestroyTexture(backBuffer->depthTexture);
+
+		for(size_t mIdx = 0; mIdx < backBuffer->memoryLen; mIdx++) {
+			assert(backBuffer->memory[mIdx]);
+			rsh.nri.coreI.FreeMemory(backBuffer->memory[mIdx]);
+		}
+	}
+	arrfree(rsh.backBuffers);
+	for(size_t i = 0; i < NUMBER_FRAMES_FLIGHT; i++) {
+		FrameCmdBufferFree(&rsh.frameCmds[i]);
+	}
+
+	rsh.frameCnt = 0;
+
+	rsh.nri.coreI.DestroyFence(rsh.frameFence);
+	rsh.nri.swapChainI.DestroySwapChain(rsh.swapchain);
+
+	rsh.swapchain = NULL;
+	rsh.frameFence = NULL;
+	ri.Mutex_Destroy( &rf.speedsMsgLock );
+	ri.Mutex_Destroy( &rf.debugSurfaceLock );
+
+	R_FreePool( &r_mempool );
+
+	R_WIN_Shutdown();
+
+	R_FreeNriBackend(&rsh.nri);
 }
 
 static void RF_CheckCvars( void )

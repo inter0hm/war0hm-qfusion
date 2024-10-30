@@ -718,6 +718,8 @@ portalSurface_t *R_AddSkyportalSurface( const entity_t *ent, const shader_t *sha
 	void *drawSurf );
 void R_DrawPortals(struct frame_cmd_buffer_s* cmd);
 
+void R_ShutdownPortals();
+
 //
 // r_poly.c
 //
@@ -735,9 +737,9 @@ rserr_t		R_Init( const char *applicationName, const char *screenshotPrefix, int 
 				int iconResource, const int *iconXPM,
 				void *hinstance, void *wndproc, void *parenthWnd, 
 				bool verbose );
+void R_DestroyVolatileAssets( void );
 void		R_BeginRegistration( void );
 void		R_EndRegistration( void );
-void		R_Shutdown( bool verbose );
 rserr_t		R_SetMode( int x, int y, int width, int height, int displayFrequency, bool fullScreen, bool stereo );
 
 //
@@ -869,7 +871,7 @@ struct mesh_vbo_desc_s {
 
 mesh_vbo_t *R_CreateMeshVBO(const struct mesh_vbo_desc_s* desc); 
 	//void *owner, int numVerts, int numElems, int numInstances, vattribmask_t vattribs, vbo_tag_t tag, vattribmask_t halfFloatVattribs );
-void		R_ReleaseMeshVBO( mesh_vbo_t *vbo );
+void		R_ReleaseMeshVBO(struct frame_cmd_buffer_s *cmd, mesh_vbo_t *vbo );
 void		R_TouchMeshVBO( mesh_vbo_t *vbo );
 mesh_vbo_t *R_GetVBOByIndex( int index );
 int			R_GetNumberOfActiveVBOs( void );

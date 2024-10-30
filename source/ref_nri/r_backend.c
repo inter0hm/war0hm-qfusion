@@ -1334,9 +1334,9 @@ static void RB_DrawElements_( void )
 	RB_EnableVertexAttribs();
 
 	if( rb.triangleOutlines ) {
-		RB_DrawOutlinedElements();
+		//RB_DrawOutlinedElements();
 	} else {
-		RB_DrawShadedElements();
+		//RB_DrawShadedElements();
 	}
 }
 
@@ -1357,8 +1357,8 @@ void RB_DrawElements( struct frame_cmd_buffer_s *cmd, int firstVert, int numVert
 	rb.drawShadowElements.firstElem = firstShadowElem;
 	rb.drawShadowElements.numInstances = 0;
 	
-	RB_DrawElements_();
-
+	//RB_DrawElements_();
+	assert(false);
 }
 
 /*
@@ -1417,7 +1417,8 @@ void RB_DrawElementsInstanced( int firstVert, int numVerts, int firstElem, int n
 
 	rb.drawElements.numInstances = numInstances;
 	rb.drawShadowElements.numInstances = numInstances;
-	RB_DrawElements_();
+	//RB_DrawElements_();
+	assert(false);
 }
 
 /*

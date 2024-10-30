@@ -72,6 +72,11 @@ void BlockBufferPoolReset( struct block_buffer_pool_s *pool )
 
 void BlockBufferPoolFree( struct nri_backend_s *nri, struct block_buffer_pool_s *pool )
 {
+	if(pool->current.buffer) {
+		nri->coreI.DestroyBuffer( pool->current.buffer );
+		nri->coreI.FreeMemory( pool->current.memory );
+	}
+
 	for( size_t i = 0; i < arrlen( pool->recycle ); i++ ) {
 		nri->coreI.DestroyBuffer( pool->recycle[i].buffer );
 		nri->coreI.FreeMemory( pool->recycle[i].memory );

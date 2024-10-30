@@ -140,6 +140,29 @@ static void R_UploadEndCommandSet( uint32_t setIndex )
 	syncIndex++;
 }
 
+void R_ExitResourceUpload() {
+	rsh.nri.coreI.DestroyBuffer(stageBuffer.buffer);
+	rsh.nri.coreI.FreeMemory(stageBuffer.memory);
+
+	syncIndex = 0;
+	activeSet = 0;
+
+	rsh.nri.coreI.DestroyFence(uploadFence);
+
+	for( size_t i = 0; i < Q_ARRAY_COUNT( commandSets ); i++ ) {
+		resource_command_set_t *set = &commandSets[i];
+		rsh.nri.coreI.DestroyCommandBuffer( set->cmd );
+		rsh.nri.coreI.DestroyCommandAllocator( set->allocator );
+		for( size_t i = 0; i < arrlen( set->temporary ); i++ ) {
+			rsh.nri.coreI.DestroyBuffer( set->temporary[i].buffer );
+			rsh.nri.coreI.FreeMemory( set->temporary[i].memory );
+		}
+		arrfree(set->temporary);
+		arrfree(set->seenTextures);
+		arrfree(set->seenBuffers);
+	}
+}
+
 void R_InitResourceUpload()
 {
 	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.GetCommandQueue( rsh.nri.device, NriCommandQueueType_GRAPHICS, &cmdQueue ) )

@@ -711,140 +711,6 @@ static r_glslfeat_t RB_AlphatestProgramFeatures( const shaderpass_t *pass )
 	return 0;
 }
 
-/*
- * RB_TcModsProgramFeatures
- */
-static r_glslfeat_t RB_TcModsProgramFeatures( const shaderpass_t *pass )
-{
-	if( pass->numtcmods ) {
-		return GLSL_SHADER_COMMON_TC_MOD;
-	}
-	return 0;
-}
-
-static void RB_UpdateCommonUniforms_2( struct frame_cmd_buffer_s *cmd, const shaderpass_t *pass, mat4_t texMatrix )
-{
-	vec3_t entDist, entOrigin;
-	byte_vec4_t constColor;
-	const entity_t *e = rb.currentEntity;
-	vec3_t tmp;
-	vec2_t blendMix = { 0, 0 };
-
-	// the logic here should match R_TransformForEntity
- // if( e->rtype != RT_MODEL ) {
- // 	VectorClear( entOrigin );
- // 	VectorCopy( rb.cameraOrigin, entDist );
- // } else {
- // 	VectorCopy( e->origin, entOrigin );
- // 	VectorSubtract( rb.cameraOrigin, e->origin, tmp );
- // 	Matrix3_TransformVector( e->axis, tmp, entDist );
- // }
-
-	// calculate constant color
-	//RB_GetShaderpassColor( pass, constColor );
-
-	// apply modifications to texture coordinates
-	if( pass->numtcmods ) {
-		RB_ApplyTCMods( pass, texMatrix );
-	}
-
-	// RP_UpdateViewUniforms( program,
-	// 	rb.modelviewMatrix, rb.modelviewProjectionMatrix,
-	// 	rb.cameraOrigin, rb.cameraAxis,
-	// 	rb.renderFlags & RF_MIRRORVIEW ? -1 : 1,
-	// 	rb.gl.viewport,
-	// 	rb.zNear, rb.zFar
-	// );
-
-	// if( RB_IsAlphaBlending( rb.gl.state & GLSTATE_SRCBLEND_MASK, rb.gl.state & GLSTATE_DSTBLEND_MASK ) ) {
-	// 	blendMix[1] = 1;
-	// 	if( rb.alphaHack ) {
-	// 		constColor[3] *= rb.hackedAlpha;
-	// 	}
-	// } else {
-	// 	blendMix[0] = 1;
-	// 	if( rb.alphaHack ) {
-	// 		constColor[0] *= rb.hackedAlpha,constColor[1] *= rb.hackedAlpha, constColor[2] *= rb.hackedAlpha;
-	// 	}
-	// }
-
-	// RP_UpdateShaderUniforms( program,
-	// 	rb.currentShaderTime,
-	// 	entOrigin, entDist, rb.entityColor,
-	// 	constColor,
-	// 	pass->rgbgen.func.type != SHADER_FUNC_NONE ? pass->rgbgen.func.args : pass->rgbgen.args,
-	// 	pass->alphagen.func.type != SHADER_FUNC_NONE ? pass->alphagen.func.args : pass->alphagen.args,
-	// 	texMatrix );
-
-	// RP_UpdateBlendMixUniform( program, blendMix );
-
-	// RP_UpdateSoftParticlesUniforms( program, r_soft_particles_scale->value );
-}
-
-/*
- * RB_UpdateCommonUniforms
- */
-static void RB_UpdateCommonUniforms( int program, const shaderpass_t *pass, mat4_t texMatrix )
-{
-	vec3_t entDist, entOrigin;
-	byte_vec4_t constColor;
-	const entity_t *e = rb.currentEntity;
-	vec3_t tmp;
-	vec2_t blendMix = { 0, 0 };
-
-	// the logic here should match R_TransformForEntity
-	if( e->rtype != RT_MODEL ) {
-		VectorClear( entOrigin );
-		VectorCopy( rb.cameraOrigin, entDist );
-	} else {
-		VectorCopy( e->origin, entOrigin );
-		VectorSubtract( rb.cameraOrigin, e->origin, tmp );
-		Matrix3_TransformVector( e->axis, tmp, entDist );
-	}
-
-	// calculate constant color
-	//RB_GetVertexColoringCB( NULL,pass, constColor );
-
-	// apply modifications to texture coordinates
-	if( pass->numtcmods ) {
-		RB_ApplyTCMods( pass, texMatrix );
-	}
-
-	RP_UpdateViewUniforms( program, rb.modelviewMatrix, rb.modelviewProjectionMatrix, rb.cameraOrigin, rb.cameraAxis, rb.renderFlags & RF_MIRRORVIEW ? -1 : 1, rb.gl.viewport, rb.zNear, rb.zFar );
-
-	if( RB_IsAlphaBlending( rb.gl.state & GLSTATE_SRCBLEND_MASK, rb.gl.state & GLSTATE_DSTBLEND_MASK ) ) {
-		blendMix[1] = 1;
-		if( rb.alphaHack ) {
-			constColor[3] *= rb.hackedAlpha;
-		}
-	} else {
-		blendMix[0] = 1;
-		if( rb.alphaHack ) {
-			constColor[0] *= rb.hackedAlpha, constColor[1] *= rb.hackedAlpha, constColor[2] *= rb.hackedAlpha;
-		}
-	}
-
-	RP_UpdateShaderUniforms( program, rb.currentShaderTime, entOrigin, entDist, rb.entityColor, constColor, pass->rgbgen.func.type != SHADER_FUNC_NONE ? pass->rgbgen.func.args : pass->rgbgen.args,
-							 pass->alphagen.func.type != SHADER_FUNC_NONE ? pass->alphagen.func.args : pass->alphagen.args, texMatrix );
-
-	RP_UpdateBlendMixUniform( program, blendMix );
-
-	RP_UpdateSoftParticlesUniforms( program, r_soft_particles_scale->value );
-}
-
-/*
- * RB_UpdateFogUniforms
- */
-static void RB_UpdateFogUniforms( int program, const mfog_t *fog )
-{
-	float dist;
-	cplane_t fogPlane, vpnPlane;
-
-	dist = RB_TransformFogPlanes( fog, fogPlane.normal, &fogPlane.dist, vpnPlane.normal, &vpnPlane.dist );
-
-	RP_UpdateFogUniforms( program, fog->shader->fog_color, fog->shader->fog_clearDist, fog->shader->fog_dist, &fogPlane, &vpnPlane, dist );
-}
-
 r_glslfeat_t RB_TcGenToProgramFeatures( int tcgen, vec_t *tcgenVec, mat4_t texMatrix, mat4_t genVectors )
 {
 	r_glslfeat_t programFeatures = 0;
@@ -881,20 +747,10 @@ r_glslfeat_t RB_TcGenToProgramFeatures( int tcgen, vec_t *tcgenVec, mat4_t texMa
 
 	return programFeatures;
 }
-// void setTexMatrixCB( const mat4_t texMatrix, struct vec4 input[2]) {
-// 	input[0].x = texMatrix[0]; 
-// 	input[0].y = texMatrix[4];
-// 	input[0].z = texMatrix[1]; 
-	
-// 	input[1].x = texMatrix[5]; 
-// 	input[1].y = texMatrix[4];
-// 	input[1].z = texMatrix[13]; 
-// }
-
 
 static inline bool __IsAlphaBlendingGLState(int state) {
-	return ( ( state & GLSTATE_SRCBLEND_MASK ) == GLSTATE_SRCBLEND_SRC_ALPHA || ( state ) == GLSTATE_DSTBLEND_SRC_ALPHA ) ||
-		   ( ( state & GLSTATE_SRCBLEND_MASK ) == GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA || ( state ) == GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA );
+	return ( ( state & GLSTATE_SRCBLEND_MASK ) == GLSTATE_SRCBLEND_SRC_ALPHA || state == GLSTATE_DSTBLEND_SRC_ALPHA ) ||
+		   ( ( state & GLSTATE_SRCBLEND_MASK ) == GLSTATE_SRCBLEND_ONE_MINUS_SRC_ALPHA || state == GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 }
 
 static inline struct vec4 ConstColorAdjust( bool alphaBlending, bool alphaHack, struct vec4 vec )
@@ -1128,7 +984,9 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 	programFeatures |= RB_AutospriteProgramFeatures();
 	programFeatures |= RB_InstancedArraysProgramFeatures();
 	programFeatures |= RB_AlphatestProgramFeatures( pass );
-	programFeatures |= RB_TcModsProgramFeatures( pass );
+	if(pass->numtcmods) {
+		programFeatures |= GLSL_SHADER_COMMON_TC_MOD;
+	}
 
 	if( ( rb.currentShader->flags & SHADER_SOFT_PARTICLE ) && rsh.screenDepthTextureCopy && ( rb.renderFlags & RF_SOFT_PARTICLES ) ) {
 		programFeatures |= GLSL_SHADER_COMMON_SOFT_PARTICLE;
@@ -2691,7 +2549,7 @@ void RB_SetInstanceData( int numInstances, instancePoint_t *instances )
 	if( !rb.currentProgram ) {
 		return;
 	}
-	RP_UpdateInstancesUniforms( rb.currentProgram, numInstances, instances );
+	//RP_UpdateInstancesUniforms( rb.currentProgram, numInstances, instances );
 }
 
 /*
@@ -2915,73 +2773,6 @@ static bool RB_CleanSinglePass( void )
 	return false;
 }
 
-/*
- * RB_TriangleLinesColor
- */
-static inline const vec_t *RB_TriangleLinesColor( void )
-{
-	if( r_showtris->integer != 2 ) {
-		return colorWhite;
-	}
-
-	if( rb.currentModelType == mod_brush ) {
-		return colorWhite;
-	}
-	if( rb.currentModelType != mod_bad ) {
-		return colorRed;
-	}
-	if( rb.currentEntity != rsc.worldent ) {
-		return colorBlue;
-	}
-	return colorGreen;
-}
-
-/*
- * RB_DrawOutlinedElements
- */
-void RB_DrawOutlinedElements( void )
-{
-#ifndef GL_ES_VERSION_2_0
-	static shaderpass_t r_triLinesPass;
-	static vec4_t r_triLinesColor;
-	shaderpass_t *pass;
-
-	if( RB_CleanSinglePass() ) {
-		return;
-	}
-
-	Vector4Copy( RB_TriangleLinesColor(), r_triLinesColor );
-
-	if( !rb.currentShader->numpasses ) {
-		// happens on fog volumes
-		pass = &r_GLSLpasses[BUILTIN_GLSLPASS_FOG];
-	} else {
-		pass = &rb.currentShader->passes[0];
-	}
-
-	// set some flags
-	rb.currentShadowBits = 0;
-	rb.currentDlightBits = 0;
-	rb.colorFog = rb.texFog = NULL;
-	rb.superLightStyle = NULL;
-
-	// copy and override
-	r_triLinesPass = *pass;
-	r_triLinesPass.rgbgen.type = RGB_GEN_CONST;
-	r_triLinesPass.rgbgen.args = &r_triLinesColor[0];
-	r_triLinesPass.alphagen.type = ALPHA_GEN_CONST;
-	r_triLinesPass.alphagen.args = &r_triLinesColor[3];
-	r_triLinesPass.flags = 0;
-	r_triLinesPass.images[0] = rsh.whiteTexture;
-	r_triLinesPass.anim_fps = 0;
-	r_triLinesPass.anim_numframes = 0;
-	r_triLinesPass.program_type = GLSL_PROGRAM_TYPE_Q3A_SHADER;
-
-	RB_SetShaderState();
-
-	RB_RenderPass( NULL, &r_triLinesPass );
-#endif
-}
 
 void RB_DrawShadedElements_2( struct frame_cmd_buffer_s *cmd,
 							  int firstVert,
@@ -3024,12 +2815,35 @@ void RB_DrawShadedElements_2( struct frame_cmd_buffer_s *cmd,
 	}
 
 	// shadow map
-	if( rb.currentShadowBits && ( rb.currentShader->sort >= SHADER_SORT_OPAQUE ) && ( rb.currentShader->sort <= SHADER_SORT_ALPHATEST ) )
-		RB_RenderPass( cmd, &r_GLSLpasses[BUILTIN_GLSLPASS_SHADOWMAP] );
-
+	if( rb.currentShadowBits && ( rb.currentShader->sort >= SHADER_SORT_OPAQUE ) && ( rb.currentShader->sort <= SHADER_SORT_ALPHATEST ) ) {
+		const shaderpass_t pass = {
+			.flags = GLSTATE_DEPTHFUNC_EQ /*|GLSTATE_OFFSET_FILL*/ | GLSTATE_SRCBLEND_ZERO | GLSTATE_DSTBLEND_SRC_COLOR,
+			.tcgen = TC_GEN_NONE,
+			.rgbgen = {
+				.type = RGB_GEN_IDENTITY, 
+			},
+			.alphagen = {
+				.type = ALPHA_GEN_IDENTITY
+			},
+			.program_type = GLSL_PROGRAM_TYPE_SHADOWMAP
+		};
+		RB_RenderPass( cmd, &pass );
+	}
 	// outlines
-	if( addGLSLOutline )
-		RB_RenderPass( cmd, &r_GLSLpasses[BUILTIN_GLSLPASS_OUTLINE] );
+	if( addGLSLOutline ) {
+		const shaderpass_t pass = {
+			.flags = GLSTATE_DEPTHWRITE,
+			.tcgen = TC_GEN_NONE,
+			.rgbgen = {
+				.type = RGB_GEN_OUTLINE, 
+			},
+			.alphagen = {
+				.type = ALPHA_GEN_OUTLINE
+			},
+			.program_type = GLSL_PROGRAM_TYPE_OUTLINE
+		};
+		RB_RenderPass( cmd, &pass );
+	}
 
 	// fog
 	if( rb.texFog && rb.texFog->shader ) {
@@ -3041,54 +2855,5 @@ void RB_DrawShadedElements_2( struct frame_cmd_buffer_s *cmd,
 		else
 			fogPass->flags |= GLSTATE_DEPTHFUNC_EQ;
 		RB_RenderPass( cmd, fogPass );
-	}
-}
-
-/*
- * RB_DrawShadedElements
- */
-void RB_DrawShadedElements( void )
-{
-	unsigned i;
-	bool addGLSLOutline = false;
-	shaderpass_t *pass;
-
-	if( RB_CleanSinglePass() ) {
-		return;
-	}
-
-	if( ENTITY_OUTLINE( rb.currentEntity ) && !( rb.renderFlags & RF_CLIPPLANE ) && ( rb.currentShader->sort == SHADER_SORT_OPAQUE ) && ( rb.currentShader->flags & SHADER_CULL_FRONT ) &&
-		!( rb.renderFlags & RF_SHADOWMAPVIEW ) ) {
-		addGLSLOutline = true;
-	}
-
-	RB_SetShaderState();
-
-	for( i = 0, pass = rb.currentShader->passes; i < rb.currentShader->numpasses; i++, pass++ ) {
-		if( ( pass->flags & SHADERPASS_DETAIL ) && !r_detailtextures->integer )
-			continue;
-		if( pass->flags & SHADERPASS_LIGHTMAP )
-			continue;
-		RB_RenderPass( NULL, pass );
-	}
-
-	// shadow map
-	if( rb.currentShadowBits && ( rb.currentShader->sort >= SHADER_SORT_OPAQUE ) && ( rb.currentShader->sort <= SHADER_SORT_ALPHATEST ) )
-		RB_RenderPass( NULL, &r_GLSLpasses[BUILTIN_GLSLPASS_SHADOWMAP] );
-
-	// outlines
-	if( addGLSLOutline )
-		RB_RenderPass( NULL, &r_GLSLpasses[BUILTIN_GLSLPASS_OUTLINE] );
-
-	// fog
-	if( rb.texFog && rb.texFog->shader ) {
-		shaderpass_t *fogPass = &r_GLSLpasses[BUILTIN_GLSLPASS_FOG];
-
-		fogPass->images[0] = rsh.whiteTexture;
-		if( !rb.currentShader->numpasses || rb.currentShader->fog_dist || ( rb.currentShader->flags & SHADER_SKY ) )
-			fogPass->flags &= ~GLSTATE_DEPTHFUNC_EQ;
-		else
-			fogPass->flags |= GLSTATE_DEPTHFUNC_EQ;
-		RB_RenderPass( NULL, fogPass );
 	}
 }

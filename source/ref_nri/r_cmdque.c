@@ -834,8 +834,6 @@ static unsigned R_HandleShutdownReliableCmd( void *pcmd )
 {
 	refReliableCmdInitShutdown_t *cmd = pcmd;
 
-	R_ReleaseBuiltinScreenImages();
-
 	RB_Shutdown();
 
 	RFB_Shutdown();

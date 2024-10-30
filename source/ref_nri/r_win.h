@@ -42,6 +42,7 @@ typedef struct win_handle_s {
 } win_handle_t;
 
 void R_WIN_Init(const char *applicationName, void *hinstance, void *wndproc, void *parenthWnd, int iconResource, const int *iconXPM );
+void R_WIN_Shutdown();
 bool R_WIN_InitWindow(win_init_t* init);
 bool R_WIN_SetFullscreen(int displayFrequency, bool fullscreen);
 bool R_WIN_SetWindowSize(int x, int y, uint16_t width, uint16_t height);

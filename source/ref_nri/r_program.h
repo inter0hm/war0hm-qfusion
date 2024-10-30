@@ -219,14 +219,12 @@ struct glsl_program_s {
 	struct glsl_program_s *hash_next;
 
 	uint32_t vertexInputMask;
-	// might not need to store the bin data
-	// will have to see if I need to re-declare the pipeline
-	//uint16_t shaderStageSize;
 	struct shader_bin_data_s {
 		char *bin;
 		size_t size;
 		glsl_program_stage_t stage;
 	} shaderBin[GLSL_STAGE_MAX];
+	
 	NriPipelineLayout *layout;
 	struct pipeline_hash_s {
 		uint64_t hash;
@@ -309,39 +307,6 @@ void RP_UpdateViewUniforms( int elem,
 	const float mirrorSide, 
 	int viewport[4],
 	float zNear, float zFar );
-
-void RP_UpdateBlendMixUniform( int elem, vec2_t blendMask );
-
-void RP_UpdateSoftParticlesUniforms( int elem, float scale );
-
-void RP_UpdateMaterialUniforms( int elem, 
-	float offsetmappingScale, float glossIntensity, float glossExponent );
-
-void RP_UpdateDistortionUniforms( int elem, bool frontPlane );
-
-void RP_UpdateTextureUniforms( int elem, int TexWidth, int TexHeight );
-
-void RP_UpdateOutlineUniforms( int elem, float projDistance );
-
-void RP_UpdateDiffuseLightUniforms( int elem,
-	const vec3_t lightDir, const vec4_t lightAmbient, const vec4_t lightDiffuse );
-
-unsigned int RP_UpdateDynamicLightsUniforms( int elem, const superLightStyle_t *superLightStyle, 
-	const vec3_t entOrigin, const mat3_t entAxis, unsigned int dlightbits );
-
-void RP_UpdateFogUniforms( int elem, byte_vec4_t color, float clearDist, float opaqueDist, 
-	cplane_t *fogPlane, cplane_t *eyePlane, float eyeFogDist );
-
-void RP_UpdateTexGenUniforms( int elem, const mat4_t reflectionMatrix, const mat4_t vectorMatrix );
-
-void RP_UpdateBonesUniforms( int elem, unsigned int numBones, dualquat_t *animDualQuat );
-
-void RP_UpdateDrawFlatUniforms( int elem, const vec3_t wallColor, const vec3_t floorColor );
-
-void RP_UpdateShadowsUniforms( int elem, int numShadows, const shadowGroup_t **groups, const mat4_t objectMatrix,
-	const vec3_t objectOrigin, const mat3_t objectAxis );
-
-void RP_UpdateInstancesUniforms( int elem, unsigned int numInstances, instancePoint_t *instances );
 
 bool RP_ProgramHasUniform(const struct glsl_program_s *program,const struct glsl_descriptor_handle_s handle );
 
