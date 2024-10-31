@@ -2292,7 +2292,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 
 			RB_BindImage( 0, image );
 
-			if( glConfig.ext.gpu_shader5 )
+			if( false )
 				fxaa3 = true;
 			if( fxaa3 )
 				programFeatures |= GLSL_SHADER_FXAA_FXAA3;

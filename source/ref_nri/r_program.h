@@ -35,7 +35,7 @@ typedef uint64_t r_glslfeat_t;
 #define GLSL_BITS_VERSION					16
 
 #define PIPELINE_LAYOUT_HASH_SIZE 4096// need to handle this large number of pipelines 
-#define PIPELINE_REFLECTION_HASH_SIZE 256
+#define PIPELINE_REFLECTION_HASH_SIZE 64
 #define VERTEX_POS_BINDING_SLOT (0)
 
 #define DEFAULT_GLSL_MATERIAL_PROGRAM			"defaultMaterial"
@@ -238,6 +238,7 @@ struct glsl_program_s {
 		struct descriptor_set_allloc_s *alloc;
 	} descriptorSetInfo[DESCRIPTOR_SET_MAX];
 
+	size_t numDescriptorReflections;
 	struct descriptor_reflection_s {
 		hash_t hash;
 		uint32_t isArray: 1;
@@ -247,7 +248,6 @@ struct glsl_program_s {
 		uint32_t baseRegisterIndex : 16;
 		uint32_t rangeOffset : 16;
 	} descriptorReflection[PIPELINE_REFLECTION_HASH_SIZE];
-
 };
 
 struct glsl_descriptor_handle_s {
@@ -269,19 +269,6 @@ struct glsl_descriptor_binding_s {
 };
 
 void RP_BindDescriptorSets(struct frame_cmd_buffer_s* cmd, struct glsl_program_s* program, struct glsl_descriptor_binding_s* data, size_t numDescriptorData);
-//struct glsl_descriptor_commit_s {
-//  NriDescriptor const* descriptors[DESCRIPTOR_MAX_BINDINGS];
-//  uint32_t cookies[DESCRIPTOR_MAX_BINDINGS];
-//  uint32_t descriptorMask;
-//};
-//
-//struct glsl_program_binder_s {
-//	struct glsl_descriptor_commit_s commit[DESCRIPTOR_SET_MAX];
-//	uint8_t setsMask;
-//};
-//void RC_SetImage(struct glsl_program_binder_s* commit, struct glsl_program_s* program, const struct glsl_descriptor_handle_s* handle, image_t* image);
-
-//const struct descriptor_reflection_s* RP_ReflectDescriptorSet(const struct glsl_program_s *program, const struct descriptor_handle_s* handle);
 void RP_Init( void );
 void RP_Shutdown( void );
 void RP_PrecachePrograms( void );
@@ -292,21 +279,6 @@ void RP_ProgramList_f( void );
 struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, struct frame_cmd_state_s  *def );
 struct glsl_program_s *RP_ResolveProgram( int type, const char *name, const char *deformsKey, const deformv_t *deforms, int numDeforms, r_glslfeat_t features );
 struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const char *deformsKey, const deformv_t *deforms, int numDeforms, r_glslfeat_t features );
-
-int	RP_GetProgramObject( int elem );
-
-void RP_UpdateShaderUniforms( int elem, 
-	float shaderTime, 
-	const vec3_t entOrigin, const vec3_t entDist, const uint8_t *entityColor, 
-	const uint8_t *constColor, const float *rgbGenFuncArgs, const float *alphaGenFuncArgs,
-	const mat4_t texMatrix );
-
-void RP_UpdateViewUniforms( int elem, 
-	const mat4_t modelviewMatrix, const mat4_t modelviewProjectionMatrix,
-	const vec3_t viewOrigin, const mat3_t viewAxis, 
-	const float mirrorSide, 
-	int viewport[4],
-	float zNear, float zFar );
 
 bool RP_ProgramHasUniform(const struct glsl_program_s *program,const struct glsl_descriptor_handle_s handle );
 

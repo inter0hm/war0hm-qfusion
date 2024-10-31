@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "NRIDescs.h"
 #include "r_frame_cmd_buffer.h"
 #include "r_image.h"
 #include "r_local.h"
@@ -181,6 +182,26 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 					swapChainDesc->format };
 				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &rsh.backBuffers[i].colorAttachment) );
 			}
+
+			//for(size_t pogoIdx = 0; pogoIdx < Q_ARRAY_COUNT(rsh.backBuffers->pogoBuffers); pogoIdx++) {
+			//	NriTextureDesc textureDesc = { 
+			//		.width = swapChainDesc->width,
+			//	  .height = swapChainDesc->height,
+			//	  .depth = 1,
+			//	  .usage = NriTextureUsageBits_COLOR_ATTACHMENT | NriTextureUsageBits_SHADER_RESOURCE,
+			//	  .layerNum = 1,
+			//	  .format = NriFormat_RGBA8_UNORM,
+			//	  .sampleNum = 1,
+			//	  .type = NriTextureType_TEXTURE_2D,
+			//	  .mipNum = 1 };
+			//	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture) );
+			//	NriResourceGroupDesc resourceGroupDesc = {
+			//		.textureNum = 1,
+			//		.textures = &rsh.backBuffers[i].depthTexture,
+			//		.memoryLocation = NriMemoryLocation_DEVICE,
+			//	};
+			//}
+
 			{
 				NriTextureDesc textureDesc = { 
 											   .width = swapChainDesc->width,
@@ -212,7 +233,6 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 
 				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &rsh.backBuffers[i].depthAttachment) );
 			}
-
 		}
 	}
 
@@ -251,9 +271,10 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, bool fullScreen, bool stereo )
 {
 
-	if( glConfig.width == width && glConfig.height == height && glConfig.fullScreen != fullScreen ) {
-		return GLimp_SetFullscreenMode( displayFrequency, fullScreen );
-	}
+	// TODO: need to handle fullscreen
+	//if( glConfig.width == width && glConfig.height == height && glConfig.fullScreen != fullScreen ) {
+	//	return GLimp_SetFullscreenMode( displayFrequency, fullScreen );
+	//}
 
 	rsh.frameCnt = 0;
 
@@ -857,6 +878,7 @@ void RF_BeginAviDemo( void )
 
 void RF_WriteAviFrame( int frame, bool scissor )
 {
+	struct frame_cmd_buffer_s *cmd = R_ActiveFrameCmd();
 	int x, y, w, h;
 	const char *writedir, *gamedir;
 	size_t path_size;
@@ -869,7 +891,7 @@ void RF_WriteAviFrame( int frame, bool scissor )
 	if( scissor )
 	{
 		x = rsc.refdef.x;
-		y = glConfig.height - rsc.refdef.height - rsc.refdef.y;
+		y = cmd->textureBuffers.screen.height - rsc.refdef.height - rsc.refdef.y;
 		w = rsc.refdef.width;
 		h = rsc.refdef.height;
 	}
@@ -877,8 +899,8 @@ void RF_WriteAviFrame( int frame, bool scissor )
 	{
 		x = 0;
 		y = 0;
-		w = glConfig.width;
-		h = glConfig.height;
+		w = cmd->textureBuffers.screen.width;
+		h = cmd->textureBuffers.screen.height;
 	}
 	
 	writedir = FS_WriteDirectory();
@@ -900,6 +922,7 @@ void RF_StopAviDemo( void )
 
 void RF_TransformVectorToScreen( const refdef_t *rd, const vec3_t in, vec2_t out )
 {
+	struct frame_cmd_buffer_s *cmd = R_ActiveFrameCmd();
 	mat4_t p, m;
 	vec4_t temp, temp2;
  	
@@ -931,9 +954,9 @@ void RF_TransformVectorToScreen( const refdef_t *rd, const vec3_t in, vec2_t out
  	
 	if( !temp[3] )
  		return;
- 	
+
 	out[0] = rd->x + ( temp[0] / temp[3] + 1.0f ) * rd->width * 0.5f;
-	out[1] = glConfig.height - (rd->y + ( temp[1] / temp[3] + 1.0f ) * rd->height * 0.5f);
+	out[1] = cmd->textureBuffers.screen.height - (rd->y + ( temp[1] / temp[3] + 1.0f ) * rd->height * 0.5f);
 }
 
 bool RF_LerpTag( orientation_t *orient, const model_t *mod, int oldframe, int frame, float lerpfrac, const char *name )

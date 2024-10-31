@@ -1,13 +1,8 @@
-#include "include/global.glsl" 
-#include "defaultFXAA.res.glsl"
-
 layout(location = 0) out vec2 v_TexCoord;
-
-#include "include/qf_vert_utils.glsl"
 
 void main(void)
 {
-  gl_Position = pass.mvp * a_Position;
-	v_TexCoord = TextureMatrix2x3Mul(obj.textureMatrix, a_TexCoord);
+  v_TexCoord = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+	gl_Position = vec4(v_TexCoord * vec2(2, -2) + vec2(-1, 1), 0, 1);
 }
 

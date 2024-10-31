@@ -242,8 +242,8 @@ void R_TakeEnvShot(struct frame_cmd_buffer_s* cmd, const char *path, const char 
 	rn.shadowGroup = NULL;
 	rn.fbColorAttachment = rn.fbDepthAttachment = NULL;
 	
-	Vector4Set( rn.viewport, fd.x, glConfig.height - size - fd.y, size, size );
-	Vector4Set( rn.scissor, fd.x, glConfig.height - size - fd.y, size, size );
+	Vector4Set( rn.viewport, fd.x, cmd->textureBuffers.screen.height - size - fd.y, size, size );
+	Vector4Set( rn.scissor, fd.x, cmd->textureBuffers.screen.height - size - fd.y, size, size );
 	
 	for( i = 0; i < 6; i++ )
 	{

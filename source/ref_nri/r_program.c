@@ -1183,16 +1183,6 @@ static bool RF_AppendShaderFromFile( sds *str, const char *fileName, int program
 	return __RF_AppendShaderFromFile( str, fileName, fileName, 1, programType, features );
 }
 
-int RP_GetProgramObject( int elem )
-{
-	assert(0);
-	return 0;
-	//if( elem < 1 ) {
-	//	return 0;
-	//}
-	//return r_glslprograms[elem - 1].object;
-}
-
 void RP_ProgramList_f( void )
 {
 	Com_Printf( "------------------\n" );
@@ -1218,108 +1208,6 @@ void RP_ProgramList_f( void )
 		Com_Printf( "\n" );
 	}
 	Com_Printf( "%i programs total\n", i );
-}
-
-/*
- * RP_UpdateShaderUniforms
- */
-void RP_UpdateShaderUniforms( int elem,
-							  float shaderTime,
-							  const vec3_t entOrigin,
-							  const vec3_t entDist,
-							  const uint8_t *entityColor,
-							  const uint8_t *constColor,
-							  const float *rgbGenFuncArgs,
-							  const float *alphaGenFuncArgs,
-							  const mat4_t texMatrix )
-{
-	assert(false);
-	// GLfloat m[9];
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( entOrigin ) {
-	// 	if( program->loc.EntityOrigin >= 0 )
-	// 		qglUniform3fvARB( program->loc.EntityOrigin, 1, entOrigin );
-	// 	if( program->loc.builtin.EntityOrigin >= 0 )
-	// 		qglUniform3fvARB( program->loc.builtin.EntityOrigin, 1, entOrigin );
-	// }
-
-	// if( program->loc.EntityDist >= 0 && entDist )
-	// 	qglUniform3fvARB( program->loc.EntityDist, 1, entDist );
-	// if( program->loc.EntityColor >= 0 && entityColor )
-	// 	qglUniform4fARB( program->loc.EntityColor, entityColor[0] * 1.0 / 255.0, entityColor[1] * 1.0 / 255.0, entityColor[2] * 1.0 / 255.0, entityColor[3] * 1.0 / 255.0 );
-
-	// if( program->loc.ShaderTime >= 0 )
-	// 	qglUniform1fARB( program->loc.ShaderTime, shaderTime );
-	// if( program->loc.builtin.ShaderTime >= 0 )
-	// 	qglUniform1fARB( program->loc.builtin.ShaderTime, shaderTime );
-
-	// if( program->loc.ConstColor >= 0 && constColor )
-	// 	qglUniform4fARB( program->loc.ConstColor, constColor[0] * 1.0 / 255.0, constColor[1] * 1.0 / 255.0, constColor[2] * 1.0 / 255.0, constColor[3] * 1.0 / 255.0 );
-	// if( program->loc.RGBGenFuncArgs >= 0 && rgbGenFuncArgs )
-	// 	qglUniform4fvARB( program->loc.RGBGenFuncArgs, 1, rgbGenFuncArgs );
-	// if( program->loc.AlphaGenFuncArgs >= 0 && alphaGenFuncArgs )
-	// 	qglUniform4fvARB( program->loc.AlphaGenFuncArgs, 1, alphaGenFuncArgs );
-
-	// // FIXME: this looks shit...
-	// if( program->loc.TextureMatrix >= 0 ) {
-	// 	m[0] = texMatrix[0], m[1] = texMatrix[4];
-	// 	m[2] = texMatrix[1], m[3] = texMatrix[5];
-	// 	m[4] = texMatrix[12], m[5] = texMatrix[13];
-
-	// 	qglUniform4fvARB( program->loc.TextureMatrix, 2, m );
-	// }
-}
-
-/*
- * RP_UpdateViewUniforms
- */
-void RP_UpdateViewUniforms( int elem,
-							const mat4_t modelviewMatrix,
-							const mat4_t modelviewProjectionMatrix,
-							const vec3_t viewOrigin,
-							const mat3_t viewAxis,
-							const float mirrorSide,
-							int viewport[4],
-							float zNear,
-							float zFar )
-{
-	assert(false);
-	// struct glsl_program_s *program = r_glslprograms + elem - 1;
-
-	// if( program->loc.ModelViewMatrix >= 0 ) {
-	// 	qglUniformMatrix4fvARB( program->loc.ModelViewMatrix, 1, GL_FALSE, modelviewMatrix );
-	// }
-	// if( program->loc.ModelViewProjectionMatrix >= 0 ) {
-	// 	qglUniformMatrix4fvARB( program->loc.ModelViewProjectionMatrix, 1, GL_FALSE, modelviewProjectionMatrix );
-	// }
-
-	// if( program->loc.ZRange >= 0 ) {
-	// 	qglUniform2fARB( program->loc.ZRange, zNear, zFar );
-	// }
-
-	// if( viewOrigin ) {
-	// 	if( program->loc.ViewOrigin >= 0 )
-	// 		qglUniform3fvARB( program->loc.ViewOrigin, 1, viewOrigin );
-	// 	if( program->loc.builtin.ViewOrigin >= 0 )
-	// 		qglUniform3fvARB( program->loc.builtin.ViewOrigin, 1, viewOrigin );
-	// }
-
-	// if( viewAxis ) {
-	// 	if( program->loc.ViewAxis >= 0 )
-	// 		qglUniformMatrix3fvARB( program->loc.ViewAxis, 1, GL_FALSE, viewAxis );
-	// 	if( program->loc.builtin.ViewAxis >= 0 )
-	// 		qglUniformMatrix3fvARB( program->loc.builtin.ViewAxis, 1, GL_FALSE, viewAxis );
-	// }
-
-	// if( program->loc.Viewport >= 0 ) {
-	// 	qglUniform4ivARB( program->loc.Viewport, 1, viewport );
-	// }
-
-	// if( program->loc.MirrorSide >= 0 )
-	// 	qglUniform1fARB( program->loc.MirrorSide, mirrorSide );
-	// if( program->loc.builtin.MirrorSide >= 0 )
-	// 	qglUniform1fARB( program->loc.builtin.MirrorSide, mirrorSide );
 }
 
 const char *RP_GLSLStageToShaderPrefix( const glsl_program_stage_t stage )
@@ -1362,7 +1250,7 @@ static inline struct pipeline_hash_s* __resolvePipeline(struct glsl_program_s *p
 	return NULL;
 }
 
-static int compareVertAttribs(const void * a1, const void * a2) {
+static int __compareVertAttribs(const void * a1, const void * a2) {
 	const NriVertexAttributeDesc* at1 = a1;  
 	const NriVertexAttributeDesc* at2 = a2;
 	return at1->vk.location > at2->vk.location;
@@ -1393,7 +1281,7 @@ struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, stru
 		}
 		vertexInputAttribs[numAttribs++] = def->attribs[i];
 	}
-	qsort(vertexInputAttribs, numAttribs, sizeof(NriVertexAttributeDesc), compareVertAttribs);
+	qsort(vertexInputAttribs, numAttribs, sizeof(NriVertexAttributeDesc), __compareVertAttribs);
 	for( size_t i = 0; i < numAttribs; i++ ) {	
 		hash = hash_u32(hash, vertexInputAttribs[i].offset);
 		hash = hash_u32(hash, vertexInputAttribs[i].format);
@@ -1494,50 +1382,21 @@ static NriDescriptorRangeDesc *__FindAndInsertNriDescriptorRange( const SpvRefle
 	return &( *ranges )[insertIndex];
 }
 
-static bool __InsertReflectionDescriptorSet( struct glsl_program_s *program, const struct descriptor_reflection_s* reflection)
-{
-	const size_t startIndex = reflection->hash % PIPELINE_REFLECTION_HASH_SIZE;
-	size_t index = startIndex;
-	do {
-		if( program->descriptorReflection[index].hash == reflection->hash || program->pipelines[index].hash == 0 ) {
-			memcpy(&program->descriptorReflection[index], reflection, sizeof(struct descriptor_reflection_s));
-			return true;
-		}
-		index = ( index + 1 ) % PIPELINE_REFLECTION_HASH_SIZE;
-	} while( index != startIndex );
-	// we've run out of slots
-	return false;
-}
-
 static const struct descriptor_reflection_s* __ReflectDescriptorSet(const struct glsl_program_s *program,const struct glsl_descriptor_handle_s* handle) {
-	const size_t startIndex = handle->hash % PIPELINE_REFLECTION_HASH_SIZE;
-	size_t index = startIndex;
-	do {
-		if( program->descriptorReflection[index].hash == handle->hash ) {
-			return &program->descriptorReflection[index];
-		} else if( program->descriptorReflection[index].hash == 0 ) {
-			return NULL;
+	for( size_t i = 0; i < program->numDescriptorReflections; i++ ) {
+		if( program->descriptorReflection[i].hash == handle->hash ) {
+			return &program->descriptorReflection[i];
 		}
-		index = (index + 1) % PIPELINE_REFLECTION_HASH_SIZE;
-	} while(index != startIndex);
+	}
 	return NULL;
-
 }
 
 bool RP_ProgramHasUniform(const struct glsl_program_s *program,const struct glsl_descriptor_handle_s handle) {
-	const size_t startIndex = handle.hash % PIPELINE_REFLECTION_HASH_SIZE;
-	size_t index = startIndex;
-	do {
-		if( program->descriptorReflection[index].hash == handle.hash ) {
-			return true;
-		} else if( program->descriptorReflection[index].hash == 0 ) {
-			return false;
-		}
-		index = (index + 1) % PIPELINE_REFLECTION_HASH_SIZE;
-	} while(index != startIndex);
+	if(__ReflectDescriptorSet(program, &handle)) {
+		return true;
+	}
 	return false;
 }
-
 
 void RP_BindDescriptorSets(struct frame_cmd_buffer_s* cmd, struct glsl_program_s *program, struct glsl_descriptor_binding_s *bindings, size_t numDescriptorData )
 {
@@ -1996,7 +1855,9 @@ struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const cha
 							assert( false );
 							break;
 					}
-					__InsertReflectionDescriptorSet( program, &reflc );
+					assert( program->numDescriptorReflections < PIPELINE_REFLECTION_HASH_SIZE );
+					memcpy(program->descriptorReflection + (program->numDescriptorReflections++), &reflc, sizeof(struct descriptor_reflection_s));
+					// __InsertReflectionDescriptorSet( program, &reflc );
 					switch( stages[stageIdx].stage ) {
 						case GLSLANG_STAGE_VERTEX:
 							rangeDesc->shaderStages |= NriStageBits_VERTEX_SHADER;
