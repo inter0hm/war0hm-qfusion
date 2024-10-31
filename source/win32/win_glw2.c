@@ -60,11 +60,50 @@ bool R_WIN_GetWindowHandle(win_handle_t* handle) {
 	return handle->winType != VID_WINDOW_TYPE_UNKNOWN;
 }
 
-
 bool R_WIN_SetWindowSize(int x, int y, uint16_t width, uint16_t height) {
 
 }
 
+void R_WIN_Shutdown() {
+	if( glw_state.hDC )
+	{
+		if( !ReleaseDC( glw_state.hWnd, glw_state.hDC ) )
+			ri.Com_Printf( "ref_gl::R_Shutdown() - ReleaseDC failed\n" );
+		glw_state.hDC   = NULL;
+	}
+	if( glw_state.hWnd )
+	{
+		ShowWindow( glw_state.hWnd, SW_HIDE );
+		DestroyWindow( glw_state.hWnd );
+		glw_state.hWnd = NULL;
+	}
+
+#ifdef WITH_UTF8
+	UnregisterClassW( glw_state.windowClassNameW, glw_state.hInstance );
+#else
+	UnregisterClass( glw_state.windowClassName, glw_state.hInstance );
+#endif
+
+	if( glw_state.applicationName )
+	{
+		free( glw_state.applicationName );
+		glw_state.applicationName = NULL;
+	}
+
+	if( glw_state.applicationNameW )
+	{
+		free( glw_state.applicationNameW );
+		glw_state.applicationNameW = NULL;
+	}
+
+	glw_state.applicationIconResourceID = 0;
+
+	glw_state.win_x = 0;
+	glw_state.win_y = 0;
+
+	glConfig.width = 0;
+	glConfig.height = 0;
+}
 
 bool R_WIN_InitWindow(win_init_t* init) {
 
