@@ -287,7 +287,7 @@ void FR_CmdBeginRendering( struct frame_cmd_buffer_s *cmd )
 		return;
 	}
 
-	NriAttachmentsDesc attachmentsDesc = {};
+	NriAttachmentsDesc attachmentsDesc = {0};
 	attachmentsDesc.colorNum = cmd->state.numColorAttachments;
 	attachmentsDesc.colors = cmd->state.colorAttachment;
 	attachmentsDesc.depthStencil = cmd->state.depthAttachment;

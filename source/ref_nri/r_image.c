@@ -46,7 +46,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static struct {
 	hash_t hash;
 	NriDescriptor *descriptor;
-} samplerDescriptors[IMAGE_SAMPLER_HASH_SIZE] = {};
+} samplerDescriptors[IMAGE_SAMPLER_HASH_SIZE] = {0};
 
 typedef struct
 {
@@ -98,7 +98,7 @@ int R_TextureTarget( int flags, int *uploadTarget )
 NriDescriptor *R_ResolveSamplerDescriptor( int flags )
 {
 
-	NriSamplerDesc samplerDesc = {};
+	NriSamplerDesc samplerDesc = {0};
 
 	if( flags & IT_NOFILTERING ) {
 		samplerDesc.filters.min = NriFilter_LINEAR;
@@ -2130,8 +2130,8 @@ static void __FreeImage( struct frame_cmd_buffer_s *cmd, struct image_s *image )
 		image->name = NULL;
 		image->registrationSequence = 0;
 		image->texture = NULL;
-		image->descriptor = (struct nri_descriptor_s){};
-		image->samplerDescriptor= (struct nri_descriptor_s){};
+		image->descriptor = (struct nri_descriptor_s){0};
+		image->samplerDescriptor= (struct nri_descriptor_s){0};
 		image->numAllocations = 0;
 	}
 	{

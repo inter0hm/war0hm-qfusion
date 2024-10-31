@@ -973,7 +973,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 	if( rb.greyscale || rb.currentShader->flags & SHADERPASS_GREYSCALE ) {
 		programFeatures |= GLSL_SHADER_COMMON_GREYSCALE;
 	}
-	NriDepthBiasDesc depthBiasDesc = {};
+	NriDepthBiasDesc depthBiasDesc = {0};
 	if(((rb.currentShader->flags & SHADER_POLYGONOFFSET) > 0)) {
 		depthBiasDesc.slope = -1.3f;
 		depthBiasDesc.constant = -.3f;
@@ -1230,7 +1230,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 			const image_t *decalmap = pass->images[3] && !pass->images[3]->missing ? pass->images[3] : NULL;
 			const image_t *entdecalmap = pass->images[4] && !pass->images[4]->missing ? pass->images[4] : NULL;
 			// const superLightStyle_t *lightStyle = NULL;
-			struct DefaultMaterialCB passCB = {};
+			struct DefaultMaterialCB passCB = {0};
 
 			if( normalmap && !normalmap->loaded ) {
 				normalmap = rsh.blankBumpTexture;
@@ -1263,7 +1263,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 				const float glossExponent = rb.currentShader->glossExponent ? rb.currentShader->glossExponent : r_lighting_glossexponent->value;
 				const bool applyDecal = decalmap != NULL;
 
-				mat4_t texMatrix = {};
+				mat4_t texMatrix = {0};
 				Matrix4_Identity( texMatrix );
 				if( pass->numtcmods ) {
 					RB_ApplyTCMods( pass, texMatrix );
@@ -1433,7 +1433,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 								.handle = Create_DescriptorHandle( "lightmapTexture" ) 
 							};
 
-							float rgb[4] = {};
+							float rgb[4] = {0};
 							VectorCopy( rsc.lightStyles[lightStyle->lightmapStyles[i]].rgb, rgb );
 							if( mapConfig.lightingIntensity )
 								VectorScale( rgb, mapConfig.lightingIntensity, rgb );
@@ -1506,7 +1506,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 				passCB.glossExponent = glossExponent;
 
 				if(rb.currentDlightBits) {
-					struct DynamicLightCB lightData = {}; //= lightCB.address;
+					struct DynamicLightCB lightData = {0}; //= lightCB.address;
 					__ConfigureLightCB(&lightData, e->origin, rb.currentEntity->axis, rb.currentDlightBits);
 					if(lightData.numberLights > 0) {
 						UpdateFrameUBO( cmd, &cmd->uboLight, &lightData, DynamicLightCB_Size(lightData.numberLights)) ;
@@ -1627,7 +1627,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 			if( isLightmapped || isWorldVertexLight ) {
 				// add dynamic lights
 				if( rb.currentDlightBits ) {
-					struct DynamicLightCB lightData = {}; //= lightCB.address;
+					struct DynamicLightCB lightData = {0}; //= lightCB.address;
 					__ConfigureLightCB(&lightData, e->origin, rb.currentEntity->axis, rb.currentDlightBits);
 					if(lightData.numberLights > 0) {
 						UpdateFrameUBO( cmd, &cmd->uboLight, &lightData, DynamicLightCB_Size(lightData.numberLights)) ;
@@ -1748,7 +1748,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 					};
 				}
 
-				float rgb[4] = {};
+				float rgb[4] = {0};
 				VectorCopy( rsc.lightStyles[lightStyle->lightmapStyles[i]].rgb, rgb );
 				if( mapConfig.lightingIntensity )
 					VectorScale( rgb, mapConfig.lightingIntensity, rgb );
@@ -2043,7 +2043,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 			const NriCullMode prevCullMode = cmd->state.pipelineLayout.cullMode;
 			cmd->state.pipelineLayout.cullMode = NriCullMode_BACK;
 
-			mat4_t texMatrix = {};
+			mat4_t texMatrix = {0};
 			Matrix4_Identity( texMatrix );
 			if( pass->numtcmods ) {
 				RB_ApplyTCMods( pass, texMatrix );
@@ -2102,7 +2102,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 			image_t *stripes = pass->images[5];
 			image_t *light = pass->images[6];
 
-			struct DefaultCellShadeCB passCB = {};
+			struct DefaultCellShadeCB passCB = {0};
 			passCB.entityColor = ( struct vec4 ){ .x = rb.entityColor[0] * (1.0 / 255.0), .y = rb.entityColor[1] * (1.0 / 255.0), .z = rb.entityColor[2] * (1.0 / 255.0), .w = rb.entityColor[3]  * (1.0 / 255.0)};
 
 			mat4_t reflectionMatrix;

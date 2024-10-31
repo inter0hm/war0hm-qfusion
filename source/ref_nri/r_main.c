@@ -1049,13 +1049,13 @@ static void R_Clear(struct frame_cmd_buffer_s* frame, int bitMask )
 	if(!hasClearOperation) 
 		return;
 	
-	NriAttachmentsDesc attachmentsDesc = {};
+	NriAttachmentsDesc attachmentsDesc = {0};
 	attachmentsDesc.depthStencil = frame->state.depthAttachment;
 	attachmentsDesc.colorNum = frame->state.numColorAttachments;
 	attachmentsDesc.colors = frame->state.colorAttachment;
 	rsh.nri.coreI.CmdBeginRendering( frame->cmd, &attachmentsDesc );
 	{
-		NriClearDesc clearDesc[MAX_COLOR_ATTACHMENTS + 1] = {};
+		NriClearDesc clearDesc[MAX_COLOR_ATTACHMENTS + 1] = {0};
 		size_t numClearDesc = 0;
 		if( clearColor ) {
 			for(size_t i = 0; i < attachmentsDesc.colorNum; i++) {

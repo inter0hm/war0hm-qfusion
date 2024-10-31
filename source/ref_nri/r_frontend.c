@@ -111,12 +111,12 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 		return rserr_unknown;
 	}
 
-	win_handle_t handle = {};
+	win_handle_t handle = {0};
 	if(!R_WIN_GetWindowHandle( &handle ) ) {
 		ri.Com_Error(ERR_DROP, "failed to resolve window handle" );
 		return rserr_unknown;
 	}
-	NriWindow nriWindow = {};
+	NriWindow nriWindow = {0};
 	switch( handle.winType ) {
 		case VID_WINDOW_WAYLAND:
 			nriWindow.wayland.surface = handle.window.wayland.surface;
@@ -260,12 +260,12 @@ rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, b
 	rsh.nri.helperI.WaitForIdle( rsh.cmdQueue );
 	//rsh.nri.swapChainI.DestroySwapChain( rsh.swapchain );
 
-	win_handle_t handle = {};
+	win_handle_t handle = {0};
 	if(!R_WIN_GetWindowHandle( &handle ) ) {
 		ri.Com_Error(ERR_DROP, "failed to resolve window handle" );
 		return rserr_unknown;
 	}
-	NriWindow nriWindow = {};
+	NriWindow nriWindow = {0};
 	switch( handle.winType ) {
 		case VID_WINDOW_WAYLAND:
 			nriWindow.wayland.surface = handle.window.wayland.surface;
@@ -522,11 +522,11 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 
 	// set the cmdState to the backbuffer for rendering going forward
 	{
-		NriTextureBarrierDesc textureBarrierDescs[1] = {};
+		NriTextureBarrierDesc textureBarrierDescs[1] = {0};
 		textureBarrierDescs[0].texture = frame->textureBuffers.colorTexture;
 		textureBarrierDescs[0].after = ( NriAccessLayoutStage ){ NriAccessBits_COLOR_ATTACHMENT, NriLayout_COLOR_ATTACHMENT };
 
-		NriBarrierGroupDesc barrierGroupDesc = {};
+		NriBarrierGroupDesc barrierGroupDesc = {0};
 		barrierGroupDesc.textureNum = 1;
 		barrierGroupDesc.textures = textureBarrierDescs;
 		rsh.nri.coreI.CmdBarrier( frame->cmd, &barrierGroupDesc );
@@ -536,7 +536,7 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 	if(forceClear)
 	{
 	
-		NriAttachmentsDesc attachmentsDesc = {};
+		NriAttachmentsDesc attachmentsDesc = {0};
 		attachmentsDesc.depthStencil = frame->state.depthAttachment;
 		attachmentsDesc.colorNum = frame->state.numColorAttachments;
 		attachmentsDesc.colors = frame->state.colorAttachment;
@@ -544,7 +544,7 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 		{
 			const NriTextureDesc *backBufferDesc = rsh.nri.coreI.GetTextureDesc( frame->textureBuffers.colorTexture );
 
-			NriClearDesc clearDesc[MAX_COLOR_ATTACHMENTS + 1] = {};
+			NriClearDesc clearDesc[MAX_COLOR_ATTACHMENTS + 1] = {0};
 			size_t numClearDesc = 0;
 			for(size_t i = 0; i < attachmentsDesc.colorNum; i++) {
 				clearDesc[numClearDesc].value.color = ( NriColor ){ .f = { 0.0f, 0.0f, 0.0f, 1.0f } };
@@ -614,14 +614,14 @@ void RF_EndFrame( void )
 	R_ResourceSubmit();
 	
 	{
-		NriTextureBarrierDesc textureBarrierDescs = {};
+		NriTextureBarrierDesc textureBarrierDescs = {0};
 		textureBarrierDescs.texture = frame->textureBuffers.colorTexture;
 		textureBarrierDescs.before = ( NriAccessLayoutStage ){ NriAccessBits_COLOR_ATTACHMENT, NriLayout_COLOR_ATTACHMENT };
 		textureBarrierDescs.after = ( NriAccessLayoutStage ){ NriAccessBits_UNKNOWN, NriLayout_PRESENT };
 		textureBarrierDescs.layerNum = 1;
 		textureBarrierDescs.mipNum = 1;
 
-		NriBarrierGroupDesc barrierGroupDesc = {};
+		NriBarrierGroupDesc barrierGroupDesc = {0};
 		barrierGroupDesc.textureNum = 1;
 		barrierGroupDesc.textures = &textureBarrierDescs;
 		rsh.nri.coreI.CmdBarrier( frame->cmd, &barrierGroupDesc );
@@ -640,11 +640,11 @@ void RF_EndFrame( void )
 	// Present
 	rsh.nri.swapChainI.QueuePresent( rsh.swapchain );
 	{ // Signaling after "Present" improves D3D11 performance a bit
-		NriFenceSubmitDesc signalFence = {};
+		NriFenceSubmitDesc signalFence = {0};
 		signalFence.fence = rsh.frameFence;
 		signalFence.value = 1 + rsh.frameCnt;
 
-		NriQueueSubmitDesc queueSubmitDesc = {};
+		NriQueueSubmitDesc queueSubmitDesc = {0};
 		queueSubmitDesc.signalFences = &signalFence;
 		queueSubmitDesc.signalFenceNum = 1;
 

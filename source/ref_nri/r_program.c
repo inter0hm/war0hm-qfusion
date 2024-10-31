@@ -1418,8 +1418,8 @@ struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, stru
 	if(pipeline->pipeline) {
 		return pipeline; // pipeline is present in slot
 	}
-	NriGraphicsPipelineDesc graphicsPipelineDesc = {};
-	NriColorAttachmentDesc colorAttachmentDesc[MAX_COLOR_ATTACHMENTS] = {};
+	NriGraphicsPipelineDesc graphicsPipelineDesc = {0};
+	NriColorAttachmentDesc colorAttachmentDesc[MAX_COLOR_ATTACHMENTS] = {0};
 	for( size_t i = 0; i < def->numColorAttachments; i++ ) {
 		colorAttachmentDesc[i].format = def->pipelineLayout.colorFormats[i];
 		colorAttachmentDesc[i].colorBlend.srcFactor = def->pipelineLayout.colorSrcFactor; 
@@ -1716,11 +1716,11 @@ struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const cha
 	sdsfree(featuresStr);
 	
 	SpvReflectDescriptorSet** reflectionDescSets = NULL;
-	SpvReflectBlockVariable* reflectionBlockVariables[1] = {};
-	NriDescriptorSetDesc descriptorSetDesc[DESCRIPTOR_SET_MAX] = {};
-	NriDescriptorRangeDesc* descRangeDescs[DESCRIPTOR_SET_MAX] = {};
-	NriPipelineLayoutDesc pipelineLayoutDesc = {};
-	NriRootConstantDesc rootConstantDesc = {};
+	SpvReflectBlockVariable* reflectionBlockVariables[1] = {0};
+	NriDescriptorSetDesc descriptorSetDesc[DESCRIPTOR_SET_MAX] = {0};
+	NriDescriptorRangeDesc* descRangeDescs[DESCRIPTOR_SET_MAX] = {0};
+	NriPipelineLayoutDesc pipelineLayoutDesc = {0};
+	NriRootConstantDesc rootConstantDesc = {0};
 
 	for( size_t stageIdx = 0; stageIdx < Q_ARRAY_COUNT( stages ); stageIdx++ ) {
 		const glslang_input_t input = { 
@@ -1828,7 +1828,7 @@ struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const cha
 		}
 
 		//TODO: spv needs to be optimized for release
-		glslang_spv_options_t spvOptions = {};
+		glslang_spv_options_t spvOptions = {0};
 		spvOptions.disable_optimizer = false;
 		spvOptions.optimize_size = true;
 		spvOptions.validate = true;
@@ -1938,7 +1938,7 @@ struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const cha
 					}
 
 					if( !rangeDesc ) {
-						NriDescriptorRangeDesc input = {};
+						NriDescriptorRangeDesc input = {0};
 						reflc.rangeOffset = arrlen(descRangeDescs[info->setIndex]);
 						arrpush( descRangeDescs[info->setIndex], input );
 						rangeDesc = &descRangeDescs[info->setIndex][arrlen( descRangeDescs[info->setIndex] ) - 1];

@@ -104,16 +104,16 @@ bool R_InitNriBackend(const nri_init_desc_t* init, struct nri_backend_s* backend
 		  // PFN_vkGetPhysicalDeviceQueueFamilyProperties vkGetPhysicalDeviceQueueFamilyProperties =
 		//		(PFN_vkGetPhysicalDeviceQueueFamilyProperties)Sys_Library_ProcAddress( backend->vk.vulkanLoader, "vkGetPhysicalDeviceQueueFamilyProperties" );
 
-			VkApplicationInfo applicationInfo = {};
+			VkApplicationInfo applicationInfo = {0};
 			applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 			applicationInfo.apiVersion = VK_API_VERSION_1_3;
 
 			NriSPIRVBindingOffsets offset = { .samplerOffset = 100, .textureOffset = 200, .constantBufferOffset = 300, .storageTextureAndBufferOffset = 400 };
 			uint32_t adapterDescsNum = 1;
-			NriAdapterDesc bestAdapterDesc = {};
+			NriAdapterDesc bestAdapterDesc = {0};
 			NRI_ABORT_ON_FAILURE( nriEnumerateAdapters( &bestAdapterDesc, &adapterDescsNum ) );
 
-			NriDeviceCreationDesc deviceCreationDesc = {};
+			NriDeviceCreationDesc deviceCreationDesc = {0};
 			deviceCreationDesc.graphicsAPI = NriGraphicsAPI_VK;
 			deviceCreationDesc.enableGraphicsAPIValidation = true;
 			deviceCreationDesc.enableNRIValidation = true;

@@ -45,8 +45,8 @@ static NriTextureBarrierDesc* transitionTextures = NULL; // textures that need t
 
 static uint32_t syncIndex = 0;
 static uint32_t activeSet = 0;
-static resource_stage_buffer_t stageBuffer = {};
-static resource_command_set_t commandSets[NUMBER_COMMAND_SETS] = {};
+static resource_stage_buffer_t stageBuffer = {0};
+static resource_command_set_t commandSets[NUMBER_COMMAND_SETS] = {0};
 static NriCommandQueue *cmdQueue = NULL;
 static NriFence *uploadFence = NULL;
 
@@ -88,14 +88,14 @@ static bool R_AllocTemporaryBuffer( resource_command_set_t *set, size_t reqSize,
 		return true;
 	}
 	// Com_Printf( "Creating temporary buffer ran out space in staging" );
-	temporary_resource_buf_t temp = {};
+	temporary_resource_buf_t temp = {0};
 	NriBufferDesc bufferDesc = { .size = reqSize };
 	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateBuffer( rsh.nri.device, &bufferDesc, &temp.buffer ) );
 
-	struct NriMemoryDesc memoryDesc = {};
+	struct NriMemoryDesc memoryDesc = {0};
 	rsh.nri.coreI.GetBufferMemoryDesc( rsh.nri.device, &bufferDesc, NriMemoryLocation_HOST_UPLOAD, &memoryDesc );
 
-	NriAllocateMemoryDesc allocateMemoryDesc = {};
+	NriAllocateMemoryDesc allocateMemoryDesc = {0};
 	allocateMemoryDesc.size = memoryDesc.size;
 	allocateMemoryDesc.type = memoryDesc.type;
 	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.AllocateMemory( rsh.nri.device, &allocateMemoryDesc, &temp.memory ) );
@@ -190,7 +190,7 @@ void R_InitResourceUpload()
 void R_ResourceBeginCopyBuffer( buffer_upload_desc_t *action )
 {
 	assert( action->target );
-	resource_stage_response_t res = {};
+	resource_stage_response_t res = {0};
 	R_AllocTemporaryBuffer( &commandSets[activeSet], action->numBytes, &res );
 	action->internal.byteOffset = res.byteOffset;
 	action->internal.backing = res.backing;
@@ -254,7 +254,7 @@ void R_ResourceBeginCopyTexture( texture_upload_desc_t *desc )
 	desc->alignRowPitch = alignedRowPitch;
 	desc->alignSlicePitch = alignedSlicePitch;
 
-	resource_stage_response_t res = {};
+	resource_stage_response_t res = {0};
 	R_AllocTemporaryBuffer( &commandSets[activeSet], alignedSlicePitch, &res );
 
 	desc->internal.byteOffset = res.byteOffset;
