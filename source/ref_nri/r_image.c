@@ -1736,13 +1736,13 @@ static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mip
 		memset( &( (uint8_t *)uploadDesc.data )[dstRowStart], 255, uploadDesc.rowPitch );
 		for( size_t column = 0; column < uploadDesc.width; column++ ) {
 			switch( srcFormat ) {
-				case R_FORMAT_L8_A8_UNORM:
-					// assert( destFormat == R_FORMAT_RGBA8_UNORM );
+				case R_FORMAT_L8_A8_UNORM: {
 					const uint8_t luminance = data[( uploadDesc.width * srcBlockSize * slice ) + ( column * srcBlockSize )];
 					const uint8_t alpha = data[( uploadDesc.width * srcBlockSize * slice ) + ( column * srcBlockSize ) + 1];
 					uint8_t color[4] = { luminance, luminance, luminance, alpha };
 					memcpy( &( (uint8_t *)uploadDesc.data )[dstRowStart + ( destBlockSize * column )], color, min( sizeof( color ), destBlockSize ) );
 					break;
+				}
 				case R_FORMAT_A8_UNORM: 
 				case R_FORMAT_R8_UNORM: {
 					const uint8_t c1 = data[( uploadDesc.width * srcBlockSize * slice ) + ( column * srcBlockSize )];
