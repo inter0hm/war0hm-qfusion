@@ -73,28 +73,6 @@ static NriTextureUsageBits __R_NRITextureUsageBits(int flags);
 static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mipOffset, int x, int y, int w, int h, enum texture_format_e srcFormat, uint8_t *data );
 static enum texture_format_e __R_GetImageFormat( struct image_s* image );
 
-int R_TextureTarget( int flags, int *uploadTarget )
-{
-	int target, target2;
-
-	if( flags & IT_CUBEMAP ) {
-		target = GL_TEXTURE_CUBE_MAP_ARB;
-		target2 = GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB;
-	} else if( flags & IT_ARRAY ) {
-		target = target2 = GL_TEXTURE_2D_ARRAY_EXT;
-	} else if( flags & IT_3D ) {
-		target = target2 = GL_TEXTURE_3D_EXT;
-	} else {
-		target = target2 = GL_TEXTURE_2D;
-	}
-
-	if( uploadTarget )
-		*uploadTarget = target2;
-	return target;
-}
-
-
-
 NriDescriptor *R_ResolveSamplerDescriptor( int flags )
 {
 

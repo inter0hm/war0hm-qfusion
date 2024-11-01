@@ -624,7 +624,7 @@ NOTE the other tuning knobs are now in the shader function inputs!
     #define FxaaHalf4 vec4
     #define FxaaInt2 ivec2
     #define FxaaSat(x) clamp(x, 0.0, 1.0)
-    #define FxaaTex sampler2D
+    #define FxaaTex texture2D
 #else
     #define FxaaBool bool
     #define FxaaDiscard clip(-1)
@@ -662,14 +662,14 @@ NOTE the other tuning knobs are now in the shader function inputs!
 /*--------------------------------------------------------------------------*/
 #if (FXAA_GLSL_130 == 1)
     // Requires "#version 130" or better
-    #define FxaaTexTop(t, p) textureLod(t, p, 0.0)
-    #define FxaaTexOff(t, p, o, r) textureLodOffset(t, p, 0.0, o)
+    #define FxaaTexTop(t, p) textureLod(sampler2D(t, u_BaseSampler), p, 0.0)
+    #define FxaaTexOff(t, p, o, r) textureLodOffset(sampler2D(t, u_BaseSampler), p, 0.0, o)
     #if (FXAA_GATHER4_ALPHA == 1)
         // use #extension GL_ARB_gpu_shader5 : enable
-        #define FxaaTexAlpha4(t, p) textureGather(t, p, 3)
-        #define FxaaTexOffAlpha4(t, p, o) textureGatherOffset(t, p, o, 3)
-        #define FxaaTexGreen4(t, p) textureGather(t, p, 1)
-        #define FxaaTexOffGreen4(t, p, o) textureGatherOffset(t, p, o, 1)
+        #define FxaaTexAlpha4(t, p) textureGather(sampler2D(t, u_BaseSampler), p, 3)
+        #define FxaaTexOffAlpha4(t, p, o) textureGatherOffset(sampler2D(t, u_BaseSampler), p, o, 3)
+        #define FxaaTexGreen4(t, p) textureGather(sampler2D(t, u_BaseSampler), p, 1)
+        #define FxaaTexOffGreen4(t, p, o) textureGatherOffset(sampler2D(t, u_BaseSampler), p, o, 1)
     #endif
 #endif
 /*--------------------------------------------------------------------------*/

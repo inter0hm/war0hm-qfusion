@@ -83,7 +83,6 @@ void FR_CmdSetTextureAttachment( struct frame_cmd_buffer_s *cmd,
 		cmd->state.pipelineLayout.colorFormats[i] = colorformats[i];
 	}
 	cmd->state.pipelineLayout.depthFormat = depthFormat;
-
 	cmd->state.numColorAttachments = numAttachments;
 	memcpy( cmd->state.colorAttachment, colorAttachments, sizeof( struct NriDescriptor * ) * numAttachments );
 	memcpy( cmd->state.viewports, viewports, sizeof( NriViewport ) * numAttachments );
@@ -116,6 +115,17 @@ void FR_CmdResetCommandState( struct frame_cmd_buffer_s *cmd, enum CmdResetBits 
 	}
 	if(bits & CMD_RESET_VERTEX_BUFFER) {
 		cmd->state.dirtyVertexBuffers = 0;
+	}
+	if(bits & CMD_RESET_DEFAULT_PIPELINE_LAYOUT ) {
+		cmd->state.pipelineLayout.flippedViewport = false;
+		cmd->state.pipelineLayout.depthWrite = false;
+		cmd->state.pipelineLayout.blendEnabled = false;
+		cmd->state.pipelineLayout.cullMode = NriCullMode_FRONT;
+		cmd->state.pipelineLayout.depthBias = (NriDepthBiasDesc){};
+		cmd->state.pipelineLayout.colorSrcFactor = NriBlendFactor_ONE;
+		cmd->state.pipelineLayout.colorDstFactor = NriBlendFactor_ZERO;
+		cmd->state.pipelineLayout.colorWriteMask = NriColorWriteBits_RGB;
+		cmd->state.pipelineLayout.compareFunc= NriCompareFunc_ALWAYS;
 	}
 	
 }
@@ -222,6 +232,24 @@ void ResetFrameCmdBuffer( struct nri_backend_s *backend, struct frame_cmd_buffer
 	memset( &cmd->uboLight, 0, sizeof( struct ubo_frame_instance_s ) );
 }
 
+void FR_CmdDraw( struct frame_cmd_buffer_s *cmd, uint32_t vertexNum, uint32_t instanceNum, uint32_t baseVertex, uint32_t baseInstance) {
+	if(cmd->state.dirty & CMD_DIRT_VIEWPORT) {
+		rsh.nri.coreI.CmdSetViewports( cmd->cmd, cmd->state.viewports, cmd->state.numColorAttachments );
+		cmd->state.dirty &= ~CMD_DIRT_VIEWPORT;
+	}
+
+	if(cmd->state.dirty & CMD_DIRT_SCISSOR) {
+		rsh.nri.coreI.CmdSetScissors( cmd->cmd, cmd->state.scissors, cmd->state.numColorAttachments );
+		cmd->state.dirty &= ~CMD_DIRT_SCISSOR;
+	}
+	NriDrawDesc drawDesc = { 0 };
+	drawDesc.vertexNum = vertexNum;
+	drawDesc.instanceNum = max( 1, instanceNum );
+	drawDesc.baseVertex = baseVertex;
+	drawDesc.baseInstance = baseInstance;
+	rsh.nri.coreI.CmdDraw( cmd->cmd, &drawDesc );
+}
+
 void FR_CmdDrawElements( struct frame_cmd_buffer_s *cmd, uint32_t indexNum, uint32_t instanceNum, uint32_t baseIndex, uint32_t baseVertex, uint32_t baseInstance )
 {
 	uint32_t vertexSlot = 0;
@@ -257,29 +285,6 @@ void FR_CmdDrawElements( struct frame_cmd_buffer_s *cmd, uint32_t indexNum, uint
 }
 
 
-//void FR_FreeTexBuffer(struct frame_tex_buffers_s* tex) {
-//	if(tex->depthTexture) 
-//		rsh.nri.coreI.DestroyTexture(tex->depthTexture);
-//	if(tex->colorTexture) 
-//		rsh.nri.coreI.DestroyTexture(tex->colorTexture);
-//	if(tex->colorAttachment)
-//		rsh.nri.coreI.DestroyDescriptor(tex->colorAttachment);
-//	if(tex->depthAttachment)
-//		rsh.nri.coreI.DestroyDescriptor(tex->depthAttachment);
-//	for(size_t i = 0; i < tex->memoryLen; i++) {
-//		rsh.nri.coreI.FreeMemory(tex->memory[i]);
-//	}
-//	for(size_t i = 0; i < 2; i++) {
-//		if(tex->pogoBuffers[i].colorAttachment)
-//			rsh.nri.coreI.DestroyDescriptor(tex->pogoBuffers[i].colorAttachment);
-//		if(tex->pogoBuffers[i].colorTexture)
-//			rsh.nri.coreI.DestroyTexture(tex->pogoBuffers[i].colorTexture);
-//	}
-//
-//	memset(tex, 0, sizeof(struct frame_tex_buffers_s));
-//}
-
-
 void FR_CmdBeginRendering( struct frame_cmd_buffer_s *cmd )
 {
 	cmd->stackCmdBeingRendered++;
@@ -305,3 +310,60 @@ void FR_CmdEndRendering( struct frame_cmd_buffer_s *cmd )
 	}
 	rsh.nri.coreI.CmdEndRendering( cmd->cmd );
 }
+
+void TransitionPogoBufferToShaderResource(struct frame_cmd_buffer_s* frame, struct pogo_buffers_s* pogo) {
+		NriTextureBarrierDesc transitionBarriers = { 0 };
+		if(pogo->isUsed) {
+			transitionBarriers.before = (NriAccessLayoutStage){	
+				.layout = NriLayout_COLOR_ATTACHMENT, 
+				.access = NriAccessBits_COLOR_ATTACHMENT, 
+				.stages = NriStageBits_COLOR_ATTACHMENT 
+			};
+		}
+		pogo->isUsed = 1;
+		transitionBarriers.after= (NriAccessLayoutStage){	
+			.layout = NriLayout_SHADER_RESOURCE,
+			.access = NriAccessBits_SHADER_RESOURCE,
+			.stages = NriStageBits_FRAGMENT_SHADER 
+		};
+		transitionBarriers.texture = pogo->colorTexture;
+		NriBarrierGroupDesc barrierGroupDesc = { 0 };
+		barrierGroupDesc.textureNum = 1;
+		barrierGroupDesc.textures = &transitionBarriers;
+		rsh.nri.coreI.CmdBarrier( frame->cmd, &barrierGroupDesc );
+		pogo->isAttachment = false;
+}
+
+void TransitionPogoBufferToAttachment(struct frame_cmd_buffer_s* frame, struct pogo_buffers_s* pogo) {
+		NriTextureBarrierDesc transitionBarriers = { 0 };
+		if(pogo->isUsed) {
+			transitionBarriers.before = ( NriAccessLayoutStage ){ 
+				.layout = NriLayout_SHADER_RESOURCE, 
+				.access = NriAccessBits_SHADER_RESOURCE, 
+				.stages = NriStageBits_FRAGMENT_SHADER };
+		}
+		pogo->isUsed = 1;
+		transitionBarriers.after = ( NriAccessLayoutStage ){ 
+			.layout = NriLayout_COLOR_ATTACHMENT, 
+			.access = NriAccessBits_COLOR_ATTACHMENT, 
+			.stages = NriStageBits_COLOR_ATTACHMENT };
+		transitionBarriers.texture = pogo->colorTexture;
+		NriBarrierGroupDesc barrierGroupDesc = { 0 };
+		barrierGroupDesc.textureNum = 1;
+		barrierGroupDesc.textures = &transitionBarriers;
+		rsh.nri.coreI.CmdBarrier( frame->cmd, &barrierGroupDesc );
+		pogo->isAttachment = true;
+}
+
+void FR_BindPogoBufferAttachment(struct frame_cmd_buffer_s* frame, struct pogo_buffers_s* pogo) {
+	const NriTextureDesc *depthDesc = rsh.nri.coreI.GetTextureDesc( frame->textureBuffers.depthTexture );
+	TransitionPogoBufferToAttachment(frame, pogo);
+
+	const NriDescriptor *colorAttachments[] = { pogo->colorAttachment };
+	const struct NriViewport viewports[] = {
+		( NriViewport ){ .x = 0, .y = 0, .width = frame->textureBuffers.screen.width, .height = frame->textureBuffers.screen.height, .depthMin = 0.0f, .depthMax = 1.0f } };
+	const struct NriRect scissors[] = { frame->textureBuffers.screen };
+	const NriFormat colorFormats[] = { POGO_BUFFER_TEXTURE_FORMAT };
+	FR_CmdSetTextureAttachment( frame, colorFormats, colorAttachments, viewports, scissors, 1, depthDesc->format, frame->textureBuffers.depthAttachment);
+}
+

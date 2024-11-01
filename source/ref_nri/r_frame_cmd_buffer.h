@@ -6,6 +6,8 @@
 #include "r_vattribs.h"
 #include "r_block_buffer_pool.h"
 
+#define POGO_BUFFER_TEXTURE_FORMAT NriFormat_RGBA8_UNORM
+
 typedef struct mesh_vbo_s mesh_vbo_t;
 typedef struct mfog_s mfog_t;
 typedef struct entity_s entity_t;
@@ -22,6 +24,7 @@ enum CmdStateResetBits {
 enum CmdResetBits {
 	CMD_RESET_INDEX_BUFFER = 0x1,
 	CMD_RESET_VERTEX_BUFFER = 0x2,
+	CMD_RESET_DEFAULT_PIPELINE_LAYOUT = 0x4
 };
 
 enum CmdStateDirtyBits {
@@ -86,6 +89,8 @@ struct frame_cmd_state_s {
 
 
 struct frame_tex_buffers_s {
+	NriDescriptor* postProcessingSampler;
+
 	NriRect screen; 	
 	NriDescriptor *colorAttachment;
 	NriTexture *colorTexture;
@@ -95,15 +100,16 @@ struct frame_tex_buffers_s {
 
 	// used for post processing
 	struct pogo_buffers_s {
+		uint8_t isAttachment:1;
+		uint8_t isUsed:1;
 		NriDescriptor *colorAttachment;
+		struct nri_descriptor_s shaderDescriptor;
 		NriTexture *colorTexture;
 	} pogoBuffers[2];
 
-
 	NriAccessLayoutStage currentLayout;
-
 	size_t memoryLen;
-	NriMemory* memory[8];
+	NriMemory* memory[10];
 };
 
 struct draw_element_s {
@@ -149,24 +155,13 @@ struct frame_cmd_buffer_s {
 	int stackCmdBeingRendered;
 };
 
+
 struct frame_cmd_save_attachment_s R_CmdState_StashAttachment(struct frame_cmd_buffer_s* cmd);
 void R_CmdState_RestoreAttachment(struct frame_cmd_buffer_s* cmd, const struct frame_cmd_save_attachment_s* stashed);
 
 void FrameCmdBufferFree(struct frame_cmd_buffer_s* cmd);
 void ResetFrameCmdBuffer(struct nri_backend_s* backend,struct frame_cmd_buffer_s* cmd);
 void UpdateFrameUBO( struct frame_cmd_buffer_s *cmd, struct ubo_frame_instance_s *frame, void *data, size_t size );
-
-struct frame_buffer_req_s {
-	struct block_buffer_pool_req_s frame;
-	struct block_buffer_pool_req_s obj;
-};
-
-// I can't figure out frame state so I need a way to work out when
-// to trash the cb and rebuild ...
-// this is basd off the additiona/obj
-//struct block_buffer_pool_req_s FR_ShaderObjReqCB(struct frame_cmd_buffer_s *cmd, const struct ObjectCB* cb); 
-//// this is basd off the additiona/frame
-//struct block_buffer_pool_req_s FR_ShaderFrameReqCB( struct frame_cmd_buffer_s *cmd, const struct FrameCB* cb);
 
 // cmd buffer
 void FR_CmdResetAttachmentToBackbuffer(struct frame_cmd_buffer_s *cmd);
@@ -189,9 +184,15 @@ void FR_CmdSetScissorAll( struct frame_cmd_buffer_s *cmd, const NriRect scissors
 
 void FR_CmdSetViewportAll( struct frame_cmd_buffer_s *cmd, const NriViewport scissors );
 
+void FR_CmdDraw( struct frame_cmd_buffer_s *cmd, uint32_t vertexNum, uint32_t instanceNum, uint32_t baseVertex, uint32_t baseInstance); 
 void FR_CmdDrawElements( struct frame_cmd_buffer_s *cmd, uint32_t indexNum, uint32_t instanceNum, uint32_t baseIndex, uint32_t baseVertex, uint32_t baseInstance );
 
 void FR_CmdBeginRendering(struct frame_cmd_buffer_s* cmd);
 void FR_CmdEndRendering(struct frame_cmd_buffer_s* cmd);
+
+void TransitionPogoBufferToShaderResource(struct frame_cmd_buffer_s* frame, struct pogo_buffers_s* pogo);
+void TransitionPogoBufferToAttachment(struct frame_cmd_buffer_s* frame, struct pogo_buffers_s* pogo);
+
+void FR_BindPogoBufferAttachment(struct frame_cmd_buffer_s* frame, struct pogo_buffers_s* pogo);
 
 #endif

@@ -1518,7 +1518,6 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 					}
 				}
 	
-				assert((programFeatures & GLSL_SHADER_COMMON_DRAWFLAT) == 0);
 				struct glsl_program_s *program = RP_ResolveProgram( GLSL_PROGRAM_TYPE_MATERIAL, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
 				struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state);
 
@@ -2249,7 +2248,8 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 				.descriptor = cmd->uboSceneObject.descriptor, 
 				.handle = Create_DescriptorHandle( "obj" ) 
 			};
-			
+		
+
 			struct glsl_program_s *program = RP_ResolveProgram( GLSL_PROGRAM_TYPE_FOG, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
 			struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state );
 
@@ -2280,38 +2280,6 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 		 // }
 			break;
 		}
-		case GLSL_PROGRAM_TYPE_FXAA: {
-			bool fxaa3 = false;
-			const image_t *image = pass->images[0];
-			mat4_t texMatrix;
-
-			// set shaderpass state (blending, depthwrite, etc)
-			RB_SetShaderpassState( pass->flags );
-
-			Matrix4_Identity( texMatrix );
-
-			RB_BindImage( 0, image );
-
-			if( false )
-				fxaa3 = true;
-			if( fxaa3 )
-				programFeatures |= GLSL_SHADER_FXAA_FXAA3;
-
-			// update uniforms
-			
-			struct glsl_program_s *program = RP_ResolveProgram( GLSL_PROGRAM_TYPE_FXAA, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
-			struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state );
-
-			//program = RB_RegisterProgram( GLSL_PROGRAM_TYPE_FXAA, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
-			//if( RB_BindProgram( program ) ) {
-			//	RB_UpdateCommonUniforms( program, pass, texMatrix );
-
-			//	RP_UpdateTextureUniforms( program, image->upload_width, image->upload_height );
-
-			//	RB_DrawElementsReal( &rb.drawElements );
-			//}
-			break;
-		}
 		case GLSL_PROGRAM_TYPE_YUV: {
 			mat4_t texMatrix = { 0 };
 
@@ -2335,34 +2303,9 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 			// RB_RenderMeshGLSL_YUV( pass, features );
 			break;
 		}
-		case GLSL_PROGRAM_TYPE_COLORCORRECTION: {
-			mat4_t texMatrix;
-
-			// set shaderpass state (blending, depthwrite, etc)
-			RB_SetShaderpassState( pass->flags );
-
-			Matrix4_Identity( texMatrix );
-
-			RB_BindImage( 0, pass->images[0] );
-			RB_BindImage( 1, pass->images[1] );
-
-			// update uniforms
-			struct glsl_program_s *program = RP_ResolveProgram( GLSL_PROGRAM_TYPE_COLORCORRECTION, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
-			assert(program);
-			struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state);
-			//program = RB_RegisterProgram( GLSL_PROGRAM_TYPE_COLORCORRECTION, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, features );
-			//if( RB_BindProgram( program ) ) {
-			//	RB_UpdateCommonUniforms( program, pass, texMatrix );
-
-			//	RB_DrawElementsReal( &rb.drawElements );
-			//}
-
-			// RB_RenderMeshGLSL_ColorCorrection( pass, features );
-			break;
-		}
 		default:
 			ri.Com_DPrintf( S_COLOR_YELLOW "WARNING: Unknown GLSL program type %i\n", programType );
-			break;;
+			break;
 	}
 }
 

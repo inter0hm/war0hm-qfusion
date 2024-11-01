@@ -101,7 +101,6 @@ typedef struct image_s
 
 
 void R_InitImages( void );
-int R_TextureTarget( int flags, int *uploadTarget );
 void R_TouchImage( image_t *image, int tags );
 void R_FreeUnusedImagesByTags( int tags );
 void R_FreeUnusedImages( void );

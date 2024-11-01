@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "r_local.h"
+#include "r_program.h"
+#include "r_frame_cmd_buffer.h"
 
 static void R_ClearDebugBounds( void );
 static void R_RenderDebugBounds( void );
@@ -299,13 +301,77 @@ static void R_BlitTextureToScrFbo( const refdef_t *fd, image_t *image, int dstFb
 	RB_Scissor( 0, 0, rf.frameBufferWidth, rf.frameBufferHeight );
 }
 
+typedef void (*post_processing_t)(const refdef_t* ref, struct frame_cmd_buffer_s* cmd, struct nri_descriptor_s src); 
+
+void __FXAA_PostProcessing(const refdef_t* ref,struct frame_cmd_buffer_s* cmd, struct nri_descriptor_s src) {
+	r_glslfeat_t programFeatures = 0;
+	size_t descriptorIndex = 0;
+	struct glsl_descriptor_binding_s descriptors[8] = { 0 };
+	
+	descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
+		.descriptor = src, 
+		.handle = Create_DescriptorHandle( "u_BaseTexture" ) 
+	};
+	descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
+		.descriptor = R_CreateDescriptorWrapper(&rsh.nri, cmd->textureBuffers.postProcessingSampler), 
+		.handle = Create_DescriptorHandle( "u_BaseSampler" ) 
+	};
+	struct FxaaPushConstant {
+		struct vec2 screenSize;
+	} push;
+	push.screenSize.x =  cmd->textureBuffers.screen.width;
+	push.screenSize.y =  cmd->textureBuffers.screen.height;
+
+	struct glsl_program_s *program = RP_ResolveProgram( GLSL_PROGRAM_TYPE_FXAA, NULL, "", NULL, 0, programFeatures );
+	struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state );
+
+	rsh.nri.coreI.CmdSetPipeline( cmd->cmd, pipeline->pipeline );
+	rsh.nri.coreI.CmdSetPipelineLayout( cmd->cmd, program->layout );
+	rsh.nri.coreI.CmdSetRootConstants( cmd->cmd, 0, &push, sizeof( struct FxaaPushConstant ) );
+	RP_BindDescriptorSets( cmd, program, descriptors, descriptorIndex );
+	FR_CmdDraw(cmd, 3, 0, 0,0);
+
+}
+
+void __ColorCorrection_PostProcessing(const refdef_t* ref,struct frame_cmd_buffer_s* cmd, struct nri_descriptor_s src) {
+	r_glslfeat_t programFeatures = 0;
+	size_t descriptorIndex = 0;
+	struct glsl_descriptor_binding_s descriptors[8] = { 0 };
+	
+	descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
+		.descriptor = src, 
+		.handle = Create_DescriptorHandle( "u_BaseTexture" ) 
+	};
+	descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
+		.descriptor = R_CreateDescriptorWrapper(&rsh.nri, cmd->textureBuffers.postProcessingSampler), 
+		.handle = Create_DescriptorHandle( "u_BaseSampler" ) 
+	};
+	
+	descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
+		.descriptor = ref->colorCorrection->passes[0].images[0]->descriptor, 
+		.handle = Create_DescriptorHandle( "u_ColorLUT" ) 
+	};
+	
+	struct glsl_program_s *program = RP_ResolveProgram( GLSL_PROGRAM_TYPE_COLORCORRECTION, NULL, "", NULL, 0, programFeatures );
+	struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state );
+
+	rsh.nri.coreI.CmdSetPipeline( cmd->cmd, pipeline->pipeline );
+	rsh.nri.coreI.CmdSetPipelineLayout( cmd->cmd, program->layout );
+	RP_BindDescriptorSets( cmd, program, descriptors, descriptorIndex );
+	FR_CmdDraw(cmd, 3, 0, 0,0);
+
+}
+
+
 void R_RenderScene(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 {
 	R_FlushTransitionBarrier(frame->cmd);
 
+	uint8_t pogoIndex = 0;
+	size_t numPostProcessing = 0;
+	post_processing_t postProcessingHandlers[16];
+
 	int fbFlags = 0;
-	int ppFrontBuffer = 0;
-	image_t *ppSource;
 
 	if( r_norefresh->integer )
 		return;
@@ -350,28 +416,30 @@ void R_RenderScene(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 			fbFlags |= 1;
 		}
 
-		if( rsh.screenPPCopies[0] && rsh.screenPPCopies[1] ) {
+		//if( rsh.screenPPCopies[0] && rsh.screenPPCopies[1] ) {
 			int oldFlags = fbFlags;
 			shader_t *cc = rn.refdef.colorCorrection;
 
 			if( r_fxaa->integer ) {
-				fbFlags |= 2;
+				postProcessingHandlers[numPostProcessing++] = __FXAA_PostProcessing;
+	//			fbFlags |= 2;
 			}
 
 			if( cc && cc->numpasses > 0 && cc->passes[0].images[0] && cc->passes[0].images[0] != rsh.noTexture ) {
-				fbFlags |= 4;
+				postProcessingHandlers[numPostProcessing++] = __ColorCorrection_PostProcessing;
+				//			fbFlags |= 4;
 			}
 
 			if( fbFlags != oldFlags ) {
 				if( !rn.fbColorAttachment ) {
 					rn.fbColorAttachment = rsh.screenPPCopies[0];
-					ppFrontBuffer = 1;
+	//				ppFrontBuffer = 1;
 				}
 			}
-		}
+		//}
 	}
 
-	ppSource = rn.fbColorAttachment;
+	//ppSource = rn.fbColorAttachment;
 
 	// clip new scissor region to the one currently set
 	Vector4Set( rn.scissor, fd->scissor_x, fd->scissor_y, fd->scissor_width, fd->scissor_height );
@@ -380,8 +448,12 @@ void R_RenderScene(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 	VectorCopy( fd->vieworg, rn.pvsOrigin );
 	VectorCopy( fd->vieworg, rn.lodOrigin );
 
-	
-	FR_CmdResetAttachmentToBackbuffer(frame);
+	if(numPostProcessing > 0) {
+		FR_BindPogoBufferAttachment(frame, &frame->textureBuffers.pogoBuffers[pogoIndex]);
+	} else {
+		FR_CmdResetAttachmentToBackbuffer(frame);
+	}
+
 	FR_CmdSetViewportAll(frame, (NriViewport) {
 		.x = fd->x,
 		.y = fd->y,
@@ -405,60 +477,87 @@ void R_RenderScene(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 
 	R_RenderDebugBounds();
 
-	FR_CmdResetAttachmentToBackbuffer(frame);
-
-	R_Set2DMode(frame, true );
 
 	if( !( fd->rdflags & RDF_NOWORLDMODEL ) ) {
 		ri.Mutex_Lock( rf.speedsMsgLock );
 		R_WriteSpeedsMessage( rf.speedsMsg, sizeof( rf.speedsMsg ) );
 		ri.Mutex_Unlock( rf.speedsMsgLock );
 	}
+		
+	if(numPostProcessing > 0) {
+		for(size_t i = 0; i < numPostProcessing - 1; i++) {
+			struct pogo_buffers_s* src = &frame->textureBuffers.pogoBuffers[pogoIndex]; 
+			pogoIndex = (pogoIndex + 1) % 2;
+			struct pogo_buffers_s* dest = &frame->textureBuffers.pogoBuffers[pogoIndex]; 
+		
+			TransitionPogoBufferToShaderResource(frame, src);
+			FR_BindPogoBufferAttachment(frame, dest);
 
-	// blit and blend framebuffers in proper order
-
-	if( fbFlags == 1 ) {
-		// only blit soft particles directly when we don't have any other post processing
-		// otherwise use the soft particles FBO as the base texture on the next layer
-		// to avoid wasting time on resolves and the fragment shader to blit to a temp texture
-		R_BlitTextureToScrFbo( fd,
-			ppSource, 0,
-			GLSL_PROGRAM_TYPE_NONE,
-			colorWhite, 0,
-			0, NULL );
+			FR_CmdResetCommandState(frame, CMD_RESET_DEFAULT_PIPELINE_LAYOUT);
+			FR_CmdBeginRendering(frame);	
+			postProcessingHandlers[i](
+				fd,
+				frame,
+				src->shaderDescriptor
+			);
+			FR_CmdEndRendering(frame);
+		}
+		struct pogo_buffers_s* src = &frame->textureBuffers.pogoBuffers[pogoIndex]; 
+		TransitionPogoBufferToShaderResource(frame, src);
+		FR_CmdResetAttachmentToBackbuffer(frame);
+		
+		FR_CmdResetCommandState(frame, CMD_RESET_DEFAULT_PIPELINE_LAYOUT | CMD_RESET_VERTEX_BUFFER );
+		FR_CmdBeginRendering(frame);	
+		postProcessingHandlers[numPostProcessing - 1](fd, frame, src->shaderDescriptor);
+		FR_CmdEndRendering(frame);
 	}
-	fbFlags &= ~1;
+	FR_CmdResetAttachmentToBackbuffer(frame);
 
-	// apply FXAA
-	if( fbFlags & 2 ) {
-		image_t *dest;
+	R_Set2DMode(frame, true );
+ // // blit and blend framebuffers in proper order
 
-		fbFlags &= ~2;
-		dest = fbFlags ? rsh.screenPPCopies[ppFrontBuffer] : NULL;
+ // if( fbFlags == 1 ) {
+ // 	// only blit soft particles directly when we don't have any other post processing
+ // 	// otherwise use the soft particles FBO as the base texture on the next layer
+ // 	// to avoid wasting time on resolves and the fragment shader to blit to a temp texture
+ // 	R_BlitTextureToScrFbo( fd,
+ // 		ppSource, 0,
+ // 		GLSL_PROGRAM_TYPE_NONE,
+ // 		colorWhite, 0,
+ // 		0, NULL );
+ // }
+ // fbFlags &= ~1;
 
-		R_BlitTextureToScrFbo( fd,
-			ppSource, dest ? dest->fbo : 0,
-			GLSL_PROGRAM_TYPE_FXAA,
-			colorWhite, 0,
-			0, NULL );
+ // // apply FXAA
+ // if( fbFlags & 2 ) {
+ // 	image_t *dest;
 
-		ppFrontBuffer ^= 1;
-		ppSource = dest;
-	}
+ // 	fbFlags &= ~2;
+ // 	dest = fbFlags ? rsh.screenPPCopies[ppFrontBuffer] : NULL;
 
-	// apply color correction
-	if( fbFlags & 4 ) {
-		image_t *dest;
+ // 	R_BlitTextureToScrFbo( fd,
+ // 		ppSource, dest ? dest->fbo : 0,
+ // 		GLSL_PROGRAM_TYPE_FXAA,
+ // 		colorWhite, 0,
+ // 		0, NULL );
 
-		fbFlags &= ~4;
-		dest = fbFlags ? rsh.screenPPCopies[ppFrontBuffer] : NULL;
+ // 	ppFrontBuffer ^= 1;
+ // 	ppSource = dest;
+ // }
 
-		R_BlitTextureToScrFbo( fd,
-			ppSource, dest ? dest->fbo : 0,
-			GLSL_PROGRAM_TYPE_COLORCORRECTION,
-			colorWhite, 0,
-			1, &( rn.refdef.colorCorrection->passes[0].images[0] ) );
-	}
+ // // apply color correction
+ // if( fbFlags & 4 ) {
+ // 	image_t *dest;
+
+ // 	fbFlags &= ~4;
+ // 	dest = fbFlags ? rsh.screenPPCopies[ppFrontBuffer] : NULL;
+
+ // 	R_BlitTextureToScrFbo( fd,
+ // 		ppSource, dest ? dest->fbo : 0,
+ // 		GLSL_PROGRAM_TYPE_COLORCORRECTION,
+ // 		colorWhite, 0,
+ // 		1, &( rn.refdef.colorCorrection->passes[0].images[0] ) );
+ // }
 }
 
 /*

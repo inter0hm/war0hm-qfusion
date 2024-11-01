@@ -1398,6 +1398,7 @@ bool RP_ProgramHasUniform(const struct glsl_program_s *program,const struct glsl
 	return false;
 }
 
+
 void RP_BindDescriptorSets(struct frame_cmd_buffer_s* cmd, struct glsl_program_s *program, struct glsl_descriptor_binding_s *bindings, size_t numDescriptorData )
 {
 	struct glsl_descriptor_commit_s {

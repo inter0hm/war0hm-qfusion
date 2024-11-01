@@ -1,14 +1,9 @@
-#include "include/global.glsl"
-#include "defaultDistortion.res.glsl"
-
-layout(set = DESCRIPTOR_PASS_SET, binding = 0) uniform sampler u_BaseSampler;
-layout(set = DESCRIPTOR_PASS_SET, binding = 0) uniform texture2D u_BaseTexture;
-layout(set = DESCRIPTOR_PASS_SET, binding = 1) uniform texture2D u_ColorLUT;
+layout(set = 0, binding = 0) uniform sampler u_BaseSampler;
+layout(set = 0, binding = 0) uniform texture2D u_BaseTexture;
+layout(set = 0, binding = 1) uniform texture2D u_ColorLUT;
 
 layout(location = 0) in vec2 v_TexCoord;
 layout(location = 0) out vec4 outFragColor;
-
-#include "include/qf_vert_utils.glsl"
 
 void main(void)
 {

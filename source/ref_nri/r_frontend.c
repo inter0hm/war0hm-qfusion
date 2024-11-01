@@ -175,6 +175,7 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 
 			const NriTextureDesc *swapChainDesc = rsh.nri.coreI.GetTextureDesc( swapChainTextures[i] );
 			rsh.backBuffers[i].colorTexture = swapChainTextures[i];
+			rsh.backBuffers[i].postProcessingSampler = R_ResolveSamplerDescriptor(IT_NOFILTERING);   
 			{
 				NriTexture2DViewDesc textureViewDesc = { 
 					swapChainTextures[i], 
@@ -183,24 +184,45 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &rsh.backBuffers[i].colorAttachment) );
 			}
 
-			//for(size_t pogoIdx = 0; pogoIdx < Q_ARRAY_COUNT(rsh.backBuffers->pogoBuffers); pogoIdx++) {
-			//	NriTextureDesc textureDesc = { 
-			//		.width = swapChainDesc->width,
-			//	  .height = swapChainDesc->height,
-			//	  .depth = 1,
-			//	  .usage = NriTextureUsageBits_COLOR_ATTACHMENT | NriTextureUsageBits_SHADER_RESOURCE,
-			//	  .layerNum = 1,
-			//	  .format = NriFormat_RGBA8_UNORM,
-			//	  .sampleNum = 1,
-			//	  .type = NriTextureType_TEXTURE_2D,
-			//	  .mipNum = 1 };
-			//	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture) );
-			//	NriResourceGroupDesc resourceGroupDesc = {
-			//		.textureNum = 1,
-			//		.textures = &rsh.backBuffers[i].depthTexture,
-			//		.memoryLocation = NriMemoryLocation_DEVICE,
-			//	};
-			//}
+			for(size_t pogoIdx = 0; pogoIdx < Q_ARRAY_COUNT(rsh.backBuffers->pogoBuffers); pogoIdx++) {
+				NriTextureDesc textureDesc = { 
+					.width = swapChainDesc->width,
+				  .height = swapChainDesc->height,
+				  .depth = 1,
+				  .usage = NriTextureUsageBits_COLOR_ATTACHMENT | NriTextureUsageBits_SHADER_RESOURCE,
+				  .layerNum = 1,
+				  .format = POGO_BUFFER_TEXTURE_FORMAT,
+				  .sampleNum = 1,
+				  .type = NriTextureType_TEXTURE_2D,
+				  .mipNum = 1 };
+				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture) );
+				NriResourceGroupDesc resourceGroupDesc = {
+					.textureNum = 1,
+					.textures = &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture,
+					.memoryLocation = NriMemoryLocation_DEVICE,
+				};
+				const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
+				assert(numAllocations + rsh.backBuffers[i].memoryLen <= Q_ARRAY_COUNT(rsh.backBuffers[i].memory));
+				NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, rsh.backBuffers[i].memoryLen + rsh.backBuffers[i].memory ) )
+				rsh.backBuffers[i].memoryLen += numAllocations;
+			
+				NriTexture2DViewDesc attachmentViewDesc = {
+					.texture = rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture,
+					.viewType = NriTexture2DViewType_COLOR_ATTACHMENT,
+					.format = textureDesc.format
+				};
+				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &attachmentViewDesc, &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorAttachment) );
+
+				NriTexture2DViewDesc shaderViewDesc = {
+					.texture = rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture,
+					.viewType = NriTexture2DViewType_SHADER_RESOURCE_2D,
+					.format = textureDesc.format
+				};
+				NriDescriptor* descriptor;
+				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &shaderViewDesc, &descriptor));
+
+				rsh.backBuffers[i].pogoBuffers[pogoIdx].shaderDescriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
+			}
 
 			{
 				NriTextureDesc textureDesc = { 
@@ -421,6 +443,12 @@ void RF_Shutdown( bool verbose )
 		assert(backBuffer->depthAttachment);
 		assert(backBuffer->depthTexture);
 
+		for(size_t pogoIdx = 0; pogoIdx < Q_ARRAY_COUNT(rsh.backBuffers->pogoBuffers); pogoIdx++) {
+			rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].colorAttachment );
+			rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].shaderDescriptor.descriptor );
+			rsh.nri.coreI.DestroyTexture( backBuffer->pogoBuffers[pogoIdx].colorTexture );
+			backBuffer->pogoBuffers[pogoIdx].isUsed = 0;
+		}
 		rsh.nri.coreI.DestroyDescriptor(backBuffer->colorAttachment);
 		rsh.nri.coreI.DestroyDescriptor(backBuffer->depthAttachment);
 		rsh.nri.coreI.DestroyTexture(backBuffer->depthTexture);

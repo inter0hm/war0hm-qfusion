@@ -523,8 +523,15 @@ static void _R_DrawSurfaces(struct frame_cmd_buffer_s* frame, drawList_t *list )
 			}
 
 			if( !depthWrite && !depthCopied && Shader_ReadDepth( shader ) ) {
+				assert(frame->stackCmdBeingRendered == 1);
 				depthCopied = true;
 				if( ( rn.renderFlags & RF_SOFT_PARTICLES ) && rn.fbDepthAttachment && rsh.screenTextureCopy ) {
+					// TODO: implemented RF_SOFT_PARTICLES 
+					FR_CmdEndRendering(frame);
+
+					FR_CmdBeginRendering(frame);
+					
+
 					// draw all dynamic surfaces that write depth before copying
 					assert(false);
 					if( batchOpaque ) {
