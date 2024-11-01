@@ -121,7 +121,7 @@ void FR_CmdResetCommandState( struct frame_cmd_buffer_s *cmd, enum CmdResetBits 
 		cmd->state.pipelineLayout.depthWrite = false;
 		cmd->state.pipelineLayout.blendEnabled = false;
 		cmd->state.pipelineLayout.cullMode = NriCullMode_FRONT;
-		cmd->state.pipelineLayout.depthBias = (NriDepthBiasDesc){};
+		cmd->state.pipelineLayout.depthBias = (NriDepthBiasDesc){0};
 		cmd->state.pipelineLayout.colorSrcFactor = NriBlendFactor_ONE;
 		cmd->state.pipelineLayout.colorDstFactor = NriBlendFactor_ZERO;
 		cmd->state.pipelineLayout.colorWriteMask = NriColorWriteBits_RGB;
