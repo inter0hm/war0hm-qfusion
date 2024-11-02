@@ -89,7 +89,6 @@ typedef struct image_s
 	int flags;
 	uint16_t width, height; // source image
 	int layers;				// texture array size
-	int upload_width, upload_height; // after power of two and picmip
 	int minmipsize;	   // size of the smallest mipmap that should be used
 	int samples;
 	int fbo;			   // frame buffer object texture is attached to

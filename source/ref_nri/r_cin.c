@@ -136,16 +136,16 @@ static void R_UploadCinematicFrame( r_cinhandle_t *handle )
 
 			R_Set2DMode( NULL, true );
 
-			RB_Scissor( 0, 0, handle->image->upload_width, handle->image->upload_height );
+			RB_Scissor( 0, 0, handle->image->width, handle->image->height );
 
-			RB_Viewport( 0, 0, handle->image->upload_width, handle->image->upload_height );
+			RB_Viewport( 0, 0, handle->image->width, handle->image->height );
 
 			R_UploadRawYUVPic( handle->yuv_images, handle->cyuv->yuv );
 
 			// flip the image vertically because we're rendering to a FBO
 			R_DrawStretchRawYUVBuiltin( 
 				0, 0, 
-				handle->image->upload_width, handle->image->upload_height,
+				handle->image->width, handle->image->height,
 				(float)handle->cyuv->x_offset / handle->cyuv->image_width, 
 				(float)handle->cyuv->y_offset / handle->cyuv->image_height, 
 				(float)(handle->cyuv->x_offset + handle->cyuv->width) / handle->cyuv->image_width, 
@@ -202,9 +202,9 @@ void R_CinList_f( void )
 		assert( handle->cin );
 
 		image = handle->image;
-		if( image && (handle->width != image->upload_width || handle->height != image->upload_height) )
+		if( image && (handle->width != image->width || handle->height != image->height) )
 			Com_Printf( "%s %i(%i)x%i(%i)\n", handle->name, handle->width, 
-				image->upload_width, handle->height, image->upload_height );
+				image->width, handle->height, image->height );
 		else
 			Com_Printf( "%s %ix%i\n", handle->name, handle->width, handle->height );
 

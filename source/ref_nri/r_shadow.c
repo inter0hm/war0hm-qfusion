@@ -302,8 +302,8 @@ static float R_SetupShadowmapView( shadowGroup_t *group, refdef_t *refdef, int l
 	clamp( lod, 0, SHADOWMAP_MAX_LOD );
 	
 	shadowmap = group->shadowmap;
-	width = shadowmap->upload_width >> lod;
-	height = shadowmap->upload_height >> lod;
+	width = shadowmap->width >> lod;
+	height = shadowmap->height >> lod;
 	if( !width || !height )
 		return 0.0f;
 
@@ -332,8 +332,8 @@ static float R_SetupShadowmapView( shadowGroup_t *group, refdef_t *refdef, int l
 	// store viewport and texture parameters for group, we'll need them later as GLSL uniforms
 	group->viewportSize[0] = refdef->width;
 	group->viewportSize[1] = refdef->height;
-	group->textureSize[0] = shadowmap->upload_width;
-	group->textureSize[1] = shadowmap->upload_height;
+	group->textureSize[0] = shadowmap->width;
+	group->textureSize[1] = shadowmap->height;
 
 	return farClip;
 }
@@ -403,11 +403,11 @@ void R_DrawShadowmaps( void )
 		// allocate/resize the texture if needed
 		shadowmap = R_GetShadowmapTexture( i, rsc.refdef.width, rsc.refdef.height, 0 );
 
-		assert( shadowmap && shadowmap->upload_width && shadowmap->upload_height );
+		assert( shadowmap && shadowmap->width && shadowmap->height );
 
 		group->shadowmap = shadowmap;
-		textureWidth = shadowmap->upload_width;
-		textureHeight = shadowmap->upload_height;
+		textureWidth = shadowmap->width;
+		textureHeight = shadowmap->height;
 
 		if( !shadowmap->fbo ) {
 			continue;

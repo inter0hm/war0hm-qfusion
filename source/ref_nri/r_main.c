@@ -618,8 +618,8 @@ void R_DrawStretchRaw( int x, int y, int w, int h, float s1, float t1, float s2,
 {
 	float h_scale, v_scale;
 
-	h_scale = (float)rsh.rawTexture->width / rsh.rawTexture->upload_width;
-	v_scale = (float)rsh.rawTexture->height / rsh.rawTexture->upload_height;
+	h_scale = (float)rsh.rawTexture->width / rsh.rawTexture->width;
+	v_scale = (float)rsh.rawTexture->height / rsh.rawTexture->height;
 	s1 *= h_scale;
 	s2 *= h_scale;
 	t1 *= v_scale;
@@ -659,10 +659,10 @@ void R_DrawStretchRawYUVBuiltin( int x, int y, int w, int h,
 	p.flags = 0;
 	p.program_type = GLSL_PROGRAM_TYPE_YUV;
 
-	h_scale = (float)yuvTextures[0]->width / yuvTextures[0]->upload_width;
-	v_scale = (float)yuvTextures[0]->height / yuvTextures[0]->upload_height;
-	h_ofs = 1.0f / yuvTextures[0]->upload_width;
-	v_ofs = 1.0f / yuvTextures[0]->upload_height;
+	h_scale = (float)yuvTextures[0]->width / yuvTextures[0]->width;
+	v_scale = (float)yuvTextures[0]->height / yuvTextures[0]->height;
+	h_ofs = 1.0f / yuvTextures[0]->width;
+	v_ofs = 1.0f / yuvTextures[0]->height;
 
 	s1 *= h_scale;
 	s2 *= h_scale;

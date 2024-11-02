@@ -1246,7 +1246,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 			}
 
 			// use blank image if the normalmap is too tiny due to high picmip value
-			if( normalmap && ( normalmap->upload_width < 2 || normalmap->upload_height < 2 ) ) {
+			if( normalmap && ( normalmap->width < 2 || normalmap->height < 2 ) ) {
 				normalmap = rsh.blankBumpTexture;
 			}
 

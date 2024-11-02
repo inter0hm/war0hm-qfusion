@@ -257,7 +257,7 @@ void R_PrintImageList( const char *mask, bool (*filter)( const char *mask, const
 		if( !image->texture) {
 			continue;
 		}
-		if( !image->upload_width || !image->upload_height || !image->layers ) {
+		if( !image->width || !image->height || !image->layers ) {
 			continue;
 		}
 		if( filter && !filter( mask, image->name ) ) {
@@ -267,7 +267,7 @@ void R_PrintImageList( const char *mask, bool (*filter)( const char *mask, const
 			continue;
 		}
 
-		add = image->upload_width * image->upload_height * image->layers;
+		add = image->width * image->height * image->layers;
 		if( !(image->flags & (IT_DEPTH|IT_NOFILTERING|IT_NOMIPMAP)) )
 			add = (unsigned)floor( add / 0.75 );
 		if( image->flags & IT_CUBEMAP )
@@ -293,7 +293,7 @@ void R_PrintImageList( const char *mask, bool (*filter)( const char *mask, const
 		bytes = add * bpp;
 		total_bytes += bytes;
 
-		Com_Printf( " %iW x %iH", image->upload_width, image->upload_height );
+		Com_Printf( " %iW x %iH", image->width, image->height );
 		if( image->layers > 1 )
 			Com_Printf( " x %iL", image->layers );
 		Com_Printf( " x %iBPP: %s%s%s %.1f KB\n", bpp, image->name, image->extension,
@@ -872,7 +872,7 @@ static void R_MipMap16( unsigned short *in, int width, int height, int rMask, in
 /*
 * R_SetupTexParameters
 */
-// static void R_SetupTexParameters( int flags, int upload_width, int upload_height, int minmipsize )
+// static void R_SetupTexParameters( int flags, int width, int height, int minmipsize )
 // {
 // 	int target = R_TextureTarget( flags, NULL );
 // 	int wrap = GL_REPEAT;
@@ -900,7 +900,7 @@ static void R_MipMap16( unsigned short *in, int width, int height, int rMask, in
 
 // 		if( minmipsize > 1 )
 // 		{
-// 			int mipwidth = upload_width, mipheight = upload_height, mip = 0;
+// 			int mipwidth = width, mipheight = height, mip = 0;
 // 			while( ( mipwidth > minmipsize ) || ( mipheight > minmipsize ) )
 // 			{
 // 				++mip;
@@ -952,7 +952,7 @@ static void R_MipMap16( unsigned short *in, int width, int height, int rMask, in
 */
 // static void R_Upload32( int ctx, uint8_t **data, int layer,
 // 	int x, int y, int width, int height,
-// 	int flags, int minmipsize, int *upload_width, int *upload_height, int samples,
+// 	int flags, int minmipsize, int *width, int *height, int samples,
 // 	bool subImage, bool noScale )
 // {
 // 	int i, comp, format, type;
@@ -988,10 +988,10 @@ static void R_MipMap16( unsigned short *in, int width, int height, int rMask, in
 // 		numTextures = 1;
 // 	}
 
-// 	if( upload_width )
-// 		*upload_width = scaledWidth;
-// 	if( upload_height )
-// 		*upload_height = scaledHeight;
+// 	if( width )
+// 		*width = scaledWidth;
+// 	if( height )
+// 		*height = scaledHeight;
 
 // 	R_TextureFormat( flags, samples, &comp, &format, &type );
 
@@ -1140,7 +1140,7 @@ static int R_MipCount( int width, int height, int minmipsize )
 // */
 // static void R_UploadMipmapped( int ctx, uint8_t **data,
 // 	int width, int height, int mipLevels, int flags, int minmipsize,
-// 	int *upload_width, int *upload_height,
+// 	int *width, int *height,
 // 	int format, int type )
 // {
 // 	int i, j;
@@ -1182,10 +1182,10 @@ static int R_MipCount( int width, int height, int minmipsize )
 	
 // 	mip = R_ScaledImageSize( width, height, &scaledWidth, &scaledHeight, flags, mipLevels, minmipsize, false );
 
-// 	if( upload_width )
-// 		*upload_width = scaledWidth;
-// 	if( upload_height )
-// 		*upload_height = scaledHeight;
+// 	if( width )
+// 		*width = scaledWidth;
+// 	if( height )
+// 		*height = scaledHeight;
 
 // 	if( mip < 0 )
 // 	{
@@ -1564,8 +1564,8 @@ static bool __R_LoadKTX( image_t *image, const char *pathname )
 	}
 
 	image->extension = extensionKTX;
-	image->width = image->upload_width = R_KTXWidth(&ktxContext);
-	image->height = image->upload_height = R_KTXHeight(&ktxContext);
+	image->width = R_KTXWidth(&ktxContext);
+	image->height = R_KTXHeight(&ktxContext);
 
 	R_KTXFreeContext(&ktxContext);
 	R_FreeFile( buffer );
@@ -1777,8 +1777,8 @@ static uint16_t __R_calculateMipMapLevel(int flags, int width, int height, uint3
 // 	image->minmipsize = minmipsize;
 // 	image->tags = tags;
 // 	image->samples = samples;
-// 	image->upload_width = width;
-// 	image->upload_height = height;
+// 	image->width = width;
+// 	image->height = height;
 	
 // 	const uint32_t mipSize = __R_calculateMipMapLevel( flags, width, height, minmipsize );
 
@@ -1872,8 +1872,8 @@ struct image_s *R_LoadImage( const char *name, uint8_t **pic, int width, int hei
 	image->minmipsize = minmipsize;
 	image->tags = tags;
 	image->samples = samples;
-	image->upload_width = width;
-	image->upload_height = height;
+	image->width = width;
+	image->height = height;
 
 	const uint32_t mipSize = __R_calculateMipMapLevel( flags, width, height, minmipsize );
 
@@ -1957,8 +1957,6 @@ image_t *R_CreateImage( const char *name, int width, int height, int layers, int
 	
 	image->width = width;
 	image->height = height;
-	image->upload_width = width;
-	image->upload_height = width;
 	image->layers = layers;
 	image->flags = flags;
 	image->minmipsize = minmipsize;
@@ -1983,8 +1981,8 @@ image_t *R_Create3DImage( const char *name, int width, int height, int layers, i
 	// image->minmipsize = minmipsize;
 	// image->tags = tags;
 	// image->samples = samples;
-	// image->upload_width = width;
-	// image->upload_height = height;
+	// image->width = width;
+	// image->height = height;
 	// image->width = width;
 	// image->height = height;
 
@@ -2041,8 +2039,8 @@ image_t *R_Create3DImage( const char *name, int width, int height, int layers, i
 	// RB_FlushTextureCache();
 
 	// //R_ScaledImageSize( width, height, &scaledWidth, &scaledHeight, flags, 1, 1, false );
-	// // image->upload_width = width;
-	// // image->upload_height = height;
+	// // image->width = width;
+	// // image->height = height;
 
 	// //R_SetupTexParameters( flags, scaledWidth, scaledHeight, 1 );
 
@@ -2139,10 +2137,10 @@ void R_ReplaceImage( image_t *image, uint8_t **pic, int width, int height, int f
 
 	//// if( image->width != width || image->height != height || image->samples != samples )
 	//// 	R_Upload32( QGL_CONTEXT_MAIN, pic, 0, 0, 0, width, height, flags, minmipsize,
-	//// 	&(image->upload_width), &(image->upload_height), samples, false, false );
+	//// 	&(image->width), &(image->height), samples, false, false );
 	//// else
 	//// 	R_Upload32( QGL_CONTEXT_MAIN, pic, 0, 0, 0, width, height, flags, minmipsize,
-	//// 	&(image->upload_width), &(image->upload_height), samples, true, false );
+	//// 	&(image->width), &(image->height), samples, true, false );
 
 	//// if( !(image->flags & IT_NO_DATA_SYNC) )
 	//// 	R_DeferDataSync();
@@ -2388,8 +2386,8 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 					break;
 				}
 				
-				image->width = image->upload_width = T_PixelW(&uploads[u].buffer);
-				image->height = image->upload_height = T_PixelH(&uploads[u].buffer);
+				image->width = image->width = T_PixelW(&uploads[u].buffer);
+				image->height = image->height = T_PixelH(&uploads[u].buffer);
 				image->samples =  RT_NumberChannels(uploads[u].buffer.def);
 				image->extension = extensionTGA;
 
@@ -2409,12 +2407,12 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 		struct UploadImgBuffer *upload = &uploads[uploadCount++];
 		upload->flags = flags;
 		if( ( ext == extensionPNG || ext == extensionJPG || ext == extensionTGA ) && T_LoadImageSTBI( resolvedPath, &upload->buffer ) ) {
-			image->width = image->upload_width = T_PixelW( &upload->buffer );
-			image->height = image->upload_height = T_PixelH( &upload->buffer );
+			image->width = image->width = T_PixelW( &upload->buffer );
+			image->height = image->height = T_PixelH( &upload->buffer );
 			image->samples = RT_NumberChannels( upload->buffer.def );
 		}  else if( ext == extensionWAL && T_LoadImageWAL( resolvedPath, &upload->buffer ) ) {
-			image->width = image->upload_width = T_PixelW( &upload->buffer );
-			image->height = image->upload_height = T_PixelH( &upload->buffer );
+			image->width = image->width = T_PixelW( &upload->buffer );
+			image->height = image->height = T_PixelH( &upload->buffer );
 			image->samples = RT_NumberChannels( upload->buffer.def );
 		} else {
 			ri.Com_Printf( S_COLOR_YELLOW "Missing image: %s\n", image->name );
@@ -2848,7 +2846,7 @@ void R_InitViewportTexture( image_t **texture, const char *name, int id,
  // 		R_BindImage( t );
 
  // 		R_Upload32( QGL_CONTEXT_MAIN, &data, 0, 0, 0, width, height, flags, 1,
- // 			&t->upload_width, &t->upload_height, t->samples, false, false );
+ // 			&t->width, &t->height, t->samples, false, false );
  // 	}
 
  // 	// update FBO, if attached
@@ -2857,7 +2855,7 @@ void R_InitViewportTexture( image_t **texture, const char *name, int id,
  // 		t->fbo = 0;
  // 	}
  // 	if( t->flags & IT_FRAMEBUFFER ) {
- // 		t->fbo = RFB_RegisterObject( t->upload_width, t->upload_height, ( tags & IMAGE_TAG_BUILTIN ) != 0,
+ // 		t->fbo = RFB_RegisterObject( t->width, t->height, ( tags & IMAGE_TAG_BUILTIN ) != 0,
  // 			( flags & IT_DEPTHRB ) != 0, ( flags & IT_STENCIL ) != 0 );
  // 		RFB_AttachTextureToObject( t->fbo, t );
  // 	}
