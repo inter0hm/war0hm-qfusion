@@ -584,67 +584,48 @@ done:
 	R_PopRefInst(cmd);
 }
 
-/*
-* R_DrawPortalsDepthMask
-*
-* Renders portal or sky surfaces from the BSP tree to depth buffer. Each rendered pixel
-* receives the depth value of 1.0, everything else is cleared to 0.0.
-*
-* The depth buffer is then preserved for portal render stage to minimize overdraw.
-*/
-static void R_DrawPortalsDepthMask( void )
-{
-	float depthmin, depthmax;
-
-	if( !rn.portalmasklist || !rn.portalmasklist->numDrawSurfs ) {
-		return;
-	}
-
-	RB_GetDepthRange( &depthmin, &depthmax );
-
-	RB_ClearDepth( depthmin );
-	RB_Clear( GL_DEPTH_BUFFER_BIT, 0, 0, 0, 0 );
-	RB_SetShaderStateMask( ~0, GLSTATE_DEPTHWRITE|GLSTATE_DEPTHFUNC_GT|GLSTATE_NO_COLORWRITE );
-	RB_DepthRange( depthmax, depthmax );
-
-	R_DrawSurfaces(NULL, rn.portalmasklist );
-
-	RB_DepthRange( depthmin, depthmax );
-	RB_ClearDepth( depthmax );
-	RB_SetShaderStateMask( ~0, 0 );
-}
-
-/*
-* R_DrawPortals
-*/
-void R_DrawPortals(struct frame_cmd_buffer_s* cmd)
+void R_DrawPortals(struct frame_cmd_buffer_s* frame)
 {
 	unsigned int i;
 
 	if( rf.viewcluster == -1 ) {
 		return;
 	}
-	const struct frame_cmd_save_attachment_s stash = R_CmdState_StashAttachment(cmd); 
+	const struct frame_cmd_save_attachment_s stash = R_CmdState_StashAttachment(frame); 
 
 	if( !( rn.renderFlags & ( RF_MIRRORVIEW|RF_PORTALVIEW|RF_SHADOWMAPVIEW ) ) ) {
-		R_DrawPortalsDepthMask();
 
 		// render skyportal
 		if( rn.skyportalSurface ) {
+			NriAttachmentsDesc attachmentsDesc = {0};
+			attachmentsDesc.depthStencil = frame->state.depthAttachment;
+			attachmentsDesc.colorNum = frame->state.numColorAttachments;
+			attachmentsDesc.colors = frame->state.colorAttachment;
+			rsh.nri.coreI.CmdBeginRendering( frame->cmd, &attachmentsDesc );
+			{
+				NriClearDesc clearDesc[MAX_COLOR_ATTACHMENTS + 1] = {0};
+				size_t numClearDesc = 0;
+				clearDesc[numClearDesc].value.depthStencil = ( NriDepthStencil ){ .depth = 1.0f, .stencil = 0.0f };
+				clearDesc[numClearDesc].planes = NriPlaneBits_DEPTH;
+				numClearDesc++;
+				rsh.nri.coreI.CmdClearAttachments( frame->cmd, clearDesc, numClearDesc, NULL, 0 );
+			}
+			rsh.nri.coreI.CmdEndRendering( frame->cmd );
+			
 			portalSurface_t *ps = rn.skyportalSurface;
-			R_DrawSkyportal( cmd, ps->entity, ps->skyPortal );
+			R_DrawSkyportal( frame, ps->entity, ps->skyPortal );
 		}
 
 		// render regular portals
 		for( i = 0; i < rn.numPortalSurfaces; i++ ) {
 			portalSurface_t ps = rn.portalSurfaces[i];
 			if( !ps.skyPortal ) {
-				R_DrawPortalSurface( cmd, &ps );
+				R_DrawPortalSurface( frame, &ps );
 				rn.portalSurfaces[i] = ps;
 			}
 		}
 	}
-	R_CmdState_RestoreAttachment(cmd, &stash);
+	R_CmdState_RestoreAttachment(frame, &stash);
 }
 
 /*

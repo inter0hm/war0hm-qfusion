@@ -1,6 +1,6 @@
 layout(set = 0, binding = 0) uniform sampler u_BaseSampler;
-layout(set = 0, binding = 0) uniform texture2D u_BaseTexture;
-layout(set = 0, binding = 1) uniform texture2D u_ColorLUT;
+layout(set = 0, binding = 1) uniform texture2D u_BaseTexture;
+layout(set = 0, binding = 2) uniform texture2D u_ColorLUT;
 
 layout(location = 0) in vec2 v_TexCoord;
 layout(location = 0) out vec4 outFragColor;

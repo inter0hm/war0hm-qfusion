@@ -319,7 +319,10 @@ void TransitionPogoBufferToShaderResource(struct frame_cmd_buffer_s* frame, stru
 				.access = NriAccessBits_COLOR_ATTACHMENT, 
 				.stages = NriStageBits_COLOR_ATTACHMENT 
 			};
+		} else if(!pogo->isAttachment) {
+			return;
 		}
+		
 		pogo->isUsed = 1;
 		transitionBarriers.after= (NriAccessLayoutStage){	
 			.layout = NriLayout_SHADER_RESOURCE,
@@ -341,6 +344,8 @@ void TransitionPogoBufferToAttachment(struct frame_cmd_buffer_s* frame, struct p
 				.layout = NriLayout_SHADER_RESOURCE, 
 				.access = NriAccessBits_SHADER_RESOURCE, 
 				.stages = NriStageBits_FRAGMENT_SHADER };
+		} else if(pogo->isAttachment) {
+			return;
 		}
 		pogo->isUsed = 1;
 		transitionBarriers.after = ( NriAccessLayoutStage ){ 

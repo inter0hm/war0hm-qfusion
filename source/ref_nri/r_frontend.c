@@ -584,15 +584,12 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 	FR_CmdResetAttachmentToBackbuffer(frame);
 	if(forceClear)
 	{
-	
 		NriAttachmentsDesc attachmentsDesc = {0};
 		attachmentsDesc.depthStencil = frame->state.depthAttachment;
 		attachmentsDesc.colorNum = frame->state.numColorAttachments;
 		attachmentsDesc.colors = frame->state.colorAttachment;
 		rsh.nri.coreI.CmdBeginRendering( frame->cmd, &attachmentsDesc );
 		{
-			const NriTextureDesc *backBufferDesc = rsh.nri.coreI.GetTextureDesc( frame->textureBuffers.colorTexture );
-
 			NriClearDesc clearDesc[MAX_COLOR_ATTACHMENTS + 1] = {0};
 			size_t numClearDesc = 0;
 			for(size_t i = 0; i < attachmentsDesc.colorNum; i++) {
@@ -603,7 +600,6 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 			clearDesc[numClearDesc].value.depthStencil = ( NriDepthStencil ){ .depth = 1.0f, .stencil = 0.0f };
 			clearDesc[numClearDesc].planes = NriPlaneBits_DEPTH;
 			numClearDesc++;
-
 			rsh.nri.coreI.CmdClearAttachments( frame->cmd, clearDesc, numClearDesc, NULL, 0 );
 		}
 		rsh.nri.coreI.CmdEndRendering( frame->cmd );
