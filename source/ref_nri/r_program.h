@@ -214,6 +214,7 @@ enum glsl_slot_type {
 struct glsl_program_s {
 	char *name;
 	int type;
+	bool hasPushConstant;
 	r_glslfeat_t features;
 	char *deformsKey;
 	struct glsl_program_s *hash_next;

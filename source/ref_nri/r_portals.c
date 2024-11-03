@@ -553,7 +553,6 @@ setup_and_render:
 	R_RenderView(cmd, &rn.refdef );
 	cmd->state.pipelineLayout.flippedViewport = false;
 
-
 	if(captureTextureId != -1 && portalTexures[captureTextureId]) {
 			NriTextureBarrierDesc transitionBarriers = { 0 };
 			transitionBarriers.texture = portalTexures[captureTextureId]->colorTexture;

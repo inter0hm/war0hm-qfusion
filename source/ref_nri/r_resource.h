@@ -166,13 +166,13 @@ struct DefaultCellShadeCB {
 };
 
 struct DefaultShadowCB {
-    struct mat4 shadowmapMatrix0;
-    struct mat4 shadowmapMatrix1;
-    struct mat4 shadowmapMatrix2;
-    struct mat4 shadowmapMatrix3;
+    struct mat4 shadowmapMatrix[4];
     struct vec4 shadowDir[4];
-    struct vec4 shadowParams[4];
-    struct vec4 shadowAlpha[2];
+      struct vec4 shadowParams[4];
+    union {
+      struct vec4 shadowAlpha[2];
+      float shadowAlphaV[8];
+    };
     struct vec4 shadowEntitydist[4];
 };
 

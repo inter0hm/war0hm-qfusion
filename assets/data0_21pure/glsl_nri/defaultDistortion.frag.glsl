@@ -32,8 +32,8 @@ void main(void)
 
 	// get projective texcoords
 	float scale = float(1.0 / float(v_ProjVector.w));
-	float inv2NW = push.textureWidth * 0.5; // .z - inverse width
-	float inv2NH = push.textureHeight * 0.5; // .w - inverse height
+	float inv2NW = (1.0/push.textureWidth) * 0.5; // .z - inverse width
+	float inv2NH = (1.0/push.textureHeight) * 0.5; // .w - inverse height
 	vec2 projCoord = (vec2(v_ProjVector.xy) * scale + vec2 (1.0)) * vec2 (0.5) + vec2(fdist.xy);
 	projCoord.s = float (clamp (float(projCoord.s), inv2NW, 1.0 - inv2NW));
 	projCoord.t = float (clamp (float(projCoord.t), inv2NH, 1.0 - inv2NH));
@@ -56,16 +56,16 @@ void main(void)
 	refr = vec3(texture(sampler2D(u_RefractionTexture,u_RefractionSampler), projCoord)) * refrdot;
 #endif
 #ifdef APPLY_REFLECTION
-	refl = (vec3(texture(u_ReflectionTexture, projCoord))) * refldot;
+	refl = (vec3(texture(sampler2D(u_ReflectionTexture,u_ReflectionSampler), projCoord))) * refldot;
 #endif
 
 #else
 
 #ifdef APPLY_REFRACTION
-	refr = (vec3(texture(u_RefractionTexture, projCoord)));
+	refr = (vec3(texture(sampler2D(u_RefractionTexture,u_RefractionSampler), projCoord)));
 #endif
 #ifdef APPLY_REFLECTION
-	refl = (vec3(texture(u_ReflectionTexture, projCoord)));
+	refl = (vec3(texture(sampler2D(u_ReflectionTexture,u_ReflectionSampler), projCoord)));
 #endif
 
 #endif // APPLY_EYEDOT

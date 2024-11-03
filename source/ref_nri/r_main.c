@@ -1000,6 +1000,7 @@ static void R_SetupViewMatrices( void )
 			-rn.farClip, rn.farClip, rn.projectionMatrix );
 	}
 	else {
+
 		Matrix4_PerspectiveProjection( rd->fov_x, rd->fov_y, 
 			Z_NEAR, rn.farClip, rf.cameraSeparation, rn.projectionMatrix );
 	}
@@ -1108,7 +1109,7 @@ static void R_SetupGL(struct frame_cmd_buffer_s* frame)
 	if( rn.renderFlags & RF_FLIPFRONTFACE )
 		RB_FlipFrontFace(frame);
 
-	if( ( rn.renderFlags & RF_SHADOWMAPVIEW ) && glConfig.ext.shadow )
+	if( ( rn.renderFlags & RF_SHADOWMAPVIEW )  )
 		RB_SetShaderStateMask( ~0, GLSTATE_NO_COLORWRITE );
 }
 
@@ -1117,7 +1118,7 @@ static void R_SetupGL(struct frame_cmd_buffer_s* frame)
 */
 static void R_EndGL( struct frame_cmd_buffer_s* frame )
 {
-	if( ( rn.renderFlags & RF_SHADOWMAPVIEW ) && glConfig.ext.shadow )
+	if( ( rn.renderFlags & RF_SHADOWMAPVIEW ) )
 		RB_SetShaderStateMask( ~0, 0 );
 
 	if( rn.renderFlags & RF_FLIPFRONTFACE )
@@ -1312,7 +1313,7 @@ void R_RenderView(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 		R_SetupViewMatrices();
 
 		// render to depth textures, mark shadowed entities and surfaces
-		R_DrawShadowmaps();
+		R_DrawShadowmaps(frame);
 	}
 
 	R_SortDrawList( rn.meshlist );

@@ -8,11 +8,6 @@
 
 #include "r_model.h"
 
-static inline bool isNriRectSame( const NriRect r1, const NriRect r2 )
-{
-	return ( r1.x == r2.x && r1.y == r2.y && r1.width == r2.width && r1.height == r2.height );
-}
-
 void FR_CmdResetAttachmentToBackbuffer( struct frame_cmd_buffer_s *cmd )
 {
 	const NriTextureDesc *colorDesc = rsh.nri.coreI.GetTextureDesc( cmd->textureBuffers.colorTexture );
@@ -44,14 +39,13 @@ void FR_CmdResetCmdState( struct frame_cmd_buffer_s *cmd, enum CmdStateResetBits
 void FR_CmdSetScissor( struct frame_cmd_buffer_s *cmd, const NriRect *scissors, size_t numAttachments )
 {
 	assert( numAttachments < MAX_COLOR_ATTACHMENTS );
-	assert( numAttachments == cmd->state.numColorAttachments );
 	memcpy( cmd->state.scissors, scissors, sizeof( NriRect ) * numAttachments );
 	cmd->state.dirty |= CMD_DIRT_SCISSOR;
 }
 
 void FR_CmdSetScissorAll( struct frame_cmd_buffer_s *cmd, const NriRect scissors )
 {
-	for( size_t i = 0; i < cmd->state.numColorAttachments; i++ ) {
+	for( size_t i = 0; i < FR_CmdNumViewports(cmd); i++ ) {
 		assert( scissors.x >= 0 && scissors.y >= 0 );
 		cmd->state.scissors[i] = scissors;
 	}
@@ -59,7 +53,7 @@ void FR_CmdSetScissorAll( struct frame_cmd_buffer_s *cmd, const NriRect scissors
 }
 
 void FR_CmdSetViewportAll( struct frame_cmd_buffer_s *cmd, const NriViewport viewport ) {
-	for( size_t i = 0; i < cmd->state.numColorAttachments; i++ ) {
+	for( size_t i = 0; i < FR_CmdNumViewports(cmd); i++ ) {
 		cmd->state.viewports[i] = viewport;
 	}
 	cmd->state.dirty |= CMD_DIRT_VIEWPORT;
@@ -79,14 +73,12 @@ void FR_CmdSetTextureAttachment( struct frame_cmd_buffer_s *cmd,
 	assert( numAttachments < MAX_COLOR_ATTACHMENTS );
 	assert( viewports );
 	assert( scissors );
-	for( size_t i = 0; i < numAttachments; i++ ) {
-		cmd->state.pipelineLayout.colorFormats[i] = colorformats[i];
-	}
 	cmd->state.pipelineLayout.depthFormat = depthFormat;
 	cmd->state.numColorAttachments = numAttachments;
+	memcpy(cmd->state.pipelineLayout.colorFormats, colorformats, sizeof(NriFormat) * numAttachments);
 	memcpy( cmd->state.colorAttachment, colorAttachments, sizeof( struct NriDescriptor * ) * numAttachments );
-	memcpy( cmd->state.viewports, viewports, sizeof( NriViewport ) * numAttachments );
-	memcpy( cmd->state.scissors, scissors, sizeof( NriRect ) * numAttachments );
+	memcpy( cmd->state.viewports, viewports, sizeof( NriViewport ) * FR_CmdNumViewports(cmd));
+	memcpy( cmd->state.scissors, scissors, sizeof( NriRect ) * FR_CmdNumViewports(cmd) );
 	cmd->state.depthAttachment = depthAttachment;
 	
 	cmd->state.dirty |= (CMD_DIRT_SCISSOR | CMD_DIRT_VIEWPORT);
@@ -153,10 +145,10 @@ void UpdateFrameUBO( struct frame_cmd_buffer_s *cmd, struct ubo_frame_instance_s
 void R_CmdState_RestoreAttachment(struct frame_cmd_buffer_s* cmd, const struct frame_cmd_save_attachment_s* save) {
 	assert(cmd->stackCmdBeingRendered == 0);
 	cmd->state.numColorAttachments = save->numColorAttachments;
-	memcpy(cmd->state.pipelineLayout.colorFormats, save->colorFormats, sizeof(NriFormat) * save->numColorAttachments);
-	memcpy(cmd->state.colorAttachment, save->colorAttachment, sizeof(NriDescriptor*) * save->numColorAttachments);
-	memcpy(cmd->state.scissors, save->scissors, sizeof(NriRect) * save->numColorAttachments);
-	memcpy(cmd->state.viewports, save->viewports, sizeof(NriViewport) * save->numColorAttachments);
+	memcpy(cmd->state.pipelineLayout.colorFormats, save->colorFormats, sizeof(NriFormat) * cmd->state.numColorAttachments);
+	memcpy(cmd->state.colorAttachment, save->colorAttachment, sizeof(NriDescriptor*) * cmd->state.numColorAttachments);
+	memcpy(cmd->state.scissors, save->scissors, sizeof(NriRect) * FR_CmdNumViewports(cmd));
+	memcpy(cmd->state.viewports, save->viewports, sizeof(NriViewport) * FR_CmdNumViewports(cmd));
 	cmd->state.depthAttachment = save->depthAttachment;
 	cmd->state.dirty |= (CMD_DIRT_SCISSOR | CMD_DIRT_VIEWPORT);
 }
@@ -167,8 +159,8 @@ struct frame_cmd_save_attachment_s R_CmdState_StashAttachment(struct frame_cmd_b
 	save.numColorAttachments = cmd->state.numColorAttachments;
 	memcpy(save.colorFormats, cmd->state.pipelineLayout.colorFormats, sizeof(NriFormat) * cmd->state.numColorAttachments);
 	memcpy(save.colorAttachment, cmd->state.colorAttachment, sizeof(NriDescriptor*) * cmd->state.numColorAttachments);
-	memcpy(save.scissors, cmd->state.scissors, sizeof(NriRect) * cmd->state.numColorAttachments);
-	memcpy(save.viewports, cmd->state.viewports, sizeof(NriViewport) * cmd->state.numColorAttachments);
+	memcpy(save.scissors, cmd->state.scissors, sizeof(NriRect) * FR_CmdNumViewports(cmd));
+	memcpy(save.viewports, cmd->state.viewports, sizeof(NriViewport) * FR_CmdNumViewports(cmd));
 	save.depthAttachment = cmd->state.depthAttachment;
 	return save;
 }
@@ -234,12 +226,12 @@ void ResetFrameCmdBuffer( struct nri_backend_s *backend, struct frame_cmd_buffer
 
 void FR_CmdDraw( struct frame_cmd_buffer_s *cmd, uint32_t vertexNum, uint32_t instanceNum, uint32_t baseVertex, uint32_t baseInstance) {
 	if(cmd->state.dirty & CMD_DIRT_VIEWPORT) {
-		rsh.nri.coreI.CmdSetViewports( cmd->cmd, cmd->state.viewports, cmd->state.numColorAttachments );
+		rsh.nri.coreI.CmdSetViewports( cmd->cmd, cmd->state.viewports, FR_CmdNumViewports(cmd));
 		cmd->state.dirty &= ~CMD_DIRT_VIEWPORT;
 	}
 
 	if(cmd->state.dirty & CMD_DIRT_SCISSOR) {
-		rsh.nri.coreI.CmdSetScissors( cmd->cmd, cmd->state.scissors, cmd->state.numColorAttachments );
+		rsh.nri.coreI.CmdSetScissors( cmd->cmd, cmd->state.scissors, FR_CmdNumViewports(cmd));
 		cmd->state.dirty &= ~CMD_DIRT_SCISSOR;
 	}
 	NriDrawDesc drawDesc = { 0 };
@@ -266,12 +258,12 @@ void FR_CmdDrawElements( struct frame_cmd_buffer_s *cmd, uint32_t indexNum, uint
 	}
 
 	if(cmd->state.dirty & CMD_DIRT_VIEWPORT) {
-		rsh.nri.coreI.CmdSetViewports( cmd->cmd, cmd->state.viewports, cmd->state.numColorAttachments );
+		rsh.nri.coreI.CmdSetViewports( cmd->cmd, cmd->state.viewports, FR_CmdNumViewports(cmd) );
 		cmd->state.dirty &= ~CMD_DIRT_VIEWPORT;
 	}
 
 	if(cmd->state.dirty & CMD_DIRT_SCISSOR) {
-		rsh.nri.coreI.CmdSetScissors( cmd->cmd, cmd->state.scissors, cmd->state.numColorAttachments );
+		rsh.nri.coreI.CmdSetScissors( cmd->cmd, cmd->state.scissors, FR_CmdNumViewports(cmd));
 		cmd->state.dirty &= ~CMD_DIRT_SCISSOR;
 	}
 	
@@ -297,8 +289,8 @@ void FR_CmdBeginRendering( struct frame_cmd_buffer_s *cmd )
 	attachmentsDesc.colors = cmd->state.colorAttachment;
 	attachmentsDesc.depthStencil = cmd->state.depthAttachment;
 	rsh.nri.coreI.CmdBeginRendering( cmd->cmd, &attachmentsDesc );
-	rsh.nri.coreI.CmdSetViewports( cmd->cmd, cmd->state.viewports, cmd->state.numColorAttachments );
-	rsh.nri.coreI.CmdSetScissors( cmd->cmd, cmd->state.scissors, cmd->state.numColorAttachments );
+	rsh.nri.coreI.CmdSetViewports( cmd->cmd, cmd->state.viewports, FR_CmdNumViewports( cmd ) );
+	rsh.nri.coreI.CmdSetScissors( cmd->cmd, cmd->state.scissors, FR_CmdNumViewports( cmd ) );
 	cmd->state.dirty &= ~(CMD_DIRT_VIEWPORT | CMD_DIRT_SCISSOR);
 }
 

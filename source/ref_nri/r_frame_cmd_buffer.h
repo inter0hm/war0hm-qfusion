@@ -6,6 +6,10 @@
 #include "r_vattribs.h"
 #include "r_block_buffer_pool.h"
 
+#include "../gameshared/q_arch.h"
+#include "../gameshared/q_math.h"
+
+
 #define POGO_BUFFER_TEXTURE_FORMAT NriFormat_RGBA8_UNORM
 
 typedef struct mesh_vbo_s mesh_vbo_t;
@@ -164,6 +168,9 @@ void ResetFrameCmdBuffer(struct nri_backend_s* backend,struct frame_cmd_buffer_s
 void UpdateFrameUBO( struct frame_cmd_buffer_s *cmd, struct ubo_frame_instance_s *frame, void *data, size_t size );
 
 // cmd buffer
+static inline int FR_CmdNumViewports(struct frame_cmd_buffer_s* cmd) {
+	return max(cmd->state.numColorAttachments, 1);
+}
 void FR_CmdResetAttachmentToBackbuffer(struct frame_cmd_buffer_s *cmd);
 void FR_CmdSetTextureAttachment( struct frame_cmd_buffer_s *cmd, 
 																const NriFormat *colorformats, 

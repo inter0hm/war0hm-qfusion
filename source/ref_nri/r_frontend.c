@@ -135,6 +135,8 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 			break;
 	}
 
+	rsh.shadowSamplerDescriptor = R_CreateDescriptorWrapper( &rsh.nri, R_ResolveSamplerDescriptor( IT_DEPTHCOMPARE | IT_SPECIAL  ) );
+
 	NriSwapChainDesc swapChainDesc = { 
 		.commandQueue = rsh.nri.graphicsCommandQueue,
 		.width = vid_width->integer, 
@@ -164,6 +166,7 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 		uint32_t swapChainTextureNum = 0;
 		NriTexture *const *swapChainTextures = rsh.nri.swapChainI.GetSwapChainTextures( rsh.swapchain, &swapChainTextureNum );
 		arrsetlen(rsh.backBuffers, swapChainTextureNum);
+		char debugName[1024];
 		for( uint32_t i = 0; i < swapChainTextureNum; i++ ) {
 			rsh.backBuffers[i].memoryLen = 0;
 			rsh.backBuffers[i].screen = (NriRect) {
@@ -196,6 +199,8 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 				  .type = NriTextureType_TEXTURE_2D,
 				  .mipNum = 1 };
 				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture) );
+				Q_snprintfz(debugName, sizeof(debugName), "pogo[%d][%d]", i, pogoIdx);	
+				rsh.nri.coreI.SetTextureDebugName(rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture, debugName);
 				NriResourceGroupDesc resourceGroupDesc = {
 					.textureNum = 1,
 					.textures = &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture,
@@ -236,6 +241,8 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 											   .type = NriTextureType_TEXTURE_2D,
 											   .mipNum = 1 };
 				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &rsh.backBuffers[i].depthTexture ) );
+				Q_snprintfz(debugName, sizeof(debugName), "backbuffer depth[%d]", i);	
+				rsh.nri.coreI.SetTextureDebugName(rsh.backBuffers[i].depthTexture, debugName);
 				NriResourceGroupDesc resourceGroupDesc = {
 					.textureNum = 1,
 					.textures = &rsh.backBuffers[i].depthTexture,

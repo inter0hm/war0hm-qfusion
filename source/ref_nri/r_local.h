@@ -139,7 +139,15 @@ typedef struct superLightStyle_s
 
 
 #define DEPTH_EPSILON (1.0 / ( 1 << 14 ))
-//===================================================================
+
+struct shadow_fb_s {
+	struct nri_descriptor_s depthAttachment;
+	struct nri_descriptor_s shaderDescriptor;
+	NriTexture* depthTexture;
+	size_t numAllocations;
+	NriMemory* memory[4];
+	size_t frameNum;
+};
 
 struct portal_fb_s {
 	struct nri_descriptor_s shaderDescriptor;
@@ -272,9 +280,11 @@ typedef struct
 	shader_t		*skyShader;
 	shader_t		*whiteShader;
 	shader_t		*emptyFogShader;
-	
+
+	struct shadow_fb_s shadowFBs[MAX_SHADOWGROUPS];	
 	struct portal_fb_s portalFBs[MAX_PORTAL_TEXTURES];
- 
+	struct nri_descriptor_s shadowSamplerDescriptor;
+
  	struct nri_backend_s nri;
 	
 	uint64_t frameCnt;
