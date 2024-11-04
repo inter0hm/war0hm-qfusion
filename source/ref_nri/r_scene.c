@@ -307,41 +307,26 @@ void R_RenderScene(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 	fbFlags = 0;
 	rn.fbColorAttachment = rn.fbDepthAttachment = NULL;
 	rn.colorAttachment = rn.depthAttachment= NULL;
-	
+
 	if( !( fd->rdflags & RDF_NOWORLDMODEL ) ) {
 		if( r_soft_particles->integer && ( rsh.screenTexture != NULL ) ) {
 			rn.colorAttachment = frame->textureBuffers.colorAttachment;
-			
+
 			rn.fbColorAttachment = rsh.screenTexture;
 			rn.fbDepthAttachment = rsh.screenDepthTexture;
 			rn.renderFlags |= RF_SOFT_PARTICLES;
 			fbFlags |= 1;
 		}
+		shader_t *cc = rn.refdef.colorCorrection;
 
-		//if( rsh.screenPPCopies[0] && rsh.screenPPCopies[1] ) {
-			int oldFlags = fbFlags;
-			shader_t *cc = rn.refdef.colorCorrection;
+		if( r_fxaa->integer ) {
+			postProcessingHandlers[numPostProcessing++] = __FXAA_PostProcessing;
+		}
 
-			if( r_fxaa->integer ) {
-				postProcessingHandlers[numPostProcessing++] = __FXAA_PostProcessing;
-	//			fbFlags |= 2;
-			}
-
-			if( cc && cc->numpasses > 0 && cc->passes[0].images[0] && cc->passes[0].images[0] != rsh.noTexture ) {
-				postProcessingHandlers[numPostProcessing++] = __ColorCorrection_PostProcessing;
-				//			fbFlags |= 4;
-			}
-
-			if( fbFlags != oldFlags ) {
-				if( !rn.fbColorAttachment ) {
-					rn.fbColorAttachment = rsh.screenPPCopies[0];
-	//				ppFrontBuffer = 1;
-				}
-			}
-		//}
+		if( cc && cc->numpasses > 0 && cc->passes[0].images[0] && cc->passes[0].images[0] != rsh.noTexture ) {
+			postProcessingHandlers[numPostProcessing++] = __ColorCorrection_PostProcessing;
+		}
 	}
-
-	//ppSource = rn.fbColorAttachment;
 
 	// clip new scissor region to the one currently set
 	Vector4Set( rn.scissor, fd->scissor_x, fd->scissor_y, fd->scissor_width, fd->scissor_height );

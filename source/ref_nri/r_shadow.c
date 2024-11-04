@@ -22,23 +22,32 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_math_util.h"
 #include "r_nri.h"
 #include "stb_ds.h"
-/*
-=============================================================
-
-STANDARD PROJECTIVE SHADOW MAPS (SSM)
-
-=============================================================
-*/
 
 #define SHADOWMAP_ORTHO_NUDGE			8
 #define SHADOWMAP_MIN_VIEWPORT_SIZE		16
 #define SHADOWMAP_MAX_LOD				15
-#define SHADOWMAP_LODBIAS			  3	
-
-//static bool r_shadowGroups_sorted;
+#define SHADOWMAP_LODBIAS			  4	
 
 #define SHADOWGROUPS_HASH_SIZE	8
 static shadowGroup_t *r_shadowGroups_hash[SHADOWGROUPS_HASH_SIZE];
+
+
+void R_ShutdownShadows() {
+	for(size_t frameIdx = 0; frameIdx < NUMBER_FRAMES_FLIGHT; frameIdx++) {
+		for(size_t portalIdx = 0; portalIdx < MAX_PORTAL_TEXTURES; portalIdx++) {
+			struct shadow_fb_s *fb = &rsh.shadowFBs[frameIdx][portalIdx];
+			if(fb->depthTexture) {
+				rsh.nri.coreI.DestroyTexture(fb->depthTexture);
+				rsh.nri.coreI.DestroyDescriptor(fb->shaderDescriptor.descriptor);
+				rsh.nri.coreI.DestroyDescriptor(fb->depthAttachment.descriptor);
+			}
+			for( size_t i = 0; i < fb->numAllocations; i++ )
+				rsh.nri.coreI.FreeMemory(fb->memory[i]);
+			fb->numAllocations = 0;
+		}
+	}
+	memset(rsh.shadowFBs, 0, sizeof(rsh.shadowFBs));
+}
 
 /*
 * R_ClearShadowGroups

@@ -268,12 +268,10 @@ typedef struct
 	image_t			*blankBumpTexture;
 	image_t			*particleTexture;			// little dot for particles
 	image_t			*coronaTexture;
-	image_t			*shadowmapTextures[MAX_SHADOWGROUPS];
 	image_t			*screenTexture;
 	image_t			*screenDepthTexture;
 	image_t			*screenTextureCopy;
 	image_t			*screenDepthTextureCopy;
-	image_t			*screenPPCopies[2];
 
 	shader_t		*envShader;
 	shader_t		*skyShader;

@@ -305,20 +305,17 @@ void FR_CmdEndRendering( struct frame_cmd_buffer_s *cmd )
 
 void TransitionPogoBufferToShaderResource(struct frame_cmd_buffer_s* frame, struct pogo_buffers_s* pogo) {
 		NriTextureBarrierDesc transitionBarriers = { 0 };
-		if(pogo->isUsed) {
+		if( pogo->isAttachment ) {
 			transitionBarriers.before = (NriAccessLayoutStage){	
-				.layout = NriLayout_COLOR_ATTACHMENT, 
-				.access = NriAccessBits_COLOR_ATTACHMENT, 
-				.stages = NriStageBits_COLOR_ATTACHMENT 
+			.layout = NriLayout_COLOR_ATTACHMENT, 
+			.access = NriAccessBits_COLOR_ATTACHMENT, 
 			};
-		} else if(!pogo->isAttachment) {
+		} else {
 			return;
 		}
-		
-		pogo->isUsed = 1;
-		transitionBarriers.after= (NriAccessLayoutStage){	
-			.layout = NriLayout_SHADER_RESOURCE,
-			.access = NriAccessBits_SHADER_RESOURCE,
+		transitionBarriers.after = ( NriAccessLayoutStage ){ 
+			.layout = NriLayout_SHADER_RESOURCE, 
+			.access = NriAccessBits_SHADER_RESOURCE, 
 			.stages = NriStageBits_FRAGMENT_SHADER 
 		};
 		transitionBarriers.texture = pogo->colorTexture;
@@ -331,19 +328,19 @@ void TransitionPogoBufferToShaderResource(struct frame_cmd_buffer_s* frame, stru
 
 void TransitionPogoBufferToAttachment(struct frame_cmd_buffer_s* frame, struct pogo_buffers_s* pogo) {
 		NriTextureBarrierDesc transitionBarriers = { 0 };
-		if(pogo->isUsed) {
-			transitionBarriers.before = ( NriAccessLayoutStage ){ 
+		if( pogo->isAttachment ) {
+			return;
+		} else {
+			transitionBarriers.before = (NriAccessLayoutStage){	
 				.layout = NriLayout_SHADER_RESOURCE, 
 				.access = NriAccessBits_SHADER_RESOURCE, 
-				.stages = NriStageBits_FRAGMENT_SHADER };
-		} else if(pogo->isAttachment) {
-			return;
+			};
 		}
-		pogo->isUsed = 1;
 		transitionBarriers.after = ( NriAccessLayoutStage ){ 
 			.layout = NriLayout_COLOR_ATTACHMENT, 
 			.access = NriAccessBits_COLOR_ATTACHMENT, 
-			.stages = NriStageBits_COLOR_ATTACHMENT };
+			.stages = NriStageBits_COLOR_ATTACHMENT 
+		};
 		transitionBarriers.texture = pogo->colorTexture;
 		NriBarrierGroupDesc barrierGroupDesc = { 0 };
 		barrierGroupDesc.textureNum = 1;

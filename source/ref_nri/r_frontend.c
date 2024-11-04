@@ -437,7 +437,7 @@ void RF_Shutdown( bool verbose )
 	R_ShutdownImages();
 
 	R_ShutdownPortals();
-
+	R_ShutdownShadows();
 	// destroy compiled GLSL programs
 	RP_Shutdown();
 
@@ -454,7 +454,6 @@ void RF_Shutdown( bool verbose )
 			rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].colorAttachment );
 			rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].shaderDescriptor.descriptor );
 			rsh.nri.coreI.DestroyTexture( backBuffer->pogoBuffers[pogoIdx].colorTexture );
-			backBuffer->pogoBuffers[pogoIdx].isUsed = 0;
 		}
 		rsh.nri.coreI.DestroyDescriptor(backBuffer->colorAttachment);
 		rsh.nri.coreI.DestroyDescriptor(backBuffer->depthAttachment);
@@ -578,12 +577,31 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 
 	// set the cmdState to the backbuffer for rendering going forward
 	{
-		NriTextureBarrierDesc textureBarrierDescs[1] = {0};
+		NriTextureBarrierDesc textureBarrierDescs[3] = {0};
 		textureBarrierDescs[0].texture = frame->textureBuffers.colorTexture;
-		textureBarrierDescs[0].after = ( NriAccessLayoutStage ){ NriAccessBits_COLOR_ATTACHMENT, NriLayout_COLOR_ATTACHMENT };
+		textureBarrierDescs[0].after = ( NriAccessLayoutStage ){ 
+			NriAccessBits_COLOR_ATTACHMENT, 
+			NriLayout_COLOR_ATTACHMENT 
+		};
+
+		textureBarrierDescs[1].texture = frame->textureBuffers.pogoBuffers[0].colorTexture;
+		textureBarrierDescs[1].after = ( NriAccessLayoutStage ){ 
+			.layout = NriLayout_COLOR_ATTACHMENT, 
+			.access = NriAccessBits_COLOR_ATTACHMENT, 
+			.stages = NriStageBits_COLOR_ATTACHMENT 
+		};
+		frame->textureBuffers.pogoBuffers[0].isAttachment = true;
+		
+		textureBarrierDescs[2].texture = frame->textureBuffers.pogoBuffers[1].colorTexture;
+		textureBarrierDescs[2].after = ( NriAccessLayoutStage ){ 
+			.layout = NriLayout_COLOR_ATTACHMENT, 
+			.access = NriAccessBits_COLOR_ATTACHMENT, 
+			.stages = NriStageBits_COLOR_ATTACHMENT 
+		};
+		frame->textureBuffers.pogoBuffers[1].isAttachment = true;
 
 		NriBarrierGroupDesc barrierGroupDesc = {0};
-		barrierGroupDesc.textureNum = 1;
+		barrierGroupDesc.textureNum = 3;
 		barrierGroupDesc.textures = textureBarrierDescs;
 		rsh.nri.coreI.CmdBarrier( frame->cmd, &barrierGroupDesc );
 	}

@@ -105,7 +105,6 @@ struct frame_tex_buffers_s {
 	// used for post processing
 	struct pogo_buffers_s {
 		uint8_t isAttachment:1;
-		uint8_t isUsed:1;
 		NriDescriptor *colorAttachment;
 		struct nri_descriptor_s shaderDescriptor;
 		NriTexture *colorTexture;

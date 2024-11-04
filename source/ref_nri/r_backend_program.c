@@ -1847,7 +1847,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 						.handle = Create_DescriptorHandle( "shadowmapSampler" ) 
 					};
 
-					struct DefaultShadowCB shadowCB = {};
+					struct DefaultShadowCB shadowCB = {0};
 					for( size_t i = 0; i < numShadows; i++ ) {
 						shadowGroup_t *group = shadowGroups[i];
 

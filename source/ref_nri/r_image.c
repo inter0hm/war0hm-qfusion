@@ -2826,32 +2826,6 @@ void R_InitViewportTexture( image_t **texture, const char *name, int id,
  // image_t *t;
 
  // R_GetViewportTextureSize( viewportWidth, viewportHeight, size, flags, &width, &height );
-
- // // create a new texture or update the old one
- // if( !( *texture ) || ( *texture )->width != width || ( *texture )->height != height )
- // {
- // 	uint8_t *data = NULL;
-
- // 	if( !*texture ) {
- // 		char uploadName[128];
-
- // 		Q_snprintfz( uploadName, sizeof( uploadName ), "***%s_%i***", name, id );
- // 		t = *texture = R_LoadImage( uploadName, &data, width, height, flags, 1, tags, samples );
- // 	}
- // 	else { 
- // 		t = *texture;
- // 		t->width = width;
- // 		t->height = height;
-
- // 		R_BindImage( t );
-
- // 		R_Upload32( QGL_CONTEXT_MAIN, &data, 0, 0, 0, width, height, flags, 1,
- // 			&t->width, &t->height, t->samples, false, false );
- // 	}
-
- // 	// update FBO, if attached
- // 	if( t->fbo ) {
- // 		RFB_UnregisterObject( t->fbo );
  // 		t->fbo = 0;
  // 	}
  // 	if( t->flags & IT_FRAMEBUFFER ) {
@@ -2862,32 +2836,6 @@ void R_InitViewportTexture( image_t **texture, const char *name, int id,
  // }
 }
 
-/*
-* R_GetShadowmapTexture
-*/
-image_t *R_GetShadowmapTexture( int id, int viewportWidth, int viewportHeight, int flags )
-{
-	int samples;
-
-	if( id < 0 || id >= MAX_SHADOWGROUPS ) {
-		return NULL;
-	}
-
-	if( glConfig.ext.shadow ) {
-		// render to depthbuffer, GL_ARB_shadow path
-		flags |= IT_DEPTH;
-		samples = 1;
-	} else {
-		flags |= IT_NOFILTERING;
-		samples = 3;
-	}
-
-	R_InitViewportTexture( &rsh.shadowmapTextures[id], "r_shadowmap", id, 
-		viewportWidth, viewportHeight, r_shadows_maxtexsize->integer, 
-		IT_SPECIAL|IT_FRAMEBUFFER|IT_DEPTHCOMPARE|flags, IMAGE_TAG_GENERIC, samples );
-
-	return rsh.shadowmapTextures[id];
-}
 
 /*
 * R_ReleaseBuiltinImages
@@ -3009,8 +2957,6 @@ void R_FreeUnusedImagesByTags( int tags )
 void R_FreeUnusedImages( void )
 {
 	R_FreeUnusedImagesByTags( ~IMAGE_TAG_BUILTIN );
-
-	memset( rsh.shadowmapTextures, 0, sizeof( image_t * ) * MAX_SHADOWGROUPS );
 }
 
 /*
@@ -3050,9 +2996,8 @@ void R_ShutdownImages( void )
 	r_screenShotBuffer = NULL;
 	r_screenShotBufferSize = 0;
 
-	memset( rsh.shadowmapTextures, 0, sizeof( rsh.shadowmapTextures ) );
-
 }
+
 
 typedef struct
 {

@@ -57,6 +57,7 @@ typedef struct shadowGroup_s
 
 extern drawList_t r_shadowlist;
 
+void		R_ShutdownShadows( );
 void		R_ClearShadowGroups( void );
 bool	R_AddLightOccluder( const entity_t *ent );
 void		R_BuildShadowGroups( void );
