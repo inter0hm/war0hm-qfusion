@@ -40,4 +40,6 @@ void main(void)
 
 	gl_Position = obj.mvp * Position;
 	v_ProjVector = gl_Position;
+	// fix for opengl
+	gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
 }

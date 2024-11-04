@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 #include "r_math_util.h"
+#include "r_nri.h"
 #include "stb_ds.h"
 /*
 =============================================================
@@ -32,7 +33,7 @@ STANDARD PROJECTIVE SHADOW MAPS (SSM)
 #define SHADOWMAP_ORTHO_NUDGE			8
 #define SHADOWMAP_MIN_VIEWPORT_SIZE		16
 #define SHADOWMAP_MAX_LOD				15
-#define SHADOWMAP_LODBIAS				1
+#define SHADOWMAP_LODBIAS			  3	
 
 //static bool r_shadowGroups_sorted;
 
@@ -341,72 +342,53 @@ static float R_SetupShadowmapView( shadowGroup_t *group, refdef_t *refdef, int l
 	return farClip;
 }
 
-static struct shadow_fb_s* __ResolveShadowSurface(struct frame_cmd_buffer_s *cmd, int width, int height) {
-	struct shadow_fb_s* bestFB = NULL; 
-	for(size_t i = 0; i < MAX_SHADOWGROUPS; i++ )
-	{
-		struct shadow_fb_s* shadowFB = &rsh.shadowFBs[i];
-		if((shadowFB->frameNum + NUMBER_FRAMES_FLIGHT) >= cmd->frameCount) {
-			continue;
-		}
-		if( shadowFB->depthTexture ) {
-			const NriTextureDesc *textureDesc = rsh.nri.coreI.GetTextureDesc( shadowFB->depthTexture );
-			if( textureDesc->width == width && textureDesc->height == height ) {
-				shadowFB->frameNum = cmd->frameCount;
-				return shadowFB;
-			}
-		}
-		bestFB = shadowFB;
-	}
-	if(bestFB) {
-		bestFB->frameNum = cmd->frameCount;
-		if( bestFB->depthTexture )
-			arrpush( cmd->freeTextures, bestFB->depthTexture );
-		if(bestFB->depthAttachment.descriptor)
-			arrpush( cmd->frameTemporaryDesc, bestFB->depthAttachment.descriptor);
-		if(bestFB->shaderDescriptor.descriptor)
-			arrpush( cmd->frameTemporaryDesc, bestFB->shaderDescriptor.descriptor);
-		for( size_t i = 0; i < bestFB->numAllocations; i++ )
-			arrpush( cmd->freeMemory, bestFB->memory[i] );
-		bestFB->numAllocations = 0;
+static struct shadow_fb_s* __ResolveShadowSurface( struct frame_cmd_buffer_s* cmd,size_t i, int width, int height) {
+	struct shadow_fb_s *bestFB = &rsh.shadowFBs[cmd->frameCount % NUMBER_FRAMES_FLIGHT][i];
 
-		const NriTextureDesc depthTextureDesc = { 
-													.width = width,
-												  .height = height,
-												  .depth = 1,
-												  .usage = NriTextureUsageBits_DEPTH_STENCIL_ATTACHMENT | NriTextureUsageBits_SHADER_RESOURCE,
-												  .layerNum = 1,
-												  .format = ShadowDepthFormat,
-												  .sampleNum = 1,
-												  .type = NriTextureType_TEXTURE_2D,
-												  .mipNum = 1 };
-		NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &depthTextureDesc, &bestFB->depthTexture ) );
-		NriTexture* textures[] = {bestFB->depthTexture};
-		const NriResourceGroupDesc resourceGroupDesc = {
-			.textureNum = Q_ARRAY_COUNT(textures),
-			.textures = textures,
-			.memoryLocation = NriMemoryLocation_DEVICE,
-		};
-		const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
-		assert(numAllocations <= Q_ARRAY_COUNT(bestFB->memory));
-		bestFB->numAllocations = numAllocations;
-		NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, bestFB->memory) )
-		NriDescriptor* descriptor = NULL;
-		const NriTexture2DViewDesc textureAttachmentViewDesc = {
-				.texture = bestFB->depthTexture,
-				.viewType = NriTexture2DViewType_SHADER_RESOURCE_2D,
-				.format = depthTextureDesc.format
-		};
-		NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureAttachmentViewDesc, &descriptor) );
-		bestFB->shaderDescriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
-		const NriTexture2DViewDesc depthAttachmentViewDesc = {
-				.texture = bestFB->depthTexture,
-				.viewType = NriTexture2DViewType_DEPTH_STENCIL_ATTACHMENT,
-				.format = depthTextureDesc.format
-		};
-		NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &depthAttachmentViewDesc , &descriptor) );
-		bestFB->depthAttachment = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
+	if( bestFB->depthTexture ) {
+		const NriTextureDesc *textureDesc = rsh.nri.coreI.GetTextureDesc( bestFB->depthTexture );
+		if(textureDesc->width == width  && textureDesc->height == height) {
+			return bestFB;	
+		}
 	}
+
+	if( bestFB->depthTexture )
+		arrpush( cmd->freeTextures, bestFB->depthTexture );
+	if( bestFB->depthAttachment.descriptor )
+		arrpush( cmd->frameTemporaryDesc, bestFB->depthAttachment.descriptor );
+	if( bestFB->shaderDescriptor.descriptor )
+		arrpush( cmd->frameTemporaryDesc, bestFB->shaderDescriptor.descriptor );
+	for( size_t i = 0; i < bestFB->numAllocations; i++ )
+		arrpush( cmd->freeMemory, bestFB->memory[i] );
+	bestFB->numAllocations = 0;
+
+	const NriTextureDesc depthTextureDesc = { .width = width,
+											  .height = height,
+											  .depth = 1,
+											  .usage = NriTextureUsageBits_DEPTH_STENCIL_ATTACHMENT | NriTextureUsageBits_SHADER_RESOURCE,
+											  .layerNum = 1,
+											  .format = ShadowDepthFormat,
+											  .sampleNum = 1,
+											  .type = NriTextureType_TEXTURE_2D,
+											  .mipNum = 1 };
+	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &depthTextureDesc, &bestFB->depthTexture ) );
+	NriTexture *textures[] = { bestFB->depthTexture };
+	const NriResourceGroupDesc resourceGroupDesc = {
+		.textureNum = Q_ARRAY_COUNT( textures ),
+		.textures = textures,
+		.memoryLocation = NriMemoryLocation_DEVICE,
+	};
+	const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
+	assert( numAllocations <= Q_ARRAY_COUNT( bestFB->memory ) );
+	bestFB->numAllocations = numAllocations;
+	NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, bestFB->memory ) )
+	NriDescriptor *descriptor = NULL;
+	const NriTexture2DViewDesc textureAttachmentViewDesc = { .texture = bestFB->depthTexture, .viewType = NriTexture2DViewType_SHADER_RESOURCE_2D, .format = depthTextureDesc.format };
+	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureAttachmentViewDesc, &descriptor ) );
+	bestFB->shaderDescriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
+	const NriTexture2DViewDesc depthAttachmentViewDesc = { .texture = bestFB->depthTexture, .viewType = NriTexture2DViewType_DEPTH_STENCIL_ATTACHMENT, .format = depthTextureDesc.format };
+	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &depthAttachmentViewDesc, &descriptor ) );
+	bestFB->depthAttachment = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
 	return bestFB;
 }
 
@@ -471,7 +453,7 @@ void R_DrawShadowmaps( struct frame_cmd_buffer_s* frame )
 			lod = 0;
 		}
 		// allocate/resize the texture if needed
-		struct shadow_fb_s* fb = __ResolveShadowSurface(frame, rsc.refdef.width, rsc.refdef.height);	
+		struct shadow_fb_s* fb = __ResolveShadowSurface(frame, i, rsc.refdef.width, rsc.refdef.height);	
 		group->shadowmap = fb;
 
 		farClip = R_SetupShadowmapView( group, &refdef, lod );
@@ -514,7 +496,8 @@ void R_DrawShadowmaps( struct frame_cmd_buffer_s* frame )
 			.x = rn.scissor[0],
 			.y = rn.scissor[1],
 			.width = rn.scissor[2],
-			.height = rn.scissor[3]
+			.height = rn.scissor[3],
+			
 		} };
 		FR_CmdSetTextureAttachment( frame, NULL, NULL, viewports, scissors, 0, ShadowDepthFormat, fb->depthAttachment.descriptor );
 	
@@ -535,7 +518,9 @@ void R_DrawShadowmaps( struct frame_cmd_buffer_s* frame )
 			rsh.nri.coreI.CmdBarrier( frame->cmd, &barrierGroupDesc );
 		}
 
+		frame->state.pipelineLayout.flippedViewport = true;
 		R_RenderView( frame, &refdef );
+		frame->state.pipelineLayout.flippedViewport = false;
 
 		{
 			NriTextureBarrierDesc transitionBarriers = { 0 };

@@ -30,4 +30,6 @@ void main()
 #endif // APPLY_FOG
 
 	frontColor = vec4(outColor);
+	// fix for opengl
+	gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
 }

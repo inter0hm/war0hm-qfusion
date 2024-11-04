@@ -107,7 +107,7 @@ NriDescriptor *R_ResolveSamplerDescriptor( int flags )
 		samplerDesc.addressModes.w = NriAddressMode_CLAMP_TO_EDGE;
 	}
 
-	if( ( flags & IT_DEPTH ) && ( flags & IT_DEPTHCOMPARE ) && glConfig.ext.shadow ) {
+	if( ( flags & IT_DEPTH ) && ( flags & IT_DEPTHCOMPARE ) ) {
 		samplerDesc.compareFunc = NriCompareFunc_LESS_EQUAL;
 	}
 

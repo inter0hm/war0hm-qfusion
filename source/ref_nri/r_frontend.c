@@ -135,7 +135,7 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 			break;
 	}
 
-	rsh.shadowSamplerDescriptor = R_CreateDescriptorWrapper( &rsh.nri, R_ResolveSamplerDescriptor( IT_DEPTHCOMPARE | IT_SPECIAL  ) );
+	rsh.shadowSamplerDescriptor = R_CreateDescriptorWrapper( &rsh.nri, R_ResolveSamplerDescriptor( IT_DEPTHCOMPARE | IT_SPECIAL | IT_DEPTH ) );
 
 	NriSwapChainDesc swapChainDesc = { 
 		.commandQueue = rsh.nri.graphicsCommandQueue,

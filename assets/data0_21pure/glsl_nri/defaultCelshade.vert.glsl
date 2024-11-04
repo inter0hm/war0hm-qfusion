@@ -38,4 +38,6 @@ void main(void)
 	v_TexCoordCube = pass.reflectionTexMatrix * reflect(normalize(Position.xyz - obj.entityDist), Normal.xyz);
 
 	gl_Position = obj.mvp * Position;
+	// fix for opengl
+	gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
 }

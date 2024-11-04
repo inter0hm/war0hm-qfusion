@@ -15,4 +15,6 @@ void main(void)
 	QF_FogGenCoordTexCoord(Position, v_FogCoord);
 
 	gl_Position = obj.mvp * Position;
+	// fix for opengl
+	gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
 }

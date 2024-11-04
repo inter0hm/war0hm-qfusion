@@ -44,4 +44,8 @@ void main(void)
 	# ifdef APPLY_SHADOW_NORMAL_CHECK
 	v_Normal = Normal;
 	# endif
+
+
+	// fix for opengl
+	gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
 }

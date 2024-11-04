@@ -239,7 +239,7 @@ void R_DrawBSPSurf(struct frame_cmd_buffer_s* cmd, const entity_t *e, const shad
 	R_FillNriVertexAttrib(drawSurf->vbo, cmd->state.attribs, &cmd->state.numAttribs);
 
 	FR_CmdSetVertexBuffer(cmd, 0, drawSurf->vbo->vertexBuffer, 0);
-	FR_CmdSetIndexBuffer(cmd, drawSurf->vbo->indexBuffer, sizeof(elem_t) * firstElem, NriIndexType_UINT16);
+	FR_CmdSetIndexBuffer(cmd, drawSurf->vbo->indexBuffer, 0, NriIndexType_UINT16);
 
 	RB_SetDlightBits( dlightBits );
 
@@ -254,8 +254,8 @@ void R_DrawBSPSurf(struct frame_cmd_buffer_s* cmd, const entity_t *e, const shad
 			drawSurf->numInstances, drawSurf->instances );
 	}
 	else {
-		RB_DrawShadedElements_2(cmd, 0, numVerts, 0, numElems, 
-			0, numShadowVerts, 0, numShadowElems);
+		RB_DrawShadedElements_2(cmd, 0, numVerts, firstElem, numElems, 
+			0, numShadowVerts, firstShadowElem, numShadowElems);
 	}
 	FR_CmdResetCommandState(cmd, CMD_RESET_INDEX_BUFFER | CMD_RESET_VERTEX_BUFFER);
 	

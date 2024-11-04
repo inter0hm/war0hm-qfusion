@@ -13,4 +13,8 @@ void main(void)
 
 	gl_Position = obj.mvp * Position;
 	v_Depth = gl_Position.z;
+
+
+	// fix for opengl
+	gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
 }

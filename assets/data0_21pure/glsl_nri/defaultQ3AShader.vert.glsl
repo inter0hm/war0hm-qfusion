@@ -85,4 +85,8 @@ frontColor = vec4(outColor);
 	vec4 modelPos = obj.mv * Position;
 	v_Depth = -modelPos.z;
 #endif	
+
+
+	// fix for opengl
+	gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
 }

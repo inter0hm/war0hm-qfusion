@@ -146,7 +146,6 @@ struct shadow_fb_s {
 	NriTexture* depthTexture;
 	size_t numAllocations;
 	NriMemory* memory[4];
-	size_t frameNum;
 };
 
 struct portal_fb_s {
@@ -281,7 +280,7 @@ typedef struct
 	shader_t		*whiteShader;
 	shader_t		*emptyFogShader;
 
-	struct shadow_fb_s shadowFBs[MAX_SHADOWGROUPS];	
+	struct shadow_fb_s shadowFBs[NUMBER_FRAMES_FLIGHT][MAX_SHADOWGROUPS];	
 	struct portal_fb_s portalFBs[MAX_PORTAL_TEXTURES];
 	struct nri_descriptor_s shadowSamplerDescriptor;
 

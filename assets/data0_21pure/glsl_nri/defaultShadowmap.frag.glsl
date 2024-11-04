@@ -11,7 +11,7 @@ layout(location = 10) in vec3 v_Normal;
 
 layout(location = 0) out vec4 outFragColor;
 
-layout(set = DESCRIPTOR_PASS_SET, binding = 2) uniform sampler shadowmapSampler;
+layout(set = DESCRIPTOR_PASS_SET, binding = 2) uniform samplerShadow shadowmapSampler;
 layout(set = DESCRIPTOR_PASS_SET, binding = 3) uniform texture2D shadowmapTexture[4];
 
 #include "include/qf_vert_utils.glsl"

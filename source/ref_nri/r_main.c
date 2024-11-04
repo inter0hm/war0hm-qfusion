@@ -476,9 +476,7 @@ void R_Set2DMode(struct frame_cmd_buffer_s* cmd, bool enable )
 		rf.width2D = width;
 		rf.height2D = height;
 		
-		mat4_t tempProjMat;
-		Matrix4_OrthogonalProjection( 0, width, height, 0, 0, 1.0f, tempProjMat );
-		Matrix4_Multiply( mat4x4_correct_vk, tempProjMat, rn.projectionMatrix);
+		Matrix4_OrthogonalProjection( 0, width, height, 0, -99999, 99999, rn.projectionMatrix );
 		Matrix4_Copy( mat4x4_identity, rn.modelviewMatrix );
 		Matrix4_Copy( rn.projectionMatrix, rn.cameraProjectionMatrix );
 

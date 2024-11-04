@@ -18,7 +18,7 @@
 		shadowmaptc.z = clamp(shadowmaptc.z, 0.0, 1.0);
 		shadowmaptc.xy = vec2(clamp(shadowmaptc.x, 0.0, pass.shadowParams[SHADOW_INDEX].x), clamp(shadowmaptc.y, 0.0, pass.shadowParams[SHADOW_INDEX].y));
 
-		vec2 ShadowMap_TextureScale = pass.shadowParams[SHADOW_INDEX].zw;
+		vec2 ShadowMap_TextureScale = vec2(1.0,1.0)/pass.shadowParams[SHADOW_INDEX].zw;
 
 		#ifdef APPLY_DITHER
 

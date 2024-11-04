@@ -771,210 +771,16 @@ static inline struct vec4 ConstColorAdjust( bool alphaBlending, bool alphaHack, 
 	return vec;
 }
 
-// static void __RB_UpdateFrameObjectCB( struct frame_cmd_buffer_s *cmd, const entity_t *entity, const shaderpass_t *pass )
-// {
-// 	struct FrameCB frameData = {0};
-// 	struct ObjectCB objectData = {0};
-
-// 	const bool isAlphaBlending = __IsAlphaBlendingGLState( rb.gl.state );
-// 	const shaderfunc_t *rgbgenfunc = &pass->rgbgen.func;
-// 	const shaderfunc_t *alphagenfunc = &pass->alphagen.func;
-// 	// the logic here should match R_TransformForEntity
-
-// 	if( rb.fog ) {
-// 		objectData.isAlphaBlending = isAlphaBlending ? 1.0f : 0.0f; 
-// 		cplane_t fogPlane, vpnPlane;
-// 		float fog_color[3] = { 0, 0, 0 };
-// 		VectorScale( rb.fog->shader->fog_color, ( 1.0 / 255.0 ), fog_color );
-// 		frameData.eyeDist = RB_TransformFogPlanes( rb.fog, fogPlane.normal, &fogPlane.dist, vpnPlane.normal, &vpnPlane.dist );
-// 		frameData.fogScale = 1.0 / ( rb.fog->shader->fog_dist - rb.fog->shader->fog_clearDist );
-// 		memcpy( frameData.fogColor.v, fog_color, sizeof( float ) * 3 );
-// 		memcpy( objectData.fogPlane.v, fogPlane.normal, sizeof( float ) * 3 );
-// 		memcpy( objectData.fogEyePlane.v, vpnPlane.normal, sizeof( float ) * 3 );
-// 	}
-
-// 	memcpy( objectData.mv.v, rb.modelviewMatrix, sizeof( struct mat4 ) );
-// 	memcpy( objectData.mvp.v, rb.modelviewProjectionMatrix, sizeof( struct mat4 ) );
-// 	frameData.zNear = rb.zNear;
-// 	frameData.zFar = rb.zFar;
-// 	frameData.shaderTime = rb.currentShaderTime;
-// 	memcpy( frameData.viewOrigin.v, rb.cameraOrigin, sizeof( struct vec3 ) );
-// 	memcpy( frameData.viewAxis.v, rb.cameraAxis, sizeof( struct mat3 ) );
-// 	frameData.mirrorSide = ( rb.renderFlags & RF_MIRRORVIEW ) ? -1 : 1;
-
-// 	VectorCopy( entity->origin, objectData.entityOrigin.v);
-// 	{
-// 		vec3_t tmp;
-// 		VectorSubtract( rb.cameraOrigin, entity->origin, tmp );
-// 		Matrix3_TransformVector( entity->axis, tmp, objectData.entityDist.v);
-// 	}
-
-// 	if(pass->rgbgen.func.type != SHADER_FUNC_NONE) {
-// 		objectData.rgbGenFuncArgs.x = pass->rgbgen.func.args[0];
-// 		objectData.rgbGenFuncArgs.y = pass->rgbgen.func.args[1];
-// 		objectData.rgbGenFuncArgs.z = pass->rgbgen.func.args[2];
-// 		objectData.rgbGenFuncArgs.w = pass->rgbgen.func.args[3];
-// 	} else {
-// 		objectData.rgbGenFuncArgs.x = pass->rgbgen.args[0];
-// 		objectData.rgbGenFuncArgs.y = pass->rgbgen.args[1];
-// 		objectData.rgbGenFuncArgs.z = pass->rgbgen.args[2];
-// 		objectData.rgbGenFuncArgs.w = pass->rgbgen.args[3];
-// 	}
-
-	
-// 	if(pass->alphagen.func.type != SHADER_FUNC_NONE) {
-// 		objectData.alphaGenFuncArgs.x = pass->alphagen.func.args[0];
-// 		objectData.alphaGenFuncArgs.y = pass->alphagen.func.args[1];
-// 		objectData.alphaGenFuncArgs.z = pass->alphagen.func.args[2];
-// 		objectData.alphaGenFuncArgs.w = pass->alphagen.func.args[3];
-// 	} else {
-// 		objectData.alphaGenFuncArgs.x = pass->alphagen.args[0];
-// 		objectData.alphaGenFuncArgs.y = pass->alphagen.args[1];
-// 		objectData.alphaGenFuncArgs.z = pass->alphagen.args[2];
-// 		objectData.alphaGenFuncArgs.w = pass->alphagen.args[3];
-// 	}
-
-// 	switch( pass->rgbgen.type ) {
-// 	case RGB_GEN_IDENTITY:
-// 		break;
-// 	case RGB_GEN_CONST:
-// 		objectData.colorConst.v[0] = pass->rgbgen.args[0];
-// 		objectData.colorConst.v[1] = pass->rgbgen.args[1];
-// 		objectData.colorConst.v[2] = pass->rgbgen.args[2];
-// 		break;
-// 	case RGB_GEN_ENTITYWAVE:
-// 	case RGB_GEN_WAVE:
-// 	case RGB_GEN_CUSTOMWAVE: {
-// 		float adjust = 0.0f;
-// 		if( rgbgenfunc->type == SHADER_FUNC_NONE ) {
-// 			adjust = 1;
-// 		} else if( rgbgenfunc->type == SHADER_FUNC_RAMP ) {
-// 			break;
-// 		} else if( rgbgenfunc->args[1] == 0 ) {
-// 			adjust = rgbgenfunc->args[0];
-// 		} else {
-// 			if( rgbgenfunc->type == SHADER_FUNC_NOISE ) {
-// 				adjust = RB_BackendGetNoiseValue( 0, 0, 0, ( rb.currentShaderTime + rgbgenfunc->args[2] ) * rgbgenfunc->args[3] );
-// 			} else {
-// 				float *table = RB_TableForFunc( rgbgenfunc->type );
-// 				adjust = rb.currentShaderTime * rgbgenfunc->args[3] + rgbgenfunc->args[2];
-// 				adjust = FTABLE_EVALUATE( table, adjust ) * rgbgenfunc->args[1] + rgbgenfunc->args[0];
-// 			}
-// 			adjust *= rgbgenfunc->args[1] + rgbgenfunc->args[0];
-// 		}
-
-// 		if( pass->rgbgen.type == RGB_GEN_ENTITYWAVE ) {
-// 			objectData.colorConst.v[0] = rb.entityColor[0] * ( 1.0 / 255.0 );
-// 			objectData.colorConst.v[1] = rb.entityColor[1] * ( 1.0 / 255.0 );
-// 			objectData.colorConst.v[2] = rb.entityColor[2] * ( 1.0 / 255.0 );
-// 		} else if( pass->rgbgen.type == RGB_GEN_CUSTOMWAVE ) {
-// 			const int u8Color = R_GetCustomColor( (int)pass->rgbgen.args[0] );
-// 			objectData.colorConst.v[0] = COLOR_R( u8Color ) * ( 1.0 / 255.0 );
-// 			objectData.colorConst.v[1] = COLOR_G( u8Color ) * ( 1.0 / 255.0 );
-// 			objectData.colorConst.v[2] = COLOR_B( u8Color ) * ( 1.0 / 255.0 );
-// 		} else {
-// 			objectData.colorConst.v[0] = pass->rgbgen.args[0];
-// 			objectData.colorConst.v[1] = pass->rgbgen.args[1];
-// 			objectData.colorConst.v[2] = pass->rgbgen.args[2];
-// 		}
-// 		objectData.colorConst.v[0] *= adjust;
-// 		objectData.colorConst.v[1] *= adjust;
-// 		objectData.colorConst.v[2] *= adjust;
-// 		break;
-// 	}
-// 	case RGB_GEN_OUTLINE:
-// 		objectData.colorConst.v[0] = rb.entityOutlineColor[0] * ( 1.0 / 255.0 );
-// 		objectData.colorConst.v[1] = rb.entityOutlineColor[1] * ( 1.0 / 255.0 );
-// 		objectData.colorConst.v[2] = rb.entityOutlineColor[2] * ( 1.0 / 255.0 );
-// 		break;
-// 	case RGB_GEN_ONE_MINUS_ENTITY:
-// 		objectData.colorConst.v[0] = ( 255 - rb.entityColor[0] ) * ( 1.0 / 255.0 );
-// 		objectData.colorConst.v[1] = ( 255 - rb.entityColor[1] ) * ( 1.0 / 255.0 );
-// 		objectData.colorConst.v[2] = ( 255 - rb.entityColor[2] ) * ( 1.0 / 255.0 );
-// 		break;
-// 	case RGB_GEN_FOG:
-// 		objectData.colorConst.v[0] = ( rb.texFog->shader->fog_color[0] ) * ( 1.0 / 255.0 );
-// 		objectData.colorConst.v[1] = ( rb.texFog->shader->fog_color[1] ) * ( 1.0 / 255.0 );
-// 		objectData.colorConst.v[2] = ( rb.texFog->shader->fog_color[2] ) * ( 1.0 / 255.0 );
-// 		break;
-// 	case RGB_GEN_ENVIRONMENT:
-// 		objectData.colorConst.v[0] = ( mapConfig.environmentColor[0] ) * ( 1.0 / 255.0 );
-// 		objectData.colorConst.v[1] = ( mapConfig.environmentColor[1] ) * ( 1.0 / 255.0 );
-// 		objectData.colorConst.v[2] = ( mapConfig.environmentColor[2] ) * ( 1.0 / 255.0 );
-// 		break;
-// 	default:
-// 		break;
-// 	}
-
-// 	if( isAlphaBlending) {
-// 		// blendMix[1] = 1;
-// 		if( rb.alphaHack ) {
-// 			objectData.colorConst.v[3] *= rb.hackedAlpha;
-// 		}
-// 	} else {
-// 		// blendMix[0] = 1;
-// 		if( rb.alphaHack ) {
-// 			objectData.colorConst.v[0] *= rb.hackedAlpha;
-// 			objectData.colorConst.v[1] *= rb.hackedAlpha;
-// 			objectData.colorConst.v[2] *= rb.hackedAlpha;
-// 		}
-// 	}
-
-// 	switch( pass->alphagen.type ) {
-// 		case ALPHA_GEN_IDENTITY:
-// 			break;
-// 		case ALPHA_GEN_CONST:
-// 			objectData.colorConst.v[3] = pass->alphagen.args[0];
-// 			break;
-// 		case ALPHA_GEN_WAVE:
-// 			if( !alphagenfunc || alphagenfunc->type == SHADER_FUNC_NONE ) {
-// 				objectData.colorConst.v[3] = 1;
-// 			} else if( alphagenfunc->type == SHADER_FUNC_RAMP ) {
-// 			} else {
-// 				if( alphagenfunc->type == SHADER_FUNC_NOISE ) {
-// 					objectData.colorConst.v[3] = RB_BackendGetNoiseValue( 0, 0, 0, ( rb.currentShaderTime + alphagenfunc->args[2] ) * alphagenfunc->args[3] );
-// 				} else {
-// 					float* table = RB_TableForFunc( alphagenfunc->type );
-// 					objectData.colorConst.v[3] = alphagenfunc->args[2] + rb.currentShaderTime * alphagenfunc->args[3];
-// 					objectData.colorConst.v[3] = FTABLE_EVALUATE( table, objectData.colorConst.v[3] );
-// 				}
-// 				objectData.colorConst.v[3] *= alphagenfunc->args[1] + alphagenfunc->args[0];
-// 			}
-// 			break;
-// 		case ALPHA_GEN_ENTITY:
-// 			objectData.colorConst.v[3] = rb.entityColor[3] * ( 1.0 / 255.0 );
-// 			break;
-// 		case ALPHA_GEN_OUTLINE:
-// 			objectData.colorConst.v[3] = rb.entityOutlineColor[3] * ( 1.0 / 255.0 );
-// 		default:
-// 			break;
-// 	}
-// 	// objectData.colorConst = ConstColorAdjust( isAlphaBlending, rb.alphaHack, objectData.colorConst );
-// 	if( pass->numtcmods )
-// 	{
-// 		mat4_t texMatrix = {};
-// 		RB_ApplyTCMods( pass, texMatrix );
-// 		objectData.texutreMatrix[0].x = texMatrix[0];
-// 		objectData.texutreMatrix[0].y = texMatrix[4];
-// 		objectData.texutreMatrix[0].z = texMatrix[1];
-// 		objectData.texutreMatrix[1].x = texMatrix[5];
-// 		objectData.texutreMatrix[1].y = texMatrix[4];
-// 		objectData.texutreMatrix[1].z = texMatrix[13];
-// 	}
-
-// 	UpdateFrameUBO( cmd, &cmd->uboSceneFrame, &frameData, sizeof( struct FrameCB ) );
-// 	UpdateFrameUBO( cmd, &cmd->uboSceneObject, &objectData, sizeof( struct ObjectCB) );
-// }
-
 void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpass_t *pass, int programType )
 {
 	size_t descriptorIndex = 0;
 	struct glsl_descriptor_binding_s descriptors[64] = { 0 };
 	r_glslfeat_t programFeatures = 0;
 
-	if( rb.greyscale || rb.currentShader->flags & SHADERPASS_GREYSCALE ) {
+	if( rb.greyscale || pass->flags & SHADERPASS_GREYSCALE ) {
 		programFeatures |= GLSL_SHADER_COMMON_GREYSCALE;
 	}
+
 	NriDepthBiasDesc depthBiasDesc = {0};
 	if(((rb.currentShader->flags & SHADER_POLYGONOFFSET) > 0)) {
 		depthBiasDesc.slope = -1.3f;
@@ -1947,7 +1753,9 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 		case GLSL_PROGRAM_TYPE_SHADOWMAP: {
 			int scissor[4] = {INT_MAX, INT_MAX, INT_MIN, INT_MIN};
 			int old_scissor[4];
-			shadowGroup_t *shadowGroups[GLSL_SHADOWMAP_LIMIT];
+				
+			// set shaderpass state (blending, depthwrite, etc)
+			RB_SetShaderpassState_2(cmd, pass->flags );
 
 			if( r_shadows_pcf->integer )
 				programFeatures |= GLSL_SHADER_SHADOWMAP_PCF;
@@ -1955,131 +1763,149 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 				programFeatures |= GLSL_SHADER_SHADOWMAP_DITHER;
 
 			Vector4Copy( rb.gl.scissor, old_scissor );
-
+			
+			shadowGroup_t *shadowGroups[GLSL_SHADOWMAP_LIMIT];
 			// the shader uses 2 varying vectors per shadow and 1 additional varying
 			// int maxShadows = ( ( glConfig.maxVaryingFloats & ~3 ) - 4 ) / 8;
 			// if( maxShadows > GLSL_SHADOWMAP_LIMIT )
 			// 	maxShadows = GLSL_SHADOWMAP_LIMIT;
+			mat4_t texMatrix;
+			Matrix4_Identity( texMatrix );
+			ObjectCB_SetTextureMatrix( &objectData, texMatrix );
+
+			UpdateFrameUBO( cmd, &cmd->uboSceneFrame, &frameData, sizeof( struct FrameCB ) );
+			UpdateFrameUBO( cmd, &cmd->uboSceneObject, &objectData, sizeof( struct ObjectCB ) );
+			descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ .descriptor = cmd->uboSceneFrame.descriptor, .handle = Create_DescriptorHandle( "frame" ) };
+			descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ .descriptor = cmd->uboSceneObject.descriptor, .handle = Create_DescriptorHandle( "obj" ) };
+
+			const size_t resetDescriptorIndex = descriptorIndex;
+			const size_t resetprogramFeatures = programFeatures;
 
 			int numShadows = 0;
-			assert( rsc.numShadowGroups <= GLSL_SHADOWMAP_LIMIT );
-			for(size_t i = 0; i < rsc.numShadowGroups; i++ ) {
-				vec3_t bbox[8];
-				vec_t *visMins, *visMaxs;
-				int groupScissor[4] = { 0, 0, 0, 0 };
 
-				shadowGroup_t *group = rsc.shadowGroups + i;
-				if( !( rb.currentShadowBits & group->bit ) ) {
-					continue;
-				}
+			size_t shadowIdx = 0;
+			while( shadowIdx < rsc.numShadowGroups ) {
+				numShadows = 0;
+				for(; shadowIdx < rsc.numShadowGroups && numShadows < GLSL_SHADOWMAP_LIMIT; shadowIdx++ ) {
+					vec3_t bbox[8];
+					vec_t *visMins, *visMaxs;
+					int groupScissor[4] = { 0, 0, 0, 0 };
 
-				// project the bounding box on to screen then use scissor test
-				// so that fragment shader isn't run for unshadowed regions
-
-				visMins = group->visMins;
-				visMaxs = group->visMaxs;
-
-				for( uint32_t j = 0; j < 8; j++ ) {
-					vec_t *corner = bbox[j];
-
-					corner[0] = ( ( j & 1 ) ? visMins[0] : visMaxs[0] );
-					corner[1] = ( ( j & 2 ) ? visMins[1] : visMaxs[1] );
-					corner[2] = ( ( j & 4 ) ? visMins[2] : visMaxs[2] );
-				}
-
-				if( !RB_ScissorForBounds( bbox, &groupScissor[0], &groupScissor[1], &groupScissor[2], &groupScissor[3] ) )
-					continue;
-
-				// compute scissor in absolute coordinates
-				scissor[2] = max( scissor[2], groupScissor[0] + groupScissor[2] );
-				scissor[3] = max( scissor[3], groupScissor[1] + groupScissor[3] );
-				scissor[0] = min( scissor[0], groupScissor[0] );
-				scissor[1] = min( scissor[1], groupScissor[1] );
-
-				shadowGroups[numShadows++] = group;
-			}
-
-			if( numShadows > 0 ) {
-				mat4_t texMatrix;
-				Matrix4_Identity( texMatrix );
-				if( pass->numtcmods ) {
-					RB_ApplyTCMods( pass, texMatrix );
-				}
-				ObjectCB_SetTextureMatrix( &objectData, texMatrix );
-
-				assert( numShadows <= GLSL_SHADOWMAP_LIMIT );
-
-				if( numShadows > GLSL_SHADOWMAP_LIMIT ) {
-					numShadows = GLSL_SHADOWMAP_LIMIT;
-				}
-
-				// this will tell the program how many shaders we want to render
-				if( numShadows > 1 ) {
-					programFeatures |= GLSL_SHADER_SHADOWMAP_SHADOW2 << ( numShadows - 2 );
-				}
-				if( rb.currentShadowBits && ( rb.currentModelType == mod_brush ) ) {
-					programFeatures |= GLSL_SHADER_SHADOWMAP_NORMALCHECK;
-				}
-
-				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ .descriptor = rsh.shadowSamplerDescriptor, .handle = Create_DescriptorHandle( "shadowmapSampler" ) };
-
-				struct DefaultShadowCB shadowCB = {};
-				for( size_t i = 0; i < numShadows; i++ ) {
-					shadowGroup_t *group = shadowGroups[i];
-
-					shadowCB.shadowParams[i].x = group->viewportSize[0];
-					shadowCB.shadowParams[i].y = group->viewportSize[1];
-					shadowCB.shadowParams[i].x = 1.0f / group->viewportSize[0];
-					shadowCB.shadowParams[i].y = 1.0f / group->viewportSize[1];
-
-					Matrix4_Multiply( group->cameraProjectionMatrix, rb.objectMatrix, shadowCB.shadowmapMatrix[i].v );
-					shadowCB.shadowAlphaV[i] = group->alpha;
-
-					Matrix3_TransformVector( rb.cameraAxis, group->lightDir, shadowCB.shadowDir[i].v );
-					shadowCB.shadowDir[i].w = group->projDist;
-					{
-						vec3_t tmp;
-						VectorSubtract( group->origin, rb.currentEntity->origin, tmp );
-						Matrix3_TransformVector( rb.currentEntity->axis, tmp, shadowCB.shadowEntitydist[i].v );
+					shadowGroup_t *group = rsc.shadowGroups + shadowIdx;
+					if( !( rb.currentShadowBits & group->bit ) ) {
+						continue;
 					}
 
-					descriptors[descriptorIndex++] =
-						( struct glsl_descriptor_binding_s ){ .descriptor = group->shadowmap->shaderDescriptor, .registerOffset = i, .handle = Create_DescriptorHandle( "shadowmapTexture" ) };
+					// project the bounding box on to screen then use scissor test
+					// so that fragment shader isn't run for unshadowed regions
+
+					visMins = group->visMins;
+					visMaxs = group->visMaxs;
+
+					for( uint32_t j = 0; j < 8; j++ ) {
+						vec_t *corner = bbox[j];
+
+						corner[0] = ( ( j & 1 ) ? visMins[0] : visMaxs[0] );
+						corner[1] = ( ( j & 2 ) ? visMins[1] : visMaxs[1] );
+						corner[2] = ( ( j & 4 ) ? visMins[2] : visMaxs[2] );
+					}
+
+					if( !RB_ScissorForBounds( bbox, &groupScissor[0], &groupScissor[1], &groupScissor[2], &groupScissor[3] ) )
+						continue;
+
+					// compute scissor in absolute coordinates
+					if( !numShadows ) {
+						Vector4Copy( groupScissor, scissor );
+						scissor[2] += scissor[0];
+						scissor[3] += scissor[1];
+					} else {
+						scissor[2] = max( scissor[2], groupScissor[0] + groupScissor[2] );
+						scissor[3] = max( scissor[3], groupScissor[1] + groupScissor[3] );
+						scissor[0] = min( scissor[0], groupScissor[0] );
+						scissor[1] = min( scissor[1], groupScissor[1] );
+					}
+
+					shadowGroups[numShadows++] = group;
 				}
 
-				UpdateFrameUBO( cmd, &cmd->uboSceneFrame, &frameData, sizeof( struct FrameCB ) );
-				UpdateFrameUBO( cmd, &cmd->uboSceneObject, &objectData, sizeof( struct ObjectCB ) );
-				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
-					.descriptor = cmd->uboSceneFrame.descriptor, 
-					.handle = Create_DescriptorHandle( "frame" ) };
-				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
-						.descriptor = cmd->uboSceneObject.descriptor, 
-					.handle = Create_DescriptorHandle( "obj" ) 
-				};
+				if(numShadows > 0)
+				{
+					descriptorIndex = resetDescriptorIndex;
+					programFeatures = resetprogramFeatures;
 
-				// update uniforms
-				//program = RB_RegisterProgram( GLSL_PROGRAM_TYPE_SHADOWMAP, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
-				struct glsl_program_s *program = RP_ResolveProgram( GLSL_PROGRAM_TYPE_SHADOWMAP, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
-				struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state );
-				
-				if(RP_ProgramHasUniform(program, Create_DescriptorHandle("pass"))) {
-					UpdateFrameUBO( cmd, &cmd->uboPassObject, &shadowCB, sizeof(struct DefaultShadowCB ));
+					assert( numShadows <= GLSL_SHADOWMAP_LIMIT );
+
+					// this will tell the program how many shaders we want to render
+					programFeatures |= GLSL_SHADER_SHADOWMAP_SHADOW2 << ( numShadows - 2 );
+					if( rb.currentShadowBits && ( rb.currentModelType == mod_brush ) ) {
+						programFeatures |= GLSL_SHADER_SHADOWMAP_NORMALCHECK;
+					}
+					programFeatures |= GLSL_SHADER_SHADOWMAP_SAMPLERS;
+
+					descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+						.descriptor = rsh.shadowSamplerDescriptor, 
+						.handle = Create_DescriptorHandle( "shadowmapSampler" ) 
+					};
+
+					struct DefaultShadowCB shadowCB = {};
+					for( size_t i = 0; i < numShadows; i++ ) {
+						shadowGroup_t *group = shadowGroups[i];
+
+						shadowCB.shadowParams[i].x = group->viewportSize[0];
+						shadowCB.shadowParams[i].y = group->viewportSize[1];
+						shadowCB.shadowParams[i].z = group->textureSize[0];
+						shadowCB.shadowParams[i].w = group->textureSize[1];
+
+						Matrix4_Multiply( group->cameraProjectionMatrix, rb.objectMatrix, shadowCB.shadowmapMatrix[i].v );
+						shadowCB.shadowAlphaV[i] = group->alpha;
+
+						Matrix3_TransformVector( rb.currentEntity->axis, group->lightDir, shadowCB.shadowDir[i].v );
+						shadowCB.shadowDir[i].w = group->projDist;
+						
+						{
+							vec3_t tmp;
+							VectorSubtract( group->origin, rb.currentEntity->origin, tmp );
+							Matrix3_TransformVector( rb.currentEntity->axis, tmp, shadowCB.shadowEntitydist[i].v );
+						}
+
+						descriptors[descriptorIndex++] =
+							( struct glsl_descriptor_binding_s ){ 
+								.descriptor = group->shadowmap->shaderDescriptor, 
+								.registerOffset = i, 
+								.handle = Create_DescriptorHandle( "shadowmapTexture" ) };
+					}
+
+					UpdateFrameUBO( cmd, &cmd->uboPassObject, &shadowCB, sizeof( struct DefaultShadowCB ) );
 					descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
 						.descriptor = cmd->uboPassObject.descriptor, 
 						.handle = Create_DescriptorHandle( "pass" ) 
 					};
+
+					if( rb.currentModelType == mod_brush ) {
+						RB_Scissor(  
+								 scissor[0], 
+								 scissor[1], 
+								 scissor[2] - scissor[0], 
+								 scissor[3] - scissor[1] );
+					}
+
+					// update uniforms
+					// program = RB_RegisterProgram( GLSL_PROGRAM_TYPE_SHADOWMAP, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
+					struct glsl_program_s *program =
+						RP_ResolveProgram( GLSL_PROGRAM_TYPE_SHADOWMAP, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
+					struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state );
+
+
+					rsh.nri.coreI.CmdSetPipeline( cmd->cmd, pipeline->pipeline );
+					rsh.nri.coreI.CmdSetPipelineLayout( cmd->cmd, program->layout );
+					RP_BindDescriptorSets( cmd, program, descriptors, descriptorIndex );
+
+					FR_CmdDrawElements( cmd, 
+												cmd->drawShadowElements.numElems, 
+												cmd->drawShadowElements.numInstances, 
+												cmd->drawShadowElements.firstElem, 
+												cmd->drawShadowElements.firstVert, 0 );
 				}
-
-				rsh.nri.coreI.CmdSetPipeline( cmd->cmd, pipeline->pipeline );
-				rsh.nri.coreI.CmdSetPipelineLayout( cmd->cmd, program->layout );
-				RP_BindDescriptorSets( cmd, program, descriptors, descriptorIndex );
-
-				FR_CmdDrawElements(cmd, 
-					cmd->drawShadowElements.numElems,
-					cmd->drawShadowElements.numInstances,
-					cmd->drawShadowElements.firstElem,
-					cmd->drawShadowElements.firstVert,
-					0);
 			}
 
 			RB_Scissor( old_scissor[0], old_scissor[1], old_scissor[2], old_scissor[3] );
@@ -2784,10 +2610,10 @@ void RB_DrawShadedElements_2( struct frame_cmd_buffer_s *cmd,
 	cmd->drawElements.firstElem = firstElem;
 	cmd->drawElements.numInstances = 0;
 
-	cmd->drawShadowElements.numVerts = numVerts;
-	cmd->drawShadowElements.numElems = numElems;
-	cmd->drawShadowElements.firstVert = firstVert;
-	cmd->drawShadowElements.firstElem = firstElem;
+	cmd->drawShadowElements.numVerts = numShadowVerts;
+	cmd->drawShadowElements.numElems = numShadowElems ;
+	cmd->drawShadowElements.firstVert = firstShadowVert;
+	cmd->drawShadowElements.firstElem = firstShadowElem;
 	cmd->drawShadowElements.numInstances = 0;
 	bool addGLSLOutline = false;
 
