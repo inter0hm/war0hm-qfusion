@@ -1710,46 +1710,6 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 
 			break;
 		}
-		case GLSL_PROGRAM_TYPE_RGB_SHADOW: {
-			mat4_t texMatrix;
-
-			if( glConfig.ext.rgb8_rgba8 ) {
-				programFeatures |= GLSL_SHADER_RGBSHADOW_24BIT;
-			}
-
-			Matrix4_Identity( texMatrix );
-
-			// set shaderpass state (blending, depthwrite, etc)
-			RB_SetShaderpassState( pass->flags );
-
-			struct glsl_program_s *program =
-				RP_ResolveProgram( GLSL_PROGRAM_TYPE_RGB_SHADOW, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
-			struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state);
-			
-			rsh.nri.coreI.CmdSetPipeline( cmd->cmd, pipeline->pipeline );
-			rsh.nri.coreI.CmdSetPipelineLayout( cmd->cmd, program->layout );
-			//RP_BindDescriptorSets( cmd, program, descriptors, descriptorIndex );
-			FR_CmdDrawElements(cmd, 
-				cmd->drawElements.numElems,
-				cmd->drawElements.numInstances,
-				cmd->drawElements.firstElem,
-				cmd->drawElements.firstVert,
-				0);
-
-			// update uniforms
-			// program = RB_RegisterProgram( GLSL_PROGRAM_TYPE_RGB_SHADOW, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
-			// if( RB_BindProgram( program ) ) {
-			//	RB_UpdateCommonUniforms( program, pass, texMatrix );
-
-			//	// submit animation data
-			//	if( programFeatures & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
-			//		RP_UpdateBonesUniforms( program, rb.bonesData.numBones, rb.bonesData.dualQuats );
-			//	}
-
-			//	RB_DrawElementsReal( &rb.drawElements );
-			//}
-			break;
-		}
 		case GLSL_PROGRAM_TYPE_SHADOWMAP: {
 			int scissor[4] = {INT_MAX, INT_MAX, INT_MIN, INT_MIN};
 			int old_scissor[4];
@@ -2139,21 +2099,6 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 				cmd->drawElements.firstElem,
 				cmd->drawElements.firstVert,
 				0);
-
-
-		 // program = RB_RegisterProgram( GLSL_PROGRAM_TYPE_FOG, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
-		 // if( RB_BindProgram( program ) ) {
-		 // 	RB_UpdateCommonUniforms( program, pass, texMatrix );
-
-		 // 	RB_UpdateFogUniforms( program, fog );
-
-		 // 	// submit animation data
-		 // 	if( programFeatures & GLSL_SHADER_COMMON_BONE_TRANSFORMS ) {
-		 // 		RP_UpdateBonesUniforms( program, rb.bonesData.numBones, rb.bonesData.dualQuats );
-		 // 	}
-
-		 // 	RB_DrawElementsReal( &rb.drawElements );
-		 // }
 			break;
 		}
 		case GLSL_PROGRAM_TYPE_YUV: {
@@ -2447,9 +2392,6 @@ static void RB_RenderPass( struct frame_cmd_buffer_s *cmd, const shaderpass_t *p
 	if( ( rb.renderFlags & RF_SHADOWMAPVIEW ) && !( pass->flags & GLSTATE_DEPTHWRITE ) )
 		return;
 
-	// if( ( rb.renderFlags & RF_SHADOWMAPVIEW )) {
-	// 	RB_RenderMeshGLSLProgrammed( cmd, pass, GLSL_PROGRAM_TYPE_RGB_SHADOW );
-	// } else 
 	if( pass->program_type ) {
 		RB_RenderMeshGLSLProgrammed( cmd, pass, pass->program_type );
 	} else {
