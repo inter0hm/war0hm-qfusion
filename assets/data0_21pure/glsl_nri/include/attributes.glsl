@@ -13,8 +13,11 @@
 	layout(location = 7) in vec4 a_LightmapCoord23;
   #endif
   
-  	layout(location = 8) in ivec4 a_LightmapLayer0123;
-
+  	#ifdef LIGHTMAP_ARRAYS
+  		layout(location = 8) in uvec4 a_LightmapLayer0123;		
+	#else
+		#define a_LightmapLayer0123 uvec4(0)
+	#endif
 	#if defined(APPLY_AUTOSPRITE) || defined(APPLY_AUTOSPRITE2)
 		layout(location = 5) in vec4 a_SpritePoint;
 	#else

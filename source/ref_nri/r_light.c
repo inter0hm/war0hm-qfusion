@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // r_light.c
 
+#include "r_image.h"
 #include "r_local.h"
 #include "r_math_util.h"
 
@@ -569,77 +570,65 @@ static int R_PackLightmaps( int num, int w, int h, int dataSize, int stride, int
 */
 void R_BuildLightmaps( model_t *mod, int numLightmaps, int w, int h, const uint8_t *data, mlightmapRect_t *rects )
 {
-	int i, j, p;
 	int numBlocks = numLightmaps;
 	int samples;
-	int layerWidth, size;
-	mbrushmodel_t *loadbmodel;
 
 	assert( mod );
 
-	loadbmodel = (( mbrushmodel_t * )mod->extradata);
+	mbrushmodel_t *loadbmodel = (( mbrushmodel_t * )mod->extradata);
 
 	samples = ( ( r_lighting_grayscale->integer && !mapConfig.deluxeMappingEnabled ) ? 1 : LIGHTMAP_BYTES );
 
-	layerWidth = w * ( 1 + ( int )mapConfig.deluxeMappingEnabled );
+	const int layerWidth = w * ( 1 + ( int )mapConfig.deluxeMappingEnabled );
 
-	mapConfig.maxLightmapSize = 0;
-	mapConfig.lightmapArrays = false; 
-	 // = mapConfig.lightmapsPacking
-	 // && glConfig.ext.texture_array
-	 // && ( glConfig.maxVertexAttribs > VATTRIB_LMLAYERS0123 )
-	 // && ( glConfig.maxVaryingFloats >= ( 9 * 4 ) ) // 9th varying is required by material shaders
-	 // && ( layerWidth <= glConfig.maxTextureSize ) && ( h <= glConfig.maxTextureSize );
-
-	{
-		
-		const NriDeviceDesc* desc = rsh.nri.coreI.GetDeviceDesc( rsh.nri.device );
-		if( !mapConfig.lightmapsPacking )
-			size = max( w, h );
-		else
-			for( size = 1; ( size < r_lighting_maxlmblocksize->integer ) 
-				&& ( size < desc->texture2DMaxDim ); size <<= 1 ) ;
-
-		if( mapConfig.deluxeMappingEnabled && ( ( size == w ) || ( size == h ) ) )
-		{
-			Com_Printf( S_COLOR_YELLOW "Lightmap blocks larger than %ix%i aren't supported" 
-				", deluxemaps will be disabled\n", size, size );
-			mapConfig.deluxeMappingEnabled = false;
-		}
-
-		r_maxLightmapBlockSize = size;
-
-		size = w * h;
-	}
+	mapConfig.lightmapArrays = true;
+	mapConfig.maxLightmapSize = layerWidth;
+	const int size = layerWidth * h;
 
 	r_lightmapBufferSize = size * samples;
 	r_lightmapBuffer = R_MallocExt( r_mempool, r_lightmapBufferSize, 0, 0 );
+
+	mlightmapRect_t *rect = rects;
+	const size_t blockSize = w * h * LIGHTMAP_BYTES;
+	char tempbuf[16];
+
+	if( mapConfig.deluxeMaps )
+		numLightmaps /= 2;
+
 	r_numUploadedLightmaps = 0;
-	
-	{
-		int stride = 1;
-		int dataRowSize = size * LIGHTMAP_BYTES;
+	for( size_t i = 0; i < numLightmaps; i++ ) {
+		R_BuildLightmap( w, h, false, data, r_lightmapBuffer, layerWidth * samples, samples );
+		data += blockSize;
 
-		if( mapConfig.deluxeMaps && !mapConfig.deluxeMappingEnabled )
-		{
-			stride = 2;
-			numLightmaps /= 2;
+		rect->texNum = 0;
+		rect->texLayer = r_numUploadedLightmaps;
+		// this is not a real texture matrix, but who cares?
+		rect->texMatrix[0][0] = (mapConfig.deluxeMappingEnabled) ? 0.5f : 1.0f;
+		rect->texMatrix[0][1] = 0.0f;
+		rect->texMatrix[1][0] = 1.0f;
+		rect->texMatrix[1][1] = 0.0f;
+		++rect;
+
+		if( mapConfig.deluxeMappingEnabled )
+			R_BuildLightmap( w, h, true, data, r_lightmapBuffer + w * samples, layerWidth * samples, samples );
+
+		if( mapConfig.deluxeMaps ) {
+			data += blockSize;
+			++rect;
 		}
 
-		for( i = 0, j = 0; i < numBlocks; i += p * stride, j += p )
-		{
-			p = R_PackLightmaps( numLightmaps - j, w, h, dataRowSize, stride, samples,
-				false, "*lm", data + j * dataRowSize * stride, &rects[i] );
-		}
+		image_t *image = R_LoadImage( 
+			va_r( tempbuf, sizeof( tempbuf ), "*lm%i", r_numUploadedLightmaps ), 
+			&r_lightmapBuffer, layerWidth, h, IT_SPECIAL, 0, IMAGE_TAG_GENERIC, samples);
+		r_lightmapTextures[r_numUploadedLightmaps++] = image;
 	}
 
 	if( r_lightmapBuffer )
 		R_Free( r_lightmapBuffer );
 
-	loadbmodel->lightmapImages = Mod_Malloc( mod, sizeof( *loadbmodel->lightmapImages ) * r_numUploadedLightmaps );
-	memcpy( loadbmodel->lightmapImages, r_lightmapTextures, 
-		sizeof( *loadbmodel->lightmapImages ) * r_numUploadedLightmaps );
-	loadbmodel->numLightmapImages = r_numUploadedLightmaps;
+  loadbmodel->lightmapImages = Mod_Malloc( mod, sizeof( *loadbmodel->lightmapImages ) * r_numUploadedLightmaps );
+  memcpy( loadbmodel->lightmapImages, r_lightmapTextures, sizeof( *loadbmodel->lightmapImages ) * r_numUploadedLightmaps );
+  loadbmodel->numLightmapImages = r_numUploadedLightmaps;
 
 	ri.Com_DPrintf( "Packed %i lightmap blocks into %i texture(s)\n", numBlocks, r_numUploadedLightmaps );
 }

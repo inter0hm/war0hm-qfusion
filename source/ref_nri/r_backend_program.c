@@ -1225,22 +1225,23 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 						const superLightStyle_t *lightStyle = rb.superLightStyle;
 
 						// bind lightmap textures and set program's features for lightstyles
-						const int numLightMaps = __NumberLightMaps( lightStyle );
-						programFeatures |= ( numLightMaps * GLSL_SHADER_MATERIAL_LIGHTSTYLE0 );
-						for( int i = 0; i < numLightMaps; i++ ) {
-							image_t *lightmapImage = rsh.worldBrushModel->lightmapImages[lightStyle->lightmapNum[i]];
-							if(i == 0) {
-								descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
-									.descriptor = lightmapImage->samplerDescriptor, 
+
+						for( size_t i = 0; i < rsh.worldBrushModel->numLightmapImages; i++ ) {
+							if( i == 0 ) {
+								descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){ 
+									.descriptor = rsh.worldBrushModel->lightmapImages[i]->samplerDescriptor,
 									.handle = Create_DescriptorHandle( "lightmapTextureSample" ) 
 								};
 							}
 							descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
-								.descriptor = lightmapImage->descriptor, 
-								.registerOffset = i, 
-								.handle = Create_DescriptorHandle( "lightmapTexture" ) 
+								.descriptor = rsh.worldBrushModel->lightmapImages[i]->descriptor, 
+								.registerOffset = i, .handle = Create_DescriptorHandle( "lightmapTexture" ) 
 							};
-
+						}
+						
+						const int numLightMaps = __NumberLightMaps( lightStyle );
+						programFeatures |= ( numLightMaps * GLSL_SHADER_MATERIAL_LIGHTSTYLE0 );
+						for( int i = 0; i < numLightMaps; i++ ) {
 							float rgb[4] = {0};
 							VectorCopy( rsc.lightStyles[lightStyle->lightmapStyles[i]].rgb, rgb );
 							if( mapConfig.lightingIntensity )
@@ -1537,24 +1538,25 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 					.handle = Create_DescriptorHandle( "u_BaseSampler" ) };
 			}
 			
-			const int numLightMaps = isLightmapped ? __NumberLightMaps( lightStyle ) : 0;
-			programFeatures |= ( numLightMaps * GLSL_SHADER_Q3_LIGHTSTYLE0 );
 			if( mapConfig.lightmapArrays )
 				programFeatures |= GLSL_SHADER_Q3_LIGHTMAP_ARRAYS;
 
-			for( int i = 0; i < numLightMaps; i++ ) {
-				image_t* lightmapImage = rsh.worldBrushModel->lightmapImages[lightStyle->lightmapNum[i]];
-				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
-					.descriptor = lightmapImage->descriptor, 
-					.registerOffset = i, 
-					.handle = Create_DescriptorHandle( "lightmapTexture" ) };
+			for(size_t i = 0; i < rsh.worldBrushModel->numLightmapImages; i++) {
 				if(i == 0) {
 					descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
-						.descriptor = lightmapImage->samplerDescriptor, 
+						.descriptor = rsh.worldBrushModel->lightmapImages[i]->samplerDescriptor, 
 						.handle = Create_DescriptorHandle( "lightmapTextureSample" ) 
 					};
 				}
-
+				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
+					.descriptor = rsh.worldBrushModel->lightmapImages[i]->descriptor, 
+					.registerOffset = i, 
+					.handle = Create_DescriptorHandle( "lightmapTexture" ) };
+			}
+			
+			const int numLightMaps = isLightmapped ? __NumberLightMaps( lightStyle ) : 0;
+			programFeatures |= ( numLightMaps * GLSL_SHADER_Q3_LIGHTSTYLE0 );
+			for( int i = 0; i < numLightMaps; i++ ) {
 				float rgb[4] = {0};
 				VectorCopy( rsc.lightStyles[lightStyle->lightmapStyles[i]].rgb, rgb );
 				if( mapConfig.lightingIntensity )

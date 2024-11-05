@@ -174,6 +174,15 @@ mesh_vbo_t *R_CreateMeshVBO(const struct mesh_vbo_desc_s* desc)
 			lmattrbit = (vattribbit_t)( (vattribmask_t)lmattrbit << 2 );
 		}
 
+		// lightmap array texture layers
+		for(size_t i = 0; i < ( MAX_LIGHTMAPS + 3 ) / 4; i++ ) {
+			if( !( desc->vattribs & ( VATTRIB_LMLAYERS0123_BIT << i ) ) ) {
+				break;
+			}
+			vbo->lmlayersOffset[i] = vertexByteStride;
+			vertexByteStride  += sizeof( int );
+		}
+
 		// vertex colors
 		if( desc->vattribs & VATTRIB_COLOR0_BIT )
 		{
@@ -492,23 +501,16 @@ void R_FillNriVertexAttrib(mesh_vbo_t* vbo, NriVertexAttributeDesc* desc, size_t
 			lmattrbit <<= 2;
 		}
 
-		// lightmap array texture layers
-		lmattr = VATTRIB_LMLAYERS0123;
-
 		for(size_t i = 0; i < ( MAX_LIGHTMAPS + 3 ) / 4; i++ ) {
 			if( vbo->vertexAttribs & ( VATTRIB_LMLAYERS0123_BIT << i ) ) {
 				desc[( *numDesc )++] = ( NriVertexAttributeDesc ){
 					.offset = vbo->lmlayersOffset[i], 
-					.format = NriFormat_R8_UINT, 
-					.vk = { lmattr }, 
+					.format = NriFormat_RGBA8_UINT, 
+					.vk = { VATTRIB_LMLAYERS0123 }, 
 					.d3d = {.semanticName = "TEXCOORD5", .semanticIndex = lmattr  },
 					.streamIndex = 0 
 				};
-				//qglVertexAttribPointerARB( lmattr, 4, GL_UNSIGNED_BYTE,
-				//	GL_FALSE, vbo->vertexSize, ( const GLvoid * )vbo->lmlayersOffset[i] );
 			}
-
-			lmattr++;
 		}
 
 	}

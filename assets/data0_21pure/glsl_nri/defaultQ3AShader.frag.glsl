@@ -13,7 +13,7 @@ layout(set = DESCRIPTOR_PASS_SET, binding = 1) uniform sampler u_DepthSampler;
 layout(set = DESCRIPTOR_PASS_SET, binding = 2) uniform texture2D u_DepthTexture;
 
 layout(set = DESCRIPTOR_GLOBAL_SET, binding = 0) uniform sampler lightmapTextureSample;
-layout(set = DESCRIPTOR_GLOBAL_SET, binding = 1) uniform texture2D lightmapTexture[4];
+layout(set = DESCRIPTOR_GLOBAL_SET, binding = 1) uniform texture2D lightmapTexture[16];
 
 layout(location = 0) in vec3 v_Position; 
 layout(location = 1) in vec3 v_Normal;
@@ -22,10 +22,51 @@ layout(location = 3) in vec4 frontColor;
 
 layout(location = 4) in vec4 v_LightmapTexCoord01;
 layout(location = 5) in vec4 v_LightmapTexCoord23;
-layout(location = 6) flat in ivec4 v_LightmapLayer0123;
+layout(location = 6) flat in uvec4 v_LightmapLayer0123;
 layout(location = 7) in vec2 v_FogCoord;
 
 layout(location = 0) out vec4 outFragColor;
+
+
+
+// for non-uniform access
+vec4 lightMapAccess(vec2 coord, uint index) {
+	switch(index) {
+		case 0:
+			return texture(sampler2D(lightmapTexture[0],lightmapTextureSample), coord);
+		case 1:
+			return texture(sampler2D(lightmapTexture[1],lightmapTextureSample), coord);
+		case 2:
+			return texture(sampler2D(lightmapTexture[2],lightmapTextureSample), coord);
+		case 3:
+			return texture(sampler2D(lightmapTexture[3],lightmapTextureSample), coord);
+		case 4:
+			return texture(sampler2D(lightmapTexture[4],lightmapTextureSample), coord);
+		case 5:
+			return texture(sampler2D(lightmapTexture[5],lightmapTextureSample), coord);
+		case 6:
+			return texture(sampler2D(lightmapTexture[6],lightmapTextureSample), coord);
+		case 7:
+			return texture(sampler2D(lightmapTexture[7],lightmapTextureSample), coord);
+		case 8:
+			return texture(sampler2D(lightmapTexture[8],lightmapTextureSample), coord);
+		case 9:
+			return texture(sampler2D(lightmapTexture[9],lightmapTextureSample), coord);
+		case 10:
+			return texture(sampler2D(lightmapTexture[10],lightmapTextureSample), coord);
+		case 11:
+			return texture(sampler2D(lightmapTexture[11],lightmapTextureSample), coord);
+		case 12:
+			return texture(sampler2D(lightmapTexture[12],lightmapTextureSample), coord);
+		case 13:
+			return texture(sampler2D(lightmapTexture[13],lightmapTextureSample), coord);
+		case 14:
+			return texture(sampler2D(lightmapTexture[14],lightmapTextureSample), coord);
+		case 15:
+			return texture(sampler2D(lightmapTexture[15],lightmapTextureSample), coord);
+	}
+}
+
 
 void main(void)
 {
@@ -33,13 +74,13 @@ void main(void)
 
 #ifdef NUM_LIGHTMAPS
 	color = vec4(0.0, 0.0, 0.0, frontColor.a);
-	color.rgb += texture(sampler2D(lightmapTexture[0],lightmapTextureSample), v_LightmapTexCoord01.st).rgb * pass.lightstyleColor[0];
+	color.rgb += lightMapAccess(v_LightmapTexCoord01.st, v_LightmapLayer0123.x).rgb * pass.lightstyleColor[0];
 	#if NUM_LIGHTMAPS >= 2
-		color.rgb += texture(sampler2D(lightmapTexture[1],lightmapTextureSample), v_LightmapTexCoord01.pq).rgb * pass.lightstyleColor[1];
+		color.rgb += lightMapAccess(v_LightmapTexCoord01.pq, v_LightmapLayer0123.y).rgb * pass.lightstyleColor[1];
 		#if NUM_LIGHTMAPS >= 3
-			color.rgb += texture(sampler2D(lightmapTexture[2],lightmapTextureSample), v_LightmapTexCoord23.st).rgb * pass.lightstyleColor[2];
+			color.rgb += lightMapAccess(v_LightmapTexCoord23.st, v_LightmapLayer0123.z).rgb * pass.lightstyleColor[2];
 			#if NUM_LIGHTMAPS >= 4
-				color.rgb += texture(sampler2D(lightmapTexture[3],lightmapTextureSample), v_LightmapTexCoord23.pq).rgb * pass.lightstyleColor[3];
+				color.rgb += lightMapAccess(v_LightmapTexCoord23.pq, v_LightmapLayer0123.w).rgb * pass.lightstyleColor[3];
 			#endif // NUM_LIGHTMAPS >= 4
 		#endif // NUM_LIGHTMAPS >= 3
 	#endif // NUM_LIGHTMAPS >= 2

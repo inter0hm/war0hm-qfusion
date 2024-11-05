@@ -10,7 +10,7 @@ layout(location = 3) out vec4 frontColor;
 
 layout(location = 4) out vec4 v_LightmapTexCoord01;
 layout(location = 5) out vec4 v_LightmapTexCoord23;
-layout(location = 6) flat out ivec4 v_LightmapLayer0123;
+layout(location = 6) flat out uvec4 v_LightmapLayer0123;
 layout(location = 7) out vec2 v_FogCoord;
 
 void main(void)

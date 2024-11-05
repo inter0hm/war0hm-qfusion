@@ -2,10 +2,7 @@
 #include "defaultMaterial.res.glsl"
 
 layout(set = DESCRIPTOR_GLOBAL_SET, binding = 0) uniform sampler lightmapTextureSample;
-layout(set = DESCRIPTOR_GLOBAL_SET, binding = 1) uniform texture2D lightmapTexture[4];
-//layout(set = DESCRIPTOR_GLOBAL_SET, binding = 1 + (16 * 1)) uniform texture2D lightmapTexture1[16];
-//layout(set = DESCRIPTOR_GLOBAL_SET, binding = 1 + (16 * 2)) uniform texture2D lightmapTexture2[16];
-//layout(set = DESCRIPTOR_GLOBAL_SET, binding = 1 + (16 * 3)) uniform texture2D lightmapTexture3[16];
+layout(set = DESCRIPTOR_GLOBAL_SET, binding = 1) uniform texture2D lightmapTexture[16];
 
 layout(set = DESCRIPTOR_PASS_SET, binding = 3) uniform sampler   u_BaseSampler;
 layout(set = DESCRIPTOR_PASS_SET, binding = 4) uniform texture2D u_BaseTexture;
@@ -24,7 +21,7 @@ layout(location = 0) in vec3 v_Position;
 layout(location = 1) in vec3 v_EyeVector; 
 layout(location = 2) in vec4 v_LightmapTexCoord01;
 layout(location = 3) in vec4 v_LightmapTexCoord23;
-layout(location = 4) flat in ivec4 v_LightmapLayer0123;
+layout(location = 4) flat in uvec4 v_LightmapLayer0123;
 layout(location = 5) in vec4 frontColor; 
 layout(location = 6) in vec4 v_TexCoord_FogCoord;
 
@@ -33,6 +30,46 @@ layout(location = 8) in vec3 v_Normal;
 layout(location = 9) in vec3 v_Binormal; 
 
 layout(location = 0) out vec4 outFragColor;
+
+
+// for non-uniform access
+vec4 lightMapAccess(vec2 coord, uint index) {
+	switch(index) {
+		case 0:
+			return texture(sampler2D(lightmapTexture[0],lightmapTextureSample), coord);
+		case 1:
+			return texture(sampler2D(lightmapTexture[1],lightmapTextureSample), coord);
+		case 2:
+			return texture(sampler2D(lightmapTexture[2],lightmapTextureSample), coord);
+		case 3:
+			return texture(sampler2D(lightmapTexture[3],lightmapTextureSample), coord);
+		case 4:
+			return texture(sampler2D(lightmapTexture[4],lightmapTextureSample), coord);
+		case 5:
+			return texture(sampler2D(lightmapTexture[5],lightmapTextureSample), coord);
+		case 6:
+			return texture(sampler2D(lightmapTexture[6],lightmapTextureSample), coord);
+		case 7:
+			return texture(sampler2D(lightmapTexture[7],lightmapTextureSample), coord);
+		case 8:
+			return texture(sampler2D(lightmapTexture[8],lightmapTextureSample), coord);
+		case 9:
+			return texture(sampler2D(lightmapTexture[9],lightmapTextureSample), coord);
+		case 10:
+			return texture(sampler2D(lightmapTexture[10],lightmapTextureSample), coord);
+		case 11:
+			return texture(sampler2D(lightmapTexture[11],lightmapTextureSample), coord);
+		case 12:
+			return texture(sampler2D(lightmapTexture[12],lightmapTextureSample), coord);
+		case 13:
+			return texture(sampler2D(lightmapTexture[13],lightmapTextureSample), coord);
+		case 14:
+			return texture(sampler2D(lightmapTexture[14],lightmapTextureSample), coord);
+		case 15:
+			return texture(sampler2D(lightmapTexture[15],lightmapTextureSample), coord);
+	}
+}
+
 
 #if defined(APPLY_OFFSETMAPPING) || defined(APPLY_RELIEFMAPPING)
 //// The following reliefmapping and offsetmapping routine was taken from DarkPlaces
@@ -173,19 +210,19 @@ void main()
 #ifdef NUM_LIGHTMAPS
 {
 	// get light normal
-	vec3 diffuseNormalModelspace = normalize(texture(sampler2D(lightmapTexture[0],lightmapTextureSample), v_LightmapTexCoord01.st + vec2(pass.deluxLightMapScale.x, 0.0)).rgb - vec3(0.5));
+	vec3 diffuseNormalModelspace = normalize(lightMapAccess(v_LightmapTexCoord01.st + vec2(pass.deluxLightMapScale.x, 0.0), v_LightmapLayer0123.x).rgb - vec3(0.5));
 	// calculate directional shading
 	float diffuseProduct = float (dot (surfaceNormalModelspace, diffuseNormalModelspace));
 
 #ifdef APPLY_FBLIGHTMAP
 	weightedDiffuseNormalModelspace = diffuseNormalModelspace;
 	// apply lightmap color
-	color.rgb += vec3(max (diffuseProduct, 0.0) * texture(sampler2D(lightmapTexture[0],lightmapTextureSample), v_LightmapTexCoord01.st).rgb);
+	color.rgb += vec3(max (diffuseProduct, 0.0) * lightMapAccess(v_LightmapTexCoord01.st, v_LightmapLayer0123.x).rgb);
 #else
 	#define NORMALIZE_DIFFUSE_NORMAL
 	weightedDiffuseNormalModelspace = pass.lightstyleColor[0] * diffuseNormalModelspace;
 	// apply lightmap color
-	color.rgb += pass.lightstyleColor[0] * float(max (diffuseProduct, 0.0)) * texture(sampler2D(lightmapTexture[0],lightmapTextureSample), v_LightmapTexCoord01.st).rgb;
+	color.rgb += pass.lightstyleColor[0] * float(max (diffuseProduct, 0.0)) * lightMapAccess(v_LightmapTexCoord01.st, v_LightmapLayer0123.x).rgb;
 #endif // APPLY_FBLIGHTMAP
 
 #ifdef APPLY_AMBIENT_COMPENSATION
@@ -194,22 +231,22 @@ void main()
 #endif
 
 #if NUM_LIGHTMAPS >= 2
-	diffuseNormalModelspace = normalize(texture(sampler2D(lightmapTexture[1],lightmapTextureSample), v_LightmapTexCoord01.pq+vec2(pass.deluxLightMapScale.y,0.0)).rgb - vec3 (0.5));
+	diffuseNormalModelspace = normalize(lightMapAccess(v_LightmapTexCoord01.pq+vec2(pass.deluxLightMapScale.y,0.0), v_LightmapLayer0123.y).rgb - vec3 (0.5));
 	diffuseProduct = float (dot (surfaceNormalModelspace, diffuseNormalModelspace));
 	weightedDiffuseNormalModelspace += pass.lightstyleColor[1] * diffuseNormalModelspace;
-	color.rgb += pass.lightstyleColor[1].rgb * max (diffuseProduct, 0.0) * texture(sampler2D(lightmapTexture[1],lightmapTextureSample), v_LightmapTexCoord01.pq).rgb;
+	color.rgb += pass.lightstyleColor[1].rgb * max (diffuseProduct, 0.0) * lightMapAccess(v_LightmapTexCoord01.pq, v_LightmapLayer0123.y).rgb;
 #endif 
 #if NUM_LIGHTMAPS >= 3
-	diffuseNormalModelspace = normalize(texture(sampler2D(lightmapTexture[2],lightmapTextureSample), v_LightmapTexCoord23.st+vec2(pass.deluxLightMapScale.z,0.0)).rgb - vec3 (0.5));
+	diffuseNormalModelspace = normalize(lightMapAccess(v_LightmapTexCoord23.st+vec2(pass.deluxLightMapScale.z,0.0), v_LightmapLayer0123.z).rgb - vec3 (0.5));
 	diffuseProduct = float (dot (surfaceNormalModelspace, diffuseNormalModelspace));
 	weightedDiffuseNormalModelspace += pass.lightstyleColor[2] * diffuseNormalModelspace;
-	color.rgb += pass.lightstyleColor[2].rgb * max (diffuseProduct, 0.0) * texture(sampler2D(lightmapTexture[2],lightmapTextureSample), v_LightmapTexCoord23.st).rgb;
+	color.rgb += pass.lightstyleColor[2].rgb * max (diffuseProduct, 0.0) * lightMapAccess(v_LightmapTexCoord23.st, v_LightmapLayer0123.z).rgb;
 #endif 
 #if NUM_LIGHTMAPS >= 4
-	diffuseNormalModelspace = normalize(texture(sampler2D(lightmapTexture[3],lightmapTextureSample), v_LightmapTexCoord23.pq+vec2(pass.deluxLightMapScale.w,0.0)).rgb - vec3 (0.5));
+	diffuseNormalModelspace = normalize(lightMapAccess(v_LightmapTexCoord23.pq+vec2(pass.deluxLightMapScale.w,0.0), v_LightmapLayer0123.w).rgb - vec3 (0.5));
 	diffuseProduct = float (dot (surfaceNormalModelspace, diffuseNormalModelspace));
 	weightedDiffuseNormalModelspace += pass.lightstyleColor[3] * diffuseNormalModelspace;
-	color.rgb += pass.lightstyleColor[3].rgb * max (diffuseProduct, 0.0) * texture(sampler2D(lightmapTexture[3],lightmapTextureSample), v_LightmapTexCoord23.pq).rgb;
+	color.rgb += pass.lightstyleColor[3].rgb * max (diffuseProduct, 0.0) * lightMapAccess(v_LightmapTexCoord23.pq, v_LightmapLayer0123.w).rgb;
 #endif 
 
 }
