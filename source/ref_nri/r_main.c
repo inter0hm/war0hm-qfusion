@@ -1019,7 +1019,7 @@ static void R_Clear(struct frame_cmd_buffer_s* frame, int bitMask )
 	int bits;
 	vec4_t envColor;
 	bool clearColor = false;
-	bool rgbShadow = ( rn.renderFlags & RF_SHADOWMAPVIEW ) && rn.fbColorAttachment != NULL ? true : false;
+	bool rgbShadow = ( rn.renderFlags & RF_SHADOWMAPVIEW ) ? true : false;
 	bool depthPortal = ( rn.renderFlags & (RF_MIRRORVIEW|RF_PORTALVIEW) ) != 0 && ( rn.renderFlags & RF_PORTAL_CAPTURE ) == 0;
 
 	if( ( rn.refdef.rdflags & RDF_NOWORLDMODEL ) || rgbShadow ) {
@@ -1196,28 +1196,6 @@ static void R_DrawEntities( void )
 	}
 }
 
-//=======================================================================
-
-/*
-* R_BindRefInstFBO
-*/
-static void R_BindRefInstFBO( void )
-{
-	int fbo;
-
-	if( rn.fbColorAttachment ) {
-		fbo = rn.fbColorAttachment->fbo;
-	}
-	else if( rn.fbDepthAttachment ) {
-		fbo = rn.fbDepthAttachment->fbo;
-	}
-	else {
-		fbo = 0;
-	}
-
-	R_BindFrameBufferObject( fbo );
-}
-
 /*
 * R_RenderView
 */
@@ -1316,7 +1294,6 @@ void R_RenderView(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 
 	R_SortDrawList( rn.meshlist );
 
-	R_BindRefInstFBO();
 
 	R_SetupGL(frame);
 
@@ -1386,7 +1363,6 @@ void R_PopRefInst( struct frame_cmd_buffer_s* frame )
 	}
 
 	rn = riStack[--riStackSize];
-	R_BindRefInstFBO();
 
 	R_SetupGL(frame);
 }
@@ -1397,60 +1373,9 @@ void R_DeferDataSync( void )
 		return;
 
 	rf.dataSync = true;
-//	qglFlush();
 	RB_FlushTextureCache();
 }
 
-void R_DataSync( void )
-{
- // if( rf.dataSync ) {
- // 	if( glConfig.multithreading ) {
- // 		// synchronize data we might have uploaded this frame between the threads
- // 		// FIXME: only call this when absolutely necessary
- // 		qglFinish();
- // 	}
- // 	rf.dataSync = false;
- // }
-}
-
-/*
-* R_SetSwapInterval
-*/
-int R_SetSwapInterval( int swapInterval, int oldSwapInterval )
-{
-//	if( glConfig.stereoEnabled )
-//		return oldSwapInterval;
-//
-//	clamp_low( swapInterval, r_swapinterval_min->integer );
-//	if( swapInterval != oldSwapInterval ) {
-//		GLimp_SetSwapInterval( swapInterval );
-//    }
-//    return swapInterval;
-}
-
-/*
-* R_SetGamma
-*/
-void R_SetGamma( float gamma )
-{
-//	int i, v;
-//	double invGamma, div;
-//	unsigned short gammaRamp[3*GAMMARAMP_STRIDE];
-//
-//	if( !glConfig.hwGamma )
-//		return;
-//
-//	invGamma = 1.0 / bound( 0.5, gamma, 3.0 );
-//	div = (double)( 1 << 0 ) / (glConfig.gammaRampSize - 0.5);
-//
-//	for( i = 0; i < glConfig.gammaRampSize; i++ )
-//	{
-//		v = ( int )( 65535.0 * pow( ( (double)i + 0.5 ) * div, invGamma ) + 0.5 );
-//		gammaRamp[i] = gammaRamp[i + GAMMARAMP_STRIDE] = gammaRamp[i + 2*GAMMARAMP_STRIDE] = ( ( unsigned short )bound( 0, v, 65535 ) );
-//	}
-//
-//	GLimp_SetGammaRamp( GAMMARAMP_STRIDE, glConfig.gammaRampSize, gammaRamp );
-}
 
 /*
 * R_SetWallFloorColors

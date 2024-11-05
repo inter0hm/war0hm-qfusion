@@ -292,18 +292,8 @@ rserr_t R_Init( const char *applicationName, const char *screenshotPrefix, int s
 static rserr_t R_PostInit( void )
 {
 
- // glConfig.hwGamma = GLimp_GetGammaRamp( GAMMARAMP_STRIDE, &glConfig.gammaRampSize, glConfig.originalGammaRamp );
- // if( glConfig.hwGamma )
- // 	r_gamma->modified = true;
-
-
-
 	R_InitDrawLists();
 
-	R_SetSwapInterval( 0, -1 );
-
- //   R_FillStartupBackgroundColor( COLOR_R( rf.startupColor ) / 255.0f,
- // 	COLOR_G( rf.startupColor ) / 255.0f, COLOR_B( rf.startupColor ) / 255.0f );
 
 	R_TextureMode( r_texturemode->string );
 
@@ -415,10 +405,6 @@ void R_BeginRegistration( void )
 	rsh.registrationOpen = true;
 
 	R_InitVolatileAssets();
-
-	//R_DeferDataSync();
-
-	//R_DataSync();
 }
 
 /*
@@ -443,6 +429,5 @@ void R_EndRegistration( void )
 
 	R_DeferDataSync();
 
-	R_DataSync();
 }
 

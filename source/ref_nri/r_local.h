@@ -622,8 +622,6 @@ void		R_FreeFile_( void *buffer, const char *filename, int fileline );
 bool		R_IsRenderingToScreen( void );
 void		R_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync );
 void    R_EndFrame( void );
-int 		R_SetSwapInterval( int swapInterval, int oldSwapInterval );
-void		R_SetGamma( float gamma );
 void		R_SetWallFloorColors( const vec3_t wallColor, const vec3_t floorColor );
 void		R_SetDrawBuffer( const char *drawbuffer );
 void		R_Set2DMode(struct frame_cmd_buffer_s* cmd, bool enable );
@@ -631,11 +629,6 @@ void		R_RenderView(struct frame_cmd_buffer_s* frame, const refdef_t *fd );
 const msurface_t *R_GetDebugSurface( void );
 const char *R_WriteSpeedsMessage( char *out, size_t size );
 void		R_RenderDebugSurface( const refdef_t *fd );
-
-/**
- * Calls R_Finish if data sync was previously deferred.
- */
-void 		R_DataSync( void );
 
 /**
  * Defer R_DataSync call at the start/end of the next frame.

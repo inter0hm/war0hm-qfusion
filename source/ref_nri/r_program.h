@@ -206,11 +206,6 @@ typedef enum {
 	GLSL_STAGE_MAX
 } glsl_program_stage_t;
 
-enum glsl_slot_type {
-	GLSL_REFLECTION_IMAGE,
-	GLSL_REFLECTION_SAMPLER
-};
-
 struct glsl_program_s {
 	char *name;
 	int type;
@@ -244,8 +239,7 @@ struct glsl_program_s {
 		hash_t hash;
 		uint32_t isArray: 1;
 		uint32_t dimCount: 8;
-		uint32_t slotType: 8; // enum glsl_slot_type 
-		uint32_t setIndex: 4;
+		uint32_t setIndex: 6;
 		uint32_t baseRegisterIndex : 16;
 		uint32_t rangeOffset : 16;
 	} descriptorReflection[PIPELINE_REFLECTION_HASH_SIZE];

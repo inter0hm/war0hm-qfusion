@@ -48,15 +48,6 @@ static float rb_inversesawtoothtable[FTABLE_SIZE];
 static float rb_noisetable[NOISE_SIZE];
 static int rb_noiseperm[NOISE_SIZE];
 
-static NriAccessLayoutStage TextureShaderLayout = {
-	.layout = NriLayout_SHADER_RESOURCE,
-	.access = NriAccessBits_SHADER_RESOURCE,
-	.stages = NriStageBits_FRAGMENT_SHADER 
-};
-
-static shaderpass_t r_GLSLpasses[MAX_BUILTIN_GLSLPASSES];
-
-static void RB_SetShaderpassState( int state );
 static void RB_SetShaderpassState_2(struct frame_cmd_buffer_s *cmd, int state );
 
 static int __NumberLightMaps( const struct superLightStyle_s *lightStyle )
@@ -66,57 +57,14 @@ static int __NumberLightMaps( const struct superLightStyle_s *lightStyle )
 	return i;
 }
 
-static void RB_InitBuiltinPasses( void )
-{
-	shaderpass_t *pass;
-
-	// init optional GLSL program passes
-	memset( r_GLSLpasses, 0, sizeof( r_GLSLpasses ) );
-
-	// init fog pass
-	pass = &r_GLSLpasses[BUILTIN_GLSLPASS_FOG];
-	pass->program_type = GLSL_PROGRAM_TYPE_Q3A_SHADER;
-	pass->tcgen = TC_GEN_FOG;
-	pass->rgbgen.type = RGB_GEN_FOG;
-	pass->alphagen.type = ALPHA_GEN_IDENTITY;
-	pass->flags = GLSTATE_SRCBLEND_SRC_ALPHA | GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-	pass->program_type = GLSL_PROGRAM_TYPE_FOG;
-
-	// shadowmap
-	pass = &r_GLSLpasses[BUILTIN_GLSLPASS_SHADOWMAP];
-	pass->flags = GLSTATE_DEPTHFUNC_EQ /*|GLSTATE_OFFSET_FILL*/ | GLSTATE_SRCBLEND_ZERO | GLSTATE_DSTBLEND_SRC_COLOR;
-	pass->tcgen = TC_GEN_NONE;
-	pass->rgbgen.type = RGB_GEN_IDENTITY;
-	pass->alphagen.type = ALPHA_GEN_IDENTITY;
-	pass->program_type = GLSL_PROGRAM_TYPE_SHADOWMAP;
-
-	// outlines
-	pass = &r_GLSLpasses[BUILTIN_GLSLPASS_OUTLINE];
-	pass->flags = GLSTATE_DEPTHWRITE;
-	pass->rgbgen.type = RGB_GEN_OUTLINE;
-	pass->alphagen.type = ALPHA_GEN_OUTLINE;
-	pass->tcgen = TC_GEN_NONE;
-	pass->program_type = GLSL_PROGRAM_TYPE_OUTLINE;
-
-	// skybox
-	pass = &r_GLSLpasses[BUILTIN_GLSLPASS_SKYBOX];
-	pass->program_type = GLSL_PROGRAM_TYPE_Q3A_SHADER;
-	pass->tcgen = TC_GEN_BASE;
-	pass->rgbgen.type = RGB_GEN_IDENTITY;
-	pass->alphagen.type = ALPHA_GEN_IDENTITY;
-}
-
 /*
  * RB_InitShading
  */
 void RB_InitShading( void )
 {
-	int i;
-	float t;
-
 	// build lookup tables
-	for( i = 0; i < FTABLE_SIZE; i++ ) {
-		t = (float)i / (float)FTABLE_SIZE;
+	for(size_t i = 0; i < FTABLE_SIZE; i++ ) {
+		float t = (float)i / (float)FTABLE_SIZE;
 
 		rb_sintable[i] = sin( t * M_TWOPI );
 
@@ -139,12 +87,11 @@ void RB_InitShading( void )
 	// init the noise table
 	srand( 1001 );
 
-	for( i = 0; i < NOISE_SIZE; i++ ) {
+	for(size_t i = 0; i < NOISE_SIZE; i++ ) {
 		rb_noisetable[i] = (float)( ( ( rand() / (float)RAND_MAX ) * 2.0 - 1.0 ) );
 		rb_noiseperm[i] = (unsigned char)( rand() / (float)RAND_MAX * 255 );
 	}
 
-	RB_InitBuiltinPasses();
 }
 
 /*
@@ -399,122 +346,6 @@ void RB_ApplyTCMods( const shaderpass_t *pass, mat4_t result )
 		}
 	}
 }
-
-//static struct block_buffer_pool_req_s RB_GetVertexColoringCB(struct frame_cmd_buffer_s *cmd, const shaderpass_t *pass)
-//{
-//	int c;
-//	int rgba[4];
-//	double temp;
-//	float *table, a;
-//	vec3_t v;
-//	const shaderfunc_t *rgbgenfunc = &pass->rgbgen.func;
-//	const shaderfunc_t *alphagenfunc = &pass->alphagen.func;
-//
-//	Vector4Set( rgba, 255, 255, 255, 255 );
-//	switch( pass->rgbgen.type ) {
-//		case RGB_GEN_IDENTITY:
-//			break;
-//		case RGB_GEN_CONST:
-//			rgba[0] = (int)( pass->rgbgen.args[0] * 255.0f );
-//			rgba[1] = (int)( pass->rgbgen.args[1] * 255.0f );
-//			rgba[2] = (int)( pass->rgbgen.args[2] * 255.0f );
-//			break;
-//		case RGB_GEN_ENTITYWAVE:
-//		case RGB_GEN_WAVE:
-//		case RGB_GEN_CUSTOMWAVE:
-//			if( rgbgenfunc->type == SHADER_FUNC_NONE ) {
-//				temp = 1;
-//			} else if( rgbgenfunc->type == SHADER_FUNC_RAMP ) {
-//				break;
-//			} else if( rgbgenfunc->args[1] == 0 ) {
-//				temp = rgbgenfunc->args[0];
-//			} else {
-//				if( rgbgenfunc->type == SHADER_FUNC_NOISE ) {
-//					temp = RB_BackendGetNoiseValue( 0, 0, 0, ( rb.currentShaderTime + rgbgenfunc->args[2] ) * rgbgenfunc->args[3] );
-//				} else {
-//					table = RB_TableForFunc( rgbgenfunc->type );
-//					temp = rb.currentShaderTime * rgbgenfunc->args[3] + rgbgenfunc->args[2];
-//					temp = FTABLE_EVALUATE( table, temp ) * rgbgenfunc->args[1] + rgbgenfunc->args[0];
-//				}
-//				temp = temp * rgbgenfunc->args[1] + rgbgenfunc->args[0];
-//			}
-//
-//			if( pass->rgbgen.type == RGB_GEN_ENTITYWAVE ) {
-//				VectorSet( v, rb.entityColor[0] * ( 1.0 / 255.0 ), rb.entityColor[1] * ( 1.0 / 255.0 ), rb.entityColor[2] * ( 1.0 / 255.0 ) );
-//			} else if( pass->rgbgen.type == RGB_GEN_CUSTOMWAVE ) {
-//				c = R_GetCustomColor( (int)pass->rgbgen.args[0] );
-//				VectorSet( v, COLOR_R( c ) * ( 1.0 / 255.0 ), COLOR_G( c ) * ( 1.0 / 255.0 ), COLOR_B( c ) * ( 1.0 / 255.0 ) );
-//			} else {
-//				VectorCopy( pass->rgbgen.args, v );
-//			}
-//
-//			a = v[0] * temp;
-//			rgba[0] = (int)( a * 255.0f );
-//			a = v[1] * temp;
-//			rgba[1] = (int)( a * 255.0f );
-//			a = v[2] * temp;
-//			rgba[2] = (int)( a * 255.0f );
-//			break;
-//		case RGB_GEN_OUTLINE:
-//			rgba[0] = rb.entityOutlineColor[0];
-//			rgba[1] = rb.entityOutlineColor[1];
-//			rgba[2] = rb.entityOutlineColor[2];
-//			break;
-//		case RGB_GEN_ONE_MINUS_ENTITY:
-//			rgba[0] = 255 - rb.entityColor[0];
-//			rgba[1] = 255 - rb.entityColor[1];
-//			rgba[2] = 255 - rb.entityColor[2];
-//			break;
-//		case RGB_GEN_FOG:
-//			rgba[0] = rb.texFog->shader->fog_color[0];
-//			rgba[1] = rb.texFog->shader->fog_color[1];
-//			rgba[2] = rb.texFog->shader->fog_color[2];
-//			break;
-//		case RGB_GEN_ENVIRONMENT:
-//			rgba[0] = mapConfig.environmentColor[0];
-//			rgba[1] = mapConfig.environmentColor[1];
-//			rgba[2] = mapConfig.environmentColor[2];
-//			break;
-//		default:
-//			break;
-//	}
-//
-//	switch( pass->alphagen.type ) {
-//		case ALPHA_GEN_IDENTITY:
-//			break;
-//		case ALPHA_GEN_CONST:
-//			rgba[3] = (int)( pass->alphagen.args[0] * 255.0f );
-//			break;
-//		case ALPHA_GEN_WAVE:
-//			if( !alphagenfunc || alphagenfunc->type == SHADER_FUNC_NONE ) {
-//				a = 1;
-//			} else if( alphagenfunc->type == SHADER_FUNC_RAMP ) {
-//				break;
-//			} else {
-//				if( alphagenfunc->type == SHADER_FUNC_NOISE ) {
-//					a = RB_BackendGetNoiseValue( 0, 0, 0, ( rb.currentShaderTime + alphagenfunc->args[2] ) * alphagenfunc->args[3] );
-//				} else {
-//					table = RB_TableForFunc( alphagenfunc->type );
-//					a = alphagenfunc->args[2] + rb.currentShaderTime * alphagenfunc->args[3];
-//					a = FTABLE_EVALUATE( table, a );
-//				}
-//				a = a * alphagenfunc->args[1] + alphagenfunc->args[0];
-//			}
-//
-//			rgba[3] = (int)( a * 255.0f );
-//			break;
-//		case ALPHA_GEN_ENTITY:
-//			rgba[3] = rb.entityColor[3];
-//			break;
-//		case ALPHA_GEN_OUTLINE:
-//			rgba[3] = rb.entityOutlineColor[3];
-//		default:
-//			break;
-//	}
-//
-//	for( c = 0; c < 4; c++ ) {
-//	}
-//}
 
 static inline image_t *RB_ShaderpassTex( const shaderpass_t *pass )
 {
@@ -1147,8 +978,6 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 
 				// convert rgbgen and alphagen to GLSL feature defines
 				programFeatures |= RB_RGBAlphaGenToProgramFeatures( &pass->rgbgen, &pass->alphagen );
-
-				// set shaderpass state (blending, depthwrite, etc)
 				RB_SetShaderpassState_2(cmd, pass->flags );
 
 				// we only send S-vectors to GPU and recalc T-vectors as cross product
@@ -1338,7 +1167,6 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 					};
 				}
 			
-				RB_SetShaderpassState( pass->flags );
 				UpdateFrameUBO( cmd, &cmd->uboSceneFrame, &frameData, sizeof( struct FrameCB ) );
 				UpdateFrameUBO( cmd, &cmd->uboSceneObject, &objectData, sizeof( struct ObjectCB ) );
 				descriptors[descriptorIndex++] = ( struct glsl_descriptor_binding_s ){
@@ -2107,11 +1935,11 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 			mat4_t texMatrix = { 0 };
 
 			// set shaderpass state (blending, depthwrite, etc)
-			RB_SetShaderpassState( pass->flags );
+			RB_SetShaderpassState_2(cmd, pass->flags );
 
-			RB_BindImage( 0, pass->images[0] );
-			RB_BindImage( 1, pass->images[1] );
-			RB_BindImage( 2, pass->images[2] );
+			//RB_BindImage( 0, pass->images[0] );
+			//RB_BindImage( 1, pass->images[1] );
+			//RB_BindImage( 2, pass->images[2] );
 
 			// update uniforms
 			struct glsl_program_s *program = RP_ResolveProgram( GLSL_PROGRAM_TYPE_YUV, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
@@ -2336,58 +2164,6 @@ void RB_SetLightParams( float minLight, bool noWorldLight )
 	rb.noWorldLight = noWorldLight;
 }
 
-/*
- * RB_RegisterProgram
- */
-int RB_RegisterProgram( int type, const char *name, const char *deformsKey, const deformv_t *deforms, int numDeforms, r_glslfeat_t features )
-{
-	int program;
-	bool noDeforms = !deformsKey || !*deformsKey;
-
-	if( rb.currentRegProgramType == type && noDeforms && rb.currentRegProgramFeatures == features ) {
-		return rb.currentRegProgram;
-	}
-
-	program = RP_RegisterProgram( type, name, deformsKey, deforms, numDeforms, features );
-	if( noDeforms ) {
-		rb.currentRegProgram = program;
-		rb.currentRegProgramType = type;
-		rb.currentRegProgramFeatures = features;
-	}
-
-	return program;
-}
-
-/*
- * RB_BindProgram
- */
-int RB_BindProgram( int program )
-{
-	assert(false);
-	// int object;
-
-	// if( program == rb.currentProgram ) {
-	// 	return rb.currentProgramObject;
-	// }
-
-	// rb.currentProgram = program;
-	// // if( !program ) {
-	// // 	rb.currentProgramObject = 0;
-	// // 	qglUseProgram( 0 );
-	// // 	return 0;
-	// // }
-
-	// // object = RP_GetProgramObject( program );
-	// // if( object ) {
-	// // 	qglUseProgram( object );
-	// // }
-	// rb.currentProgramObject = object;
-	// rb.dirtyUniformState = true;
-	// rb.stats.c_totalPrograms++;
-	// return object;
-	return 0;
-}
-
 static void RB_RenderPass( struct frame_cmd_buffer_s *cmd, const shaderpass_t *pass )
 {
 	// for depth texture we render light's view to, ignore passes that do not write into depth buffer
@@ -2500,27 +2276,6 @@ static void RB_SetShaderpassState_2( struct frame_cmd_buffer_s *cmd, int state )
 }
 
 /*
- * RB_SetShaderpassState
- */
-static void RB_SetShaderpassState( int state )
-{
-	state |= rb.currentShaderState;
-	if( rb.alphaHack ) {
-		if( !( state & GLSTATE_BLEND_MASK ) ) {
-			// force alpha blending
-			state = ( state & ~GLSTATE_DEPTHWRITE ) | GLSTATE_SRCBLEND_SRC_ALPHA | GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA;
-		}
-	}
-	if( rb.noColorWrite ) {
-		state |= GLSTATE_NO_COLORWRITE;
-	}
-	if( rb.depthEqual && ( state & GLSTATE_DEPTHWRITE ) ) {
-		state |= GLSTATE_DEPTHFUNC_EQ;
-	}
-	RB_SetState( state );
-}
-
-/*
  * RB_CleanSinglePass
  *
  * Attempts to reuse current GLSL state: since the dirty flag
@@ -2611,13 +2366,19 @@ void RB_DrawShadedElements_2( struct frame_cmd_buffer_s *cmd,
 
 	// fog
 	if( rb.texFog && rb.texFog->shader ) {
-		shaderpass_t *fogPass = &r_GLSLpasses[BUILTIN_GLSLPASS_FOG];
+		shaderpass_t fogPass = {
+			.program_type = GLSL_PROGRAM_TYPE_FOG,
+			.tcgen = TC_GEN_FOG,
+			.rgbgen.type = RGB_GEN_FOG,
+			.alphagen.type = ALPHA_GEN_IDENTITY,
+			.flags = GLSTATE_SRCBLEND_SRC_ALPHA | GLSTATE_DSTBLEND_ONE_MINUS_SRC_ALPHA,
+		};
 
-		fogPass->images[0] = rsh.whiteTexture;
+		fogPass.images[0] = rsh.whiteTexture;
 		if( !rb.currentShader->numpasses || rb.currentShader->fog_dist || ( rb.currentShader->flags & SHADER_SKY ) )
-			fogPass->flags &= ~GLSTATE_DEPTHFUNC_EQ;
+			fogPass.flags &= ~GLSTATE_DEPTHFUNC_EQ;
 		else
-			fogPass->flags |= GLSTATE_DEPTHFUNC_EQ;
-		RB_RenderPass( cmd, fogPass );
+			fogPass.flags |= GLSTATE_DEPTHFUNC_EQ;
+		RB_RenderPass( cmd, &fogPass );
 	}
 }

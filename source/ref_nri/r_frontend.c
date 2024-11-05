@@ -922,6 +922,7 @@ void RF_ReplaceRawSubPic( shader_t *shader, int x, int y, int width, int height,
 
 void RF_BeginAviDemo( void )
 {
+	assert(false);
 	//RF_AdapterWait( &rrf.adapter );
 }
 

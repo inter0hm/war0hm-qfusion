@@ -1834,7 +1834,6 @@ struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const cha
 						case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:
 							rangeDesc->descriptorType = NriDescriptorType_STORAGE_TEXTURE;
 							info->alloc->config.storageTextureMaxNum += bindingCount;
-							reflc.slotType = GLSL_REFLECTION_IMAGE;
 							break;
 						case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
 							rangeDesc->descriptorType = NriDescriptorType_STORAGE_BUFFER;
