@@ -21,7 +21,9 @@ freely, subject to the following restrictions:
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <mutex>
 #include <stdio.h>
+#include <thread>
 #define DEBUGPIPE 1
 #include "../os.h"
 #include "../steamshim.h"
@@ -56,6 +58,9 @@ static size_t currentSync;
 static struct steam_rpc_async_s rpc_handles[NUM_RPC_ASYNC_HANDLE];
 static struct event_subscriber_s evt_handles[STEAM_EVT_LEN];
 
+
+std::mutex writeGuard;
+
 int STEAMSHIM_dispatch()
 {
 	// struct steam_packet_buf packet;
@@ -81,6 +86,13 @@ static bool setEnvironmentVars( PipeType pipeChildRead, PipeType pipeChildWrite 
 		return false;
 
 	return true;
+}
+
+static void taskHeartbeat(){
+    while (true) {
+    	STEAMSHIM_dispatch();
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
 }
 
 extern "C" {
@@ -133,6 +145,9 @@ int STEAMSHIM_init( SteamshimOptions *options )
 
 	pipeChildRead = pipeChildWrite = NULLPIPE;
 
+	std::thread task(taskHeartbeat);
+	task.detach();
+
 #ifndef _WIN32
 	signal( SIGPIPE, SIG_IGN );
 #endif
@@ -175,8 +190,11 @@ int STEAMSHIM_sendRPC( void *packet, uint32_t size, void *self, STEAMSHIM_rpc_ha
 	handle->token = syncIndex;
 	handle->self = self;
 	handle->cb = rpc;
+
+  writeGuard.lock();
 	writePipe( GPipeWrite, &size, sizeof( uint32_t ) );
 	writePipe( GPipeWrite, (uint8_t *)packet, size );
+	writeGuard.unlock();
 	return 0;
 }
 

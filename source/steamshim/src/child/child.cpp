@@ -390,7 +390,6 @@ static void processCommands()
 {
 	static struct steam_packet_buf packet;
 	static size_t cursor = 0;
-	bool hasMore = false;
 	while( 1 ) {
 		if( time_since_last_pump != 0 ) {
 			time_t delta = time( NULL ) - time_since_last_pump;
@@ -399,6 +398,11 @@ static void processCommands()
 		}
 
 		assert( sizeof( struct steam_packet_buf ) == STEAM_PACKED_RESERVE_SIZE );
+
+		if (!pipeReady(GPipeRead)) {
+			std::this_thread::sleep_for(std::chrono::microseconds(1000));
+			continue;
+		}
 
 		const int bytesRead = readPipe( GPipeRead, packet.buffer + cursor, STEAM_PACKED_RESERVE_SIZE - cursor );
 		if( bytesRead > 0 ) {
@@ -418,9 +422,7 @@ static void processCommands()
 			continue;
 		}
 
-		// readPipe(GPipeRead, &packet, size );
 		if( packet.common.cmd >= RPC_BEGIN && packet.common.cmd < RPC_END ) {
-			// dbgprintf( "process packet: %lu %lu\n", packet.rpc_payload.common.cmd, packet.rpc_payload.common.sync );
 			processRPC( &packet.rpc_payload, packet.size );
 		}
 
@@ -545,17 +547,6 @@ int main( int argc, char **argv )
 		writePipe( GPipeWrite, &failure, sizeof failure );
 		fail( "Failed to initialize Steamworks" );
 	}
-	// if (!gcansend) continue;
-	// 		SteamNetworkingMessage_t* msgs[32];
-	// 		int n = SteamNetworkingSockets()->ReceiveMessagesOnConnection(gconn, msgs, 32);
-	//
-	// 		for (int i = 0; i < n; i++) {
-	// 			uint32 size = msgs[i]->GetSize();
-	// 			printf("Received message %i\n", size);
-	// 			uint8* data = new uint8[size];
-	// 			memcpy(data, msgs[i]->GetData(), size);
-	//
-	// 			printf("Data: %s\n", data);
 	char success = 1;
 	writePipe( GPipeWrite, &success, sizeof success );
 
