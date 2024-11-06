@@ -884,6 +884,7 @@ void RF_SetCustomColor( int num, int r, int g, int b )
 
 void RF_ScreenShot( const char *path, const char *name, const char *fmtstring, bool silent )
 {
+	struct frame_cmd_buffer_s *cmd = R_ActiveFrameCmd();
  // if( RF_RenderingEnabled() )
  // 	rrf.adapter.cmdPipe->ScreenShot( rrf.adapter.cmdPipe, path, name, fmtstring, silent );
 }

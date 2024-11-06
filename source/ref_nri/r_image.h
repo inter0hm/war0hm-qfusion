@@ -103,8 +103,6 @@ void R_TouchImage( image_t *image, int tags );
 void R_FreeUnusedImagesByTags( int tags );
 void R_FreeUnusedImages( void );
 void R_ShutdownImages( void );
-void R_InitViewportTexture( image_t **texture, const char *name, int id, 
-	int viewportWidth, int viewportHeight, int size, int flags, int tags, int samples );
 image_t *R_CreateImage( const char *name, int width, int height, int layers, int flags, int minmipsize, int tags, int samples );
 void R_InitDrawFlatTexture( void );
 void R_FreeImageBuffers( void );
@@ -118,7 +116,6 @@ void R_AnisotropicFilter( int value );
 
 image_t *R_LoadImage( const char *name, uint8_t **pic, int width, int height, int flags, int minmipsize, int tags, int samples );
 image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmipsize, int tags );
-image_t *R_Create3DImage( const char *name, int width, int height, int layers, int flags, int tags, int samples, bool array );
 void R_ReplaceImage( image_t *image, uint8_t **pic, int width, int height, int flags, int minmipsize, int samples );
 void R_ReplaceSubImage( image_t *image, int layer, int x, int y, uint8_t **pic, int width, int height );
 void R_ReplaceImageLayer( image_t *image, int layer, uint8_t **pic );

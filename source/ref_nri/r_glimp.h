@@ -147,13 +147,8 @@ typedef struct
 	//
 
 	char		draw_range_elements
-				,multitexture
-				,texture_cube_map
-				,texture_edge_clamp
 				,texture_filter_anisotropic
 				,depth_texture
-				,framebuffer_object
-				,swap_control
 				,draw_instanced
 				,instanced_arrays
 				,meminfo
@@ -167,9 +162,6 @@ typedef struct
 				,fragment_precision_high
 				,texture_lod
 				;
-	union { char shadow, shadow_samplers; };
-	union { char texture3D, texture_3D; };
-	union { char texture_non_power_of_two, texture_npot; };
 } glextinfo_t;
 
 typedef struct

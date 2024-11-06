@@ -72,6 +72,7 @@ static void __FreeImage(struct frame_cmd_buffer_s* cmd, struct image_s *image );
 static NriTextureUsageBits __R_NRITextureUsageBits(int flags);
 static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mipOffset, int x, int y, int w, int h, enum texture_format_e srcFormat, uint8_t *data );
 static enum texture_format_e __R_GetImageFormat( struct image_s* image );
+static uint16_t __R_calculateMipMapLevel(int flags, int width, int height, uint32_t minMipSize);
 
 // image data is attached to the buffer
 static void __FreeGPUImageData( struct frame_cmd_buffer_s *cmd, struct image_s *image )
@@ -101,8 +102,8 @@ static void __FreeGPUImageData( struct frame_cmd_buffer_s *cmd, struct image_s *
 	}
 	image->texture = NULL;
 	image->numAllocations = 0;
-	image->descriptor = (struct nri_descriptor_s){0};
-	image->samplerDescriptor= (struct nri_descriptor_s){0};
+	image->descriptor = ( struct nri_descriptor_s ){ 0 };
+	image->samplerDescriptor = ( struct nri_descriptor_s ){ 0 };
 }
 
 NriDescriptor *R_ResolveSamplerDescriptor( int flags )
@@ -1003,7 +1004,8 @@ static bool __R_LoadKTX( image_t *image, const char *pathname )
 	const struct base_format_def_s *definition = ktxContext.desc;
 	const enum texture_format_e dstFormat = __R_GetImageFormat(image);
 	const uint32_t numberOfFaces = R_KTXGetNumberFaces( &ktxContext );
-	const uint16_t numberOfMipLevels = R_KTXIsCompressed( &ktxContext )  ? 1 : (( image->flags & IT_NOMIPMAP ) ? 1 : R_KTXGetNumberMips( &ktxContext ));
+	const uint16_t minMipSize = __R_calculateMipMapLevel(image->flags, R_KTXWidth(&ktxContext), R_KTXHeight(&ktxContext), image->minmipsize);
+	const uint16_t numberOfMipLevels = R_KTXIsCompressed( &ktxContext )  ? 1 : min(minMipSize, R_KTXGetNumberMips( &ktxContext ));
 	NriTextureDesc textureDesc = { 
 		.width = R_KTXWidth( &ktxContext ),
 		.height = R_KTXHeight( &ktxContext ),
@@ -1278,9 +1280,6 @@ static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mip
 }
 
 static uint16_t __R_calculateMipMapLevel(int flags, int width, int height, uint32_t minMipSize) {
-	if(flags & IT_NOMIPMAP) {
-		return 1;
-	}
 
 	if( !( flags & IT_NOPICMIP ) )
 	{
@@ -1505,13 +1504,6 @@ image_t *R_CreateImage( const char *name, int width, int height, int layers, int
 	image->extension = '\0';
 
 	return image;
-}
-
-
-image_t *R_Create3DImage( const char *name, int width, int height, int layers, int flags, int tags, int samples, bool array )
-{
-	assert(false);
-	return NULL; 
 }
 
 static void __FreeImage( struct frame_cmd_buffer_s *cmd, struct image_s *image )
@@ -2194,80 +2186,6 @@ static void R_InitCoronaTexture( int *w, int *h, int *flags, int *samples )
 			data[( y*32+x )*4+0] = data[( y*32+x )*4+1] = data[( y*32+x )*4+2] = a;
 		}
 	}
-}
-
-/*
-* R_GetViewportTextureSize
-*/
-static void R_GetViewportTextureSize( const int viewportWidth, const int viewportHeight, 
-	const int size, const int flags, int *width, int *height )
-{
-	int limit;
-	int width_, height_;
-	bool npot;
-
-	// limit the texture size to either screen resolution in case we can't use FBO
-	// or hardware limits and ensure it's a POW2-texture if we don't support such textures
-	const NriDeviceDesc* desc = rsh.nri.coreI.GetDeviceDesc( rsh.nri.device );
-	limit = desc->attachmentMaxDim;
-	if( size )
-		limit = min( limit, size );
-	if( limit < 1 )
-		limit = 1;
-	width_ = height_ = limit;
-
-	npot = glConfig.ext.texture_non_power_of_two;
-#ifdef GL_ES_VERSION_2_0
-	npot = npot || ( ( flags & ( IT_CLAMP|IT_NOMIPMAP ) ) == ( IT_CLAMP|IT_NOMIPMAP ) );
-#endif
-	if( npot )
-	{
-		width_ = min( viewportWidth, limit );
-		height_ = min( viewportHeight, limit );
-	}
-	else
-	{
-		int d;
-
-		// calculate the upper bound and make sure it's not a pow of 2
-		d = min( limit, viewportWidth );
-		if( ( d & (d-1) ) == 0 ) d--;
-		for( width_ = 2; width_ <= d; width_ <<= 1 );
-
-		d = min( limit, viewportHeight );
-		if( ( d & (d-1) ) == 0 ) d--;
-		for( height_ = 2; height_ <= d; height_ <<= 1 );
-
-		if( size ) {
-			while( width_ > size || height_ > size ) {
-				width_ >>= 1;
-				height_ >>= 1;
-			}
-		}
-	}
-
-	*width = width_;
-	*height = height_;
-}
-
-/*
-* R_InitViewportTexture
-*/
-void R_InitViewportTexture( image_t **texture, const char *name, int id, 
-	int viewportWidth, int viewportHeight, int size, int flags, int tags, int samples )
-{
-	assert(false);
- // image_t *t;
-
- // R_GetViewportTextureSize( viewportWidth, viewportHeight, size, flags, &width, &height );
- // 		t->fbo = 0;
- // 	}
- // 	if( t->flags & IT_FRAMEBUFFER ) {
- // 		t->fbo = RFB_RegisterObject( t->width, t->height, ( tags & IMAGE_TAG_BUILTIN ) != 0,
- // 			( flags & IT_DEPTHRB ) != 0, ( flags & IT_STENCIL ) != 0 );
- // 		RFB_AttachTextureToObject( t->fbo, t );
- // 	}
- // }
 }
 
 
