@@ -73,6 +73,38 @@ static NriTextureUsageBits __R_NRITextureUsageBits(int flags);
 static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mipOffset, int x, int y, int w, int h, enum texture_format_e srcFormat, uint8_t *data );
 static enum texture_format_e __R_GetImageFormat( struct image_s* image );
 
+// image data is attached to the buffer
+static void __FreeGPUImageData( struct frame_cmd_buffer_s *cmd, struct image_s *image )
+{
+	if( image->texture ) {
+		if( cmd ) {
+			arrpush( cmd->freeTextures, image->texture );
+		} else {
+			rsh.nri.coreI.DestroyTexture( image->texture );
+		}
+	}
+
+	for( size_t i = 0; i < image->numAllocations; i++ ) {
+		if( cmd ) {
+			arrpush( cmd->freeMemory, image->memory[i] );
+		} else {
+			rsh.nri.coreI.FreeMemory( image->memory[i] );
+		}
+	}
+
+	if( image->descriptor.descriptor ) {
+		if( cmd ) {
+			arrpush( cmd->frameTemporaryDesc, image->descriptor.descriptor );
+		} else {
+			rsh.nri.coreI.DestroyDescriptor( image->descriptor.descriptor );
+		}
+	}
+	image->texture = NULL;
+	image->numAllocations = 0;
+	image->descriptor = (struct nri_descriptor_s){0};
+	image->samplerDescriptor= (struct nri_descriptor_s){0};
+}
+
 NriDescriptor *R_ResolveSamplerDescriptor( int flags )
 {
 
@@ -1246,6 +1278,10 @@ static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mip
 }
 
 static uint16_t __R_calculateMipMapLevel(int flags, int width, int height, uint32_t minMipSize) {
+	if(flags & IT_NOMIPMAP) {
+		return 1;
+	}
+
 	if( !( flags & IT_NOPICMIP ) )
 	{
 		// let people sample down the sky textures for speed
@@ -1481,31 +1517,7 @@ image_t *R_Create3DImage( const char *name, int width, int height, int layers, i
 static void __FreeImage( struct frame_cmd_buffer_s *cmd, struct image_s *image )
 {
 	{
-		//struct frame_cmd_buffer_s *cmd = R_ActiveFrameCmd();	
-		if( image->texture ) {
-			if(cmd) {
-				arrpush( cmd->freeTextures, image->texture );
-			} else {
-				rsh.nri.coreI.DestroyTexture(image->texture);
-			}
-		}
-
-		for( size_t i = 0; i < image->numAllocations; i++ ) {
-			if(cmd) {
-				arrpush( cmd->freeMemory, image->memory[i] );
-			} else {
-				rsh.nri.coreI.FreeMemory(image->memory[i]);
-			}
-		}
-	
-		if(image->descriptor.descriptor) {
-			if(cmd) {
-				arrpush( cmd->frameTemporaryDesc, image->descriptor.descriptor);
-			} else {
-				rsh.nri.coreI.DestroyDescriptor(image->descriptor.descriptor);
-			}
-		}
-		
+		__FreeGPUImageData(cmd, image);
 		// R_ReleaseNriTexture(image);
 		memset(&image->descriptor, 0, sizeof(struct nri_descriptor_s));
 		memset(&image->samplerDescriptor, 0, sizeof(struct  nri_descriptor_s));
@@ -1536,36 +1548,50 @@ static void __FreeImage( struct frame_cmd_buffer_s *cmd, struct image_s *image )
 	
 }
 
-/*
-*
-*/
 void R_ReplaceImage( image_t *image, uint8_t **pic, int width, int height, int flags, int minmipsize, int samples )
 {
-	assert(false);
-	//assert(false);
-	//assert( image );
-	//assert( image->texture );
-	//// R_BindImage( image );
+	assert( image );
+	assert( image->texture );
+	const NriTextureDesc* textureDesc = rsh.nri.coreI.GetTextureDesc(image->texture);
+	const uint32_t mipSize = __R_calculateMipMapLevel( flags, width, height, minmipsize );
+	if(image->width != width || image->height != height || image->samples != samples || textureDesc->mipNum != mipSize) {
+		struct frame_cmd_buffer_s *cmd = R_ActiveFrameCmd();
+			__FreeGPUImageData( cmd, image );
+		enum texture_format_e destFormat = __R_GetImageFormat( image );
+		NriTextureDesc textureDesc = { .width = width,
+									   .height = height,
+									   .depth = 1,
+									   .usage = __R_NRITextureUsageBits( flags ),
+									   .layerNum = ( flags & IT_CUBEMAP ) ? 6 : 1,
+									   .format = R_ToNRIFormat( destFormat ),
+									   .sampleNum = 1,
+									   .type = NriTextureType_TEXTURE_2D,
+									   .mipNum = mipSize };
+		rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &image->texture );
+		rsh.nri.coreI.SetTextureDebugName( image->texture, image->name );
+		NriResourceGroupDesc resourceGroupDesc = {
+			.textureNum = 1,
+			.textures = &image->texture,
+			.memoryLocation = NriMemoryLocation_DEVICE,
+		};
+		const uint32_t allocationNum = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
+		assert( allocationNum <= Q_ARRAY_COUNT( image->memory ) );
+		image->numAllocations = allocationNum;
+		NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, image->memory ) );
 
-	//// if( image->width != width || image->height != height || image->samples != samples )
-	//// 	R_Upload32( QGL_CONTEXT_MAIN, pic, 0, 0, 0, width, height, flags, minmipsize,
-	//// 	&(image->width), &(image->height), samples, false, false );
-	//// else
-	//// 	R_Upload32( QGL_CONTEXT_MAIN, pic, 0, 0, 0, width, height, flags, minmipsize,
-	//// 	&(image->width), &(image->height), samples, true, false );
+		NriTexture2DViewDesc textureViewDesc = {
+			.texture = image->texture, .viewType = ( flags & IT_CUBEMAP ) ? NriTexture2DViewType_SHADER_RESOURCE_CUBE : NriTexture2DViewType_SHADER_RESOURCE_2D, .format = textureDesc.format };
+		NriDescriptor *descriptor = NULL;
+		NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &descriptor ) );
+		image->descriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
+		image->samplerDescriptor = R_CreateDescriptorWrapper( &rsh.nri, R_ResolveSamplerDescriptor( image->flags ) );
+		assert( image->samplerDescriptor.descriptor );
+	}
+	image->flags = flags;
+	image->samples = samples;
+	image->minmipsize = minmipsize;
 
-	//// if( !(image->flags & IT_NO_DATA_SYNC) )
-	//// 	R_DeferDataSync();
-	//// R_ReleaseNriTexture(image);
-	//// __LoadImageInPlace(image, pic, width,height, flags, minmipsize, image->tags, samples);
-	//
-	//image->flags = flags;
-	//image->width = width;
-	//image->height = height;
-	//image->layers = 1;
-	//image->minmipsize = minmipsize;
-	//image->samples = samples;
-	//image->registrationSequence = rsh.registrationSequence;
+	R_ReplaceSubImage(image, 0, 0, 0, pic, width, height);
 }
 
 /*
@@ -1632,8 +1658,6 @@ void R_ReplaceImageLayer( image_t *image, int layer, uint8_t **pic )
 	enum texture_format_e srcFormat = __R_ResolveDataFormat( image->flags, image->samples );
 	const NriTextureDesc* textureDesc = rsh.nri.coreI.GetTextureDesc(image->texture);
 
-	uint32_t srcBlockSize = R_FormatBitSizePerBlock( srcFormat ) / 8;
-	uint32_t destBlockSize = R_FormatBitSizePerBlock( __R_GetImageFormat( image ) ) / 8;
 	uint8_t *tmpBuffer = NULL;
 	if( !( image->flags & IT_CUBEMAP ) && ( image->flags & ( IT_FLIPX | IT_FLIPY | IT_FLIPDIAGONAL ) ) ) {
 		R_FlipTexture( buf, tmpBuffer, image->width, image->height, image->samples, ( image->flags & IT_FLIPX ) ? true : false, ( image->flags & IT_FLIPY ) ? true : false,

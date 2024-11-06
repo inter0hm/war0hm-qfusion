@@ -41,7 +41,6 @@ enum
 	,IT_DEPTHRB			= 1<<12		// framebuffer has a depth renderbuffer
 	,IT_NOFILTERING		= 1<<13
 	,IT_ALPHAMASK		= 1<<14		// image only contains an alpha mask
-	//,IT_BGRA			= 1<<15
 	,IT_SYNC			= 1<<16		// load image synchronously
 	,IT_DEPTHCOMPARE	= 1<<17
 	,IT_ARRAY			= 1<<18
