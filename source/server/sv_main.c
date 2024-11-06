@@ -751,7 +751,9 @@ void SV_Frame( int realmsec, int gamemsec )
 
 		SV_MM_Frame();
 
-		STEAMSHIM_dispatch();
+		if (STEAMSHIM_active()) {
+			STEAMSHIM_dispatch();
+		}
 
 		// send a heartbeat to the master if needed
 		SV_MasterHeartbeat();
