@@ -283,8 +283,9 @@ typedef struct
 	struct nri_descriptor_s shadowSamplerDescriptor;
 
  	struct nri_backend_s nri;
-	
-	uint64_t frameCnt;
+
+	uint64_t frameCount;
+	uint64_t swapchainCount;
  	NriCommandQueue* cmdQueue;
  	NriSwapChain* swapchain;
 	NriFence* frameFence;
@@ -939,7 +940,7 @@ extern refinst_t	rn;
 
 static inline struct frame_cmd_buffer_s *R_ActiveFrameCmd()
 {
-	const uint32_t bufferedFrameIndex = rsh.frameCnt % NUMBER_FRAMES_FLIGHT;
+	const uint32_t bufferedFrameIndex = rsh.swapchainCount % NUMBER_FRAMES_FLIGHT;
 	return &rsh.frameCmds[bufferedFrameIndex];
 }
 

@@ -49,7 +49,28 @@ void R_WIN_Init(const char *applicationName, void *hinstance, void *wndproc, voi
 }
 
 
-bool R_WIN_SetFullscreen(int displayFrequency, bool fullscreen) {
+bool R_WIN_SetFullscreen(int displayFrequency, uint16_t width, uint16_t height ) {
+	// do a CDS if needed
+	DEVMODE dm;
+	memset( &dm, 0, sizeof( dm ) );
+
+	dm.dmSize = sizeof( dm );
+	dm.dmPelsWidth  = width;
+	dm.dmPelsHeight = height;
+	dm.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT;
+
+	if( displayFrequency > 0 )
+	{
+		dm.dmFields |= DM_DISPLAYFREQUENCY;
+		dm.dmDisplayFrequency = displayFrequency;
+	}
+
+	const int a = ChangeDisplaySettings( &dm, CDS_FULLSCREEN );
+	if( a == DISP_CHANGE_SUCCESSFUL ) {
+			return true;
+	}
+	ChangeDisplaySettings( 0, 0 );
+	return false;
 }
 
 
@@ -60,7 +81,45 @@ bool R_WIN_GetWindowHandle(win_handle_t* handle) {
 	return handle->winType != VID_WINDOW_TYPE_UNKNOWN;
 }
 
-bool R_WIN_SetWindowSize(int x, int y, uint16_t width, uint16_t height) {
+bool R_WIN_SetWindowed(int x, int y, uint16_t width, uint16_t height) {
+	HWND parentHWND = glw_state.parenthWnd;
+	int exstyle = 0;
+	int stylebits = WINDOW_STYLE;
+	
+	if( parentHWND )
+	{
+		exstyle = 0;
+		stylebits = WS_CHILD|WS_CLIPSIBLINGS|WS_CLIPCHILDREN|WS_VISIBLE;
+	}
+
+	AdjustWindowRect( &r, stylebits, FALSE );
+
+	width = r.right - r.left;
+	height = r.bottom - r.top;
+	
+	if( parentHWND )
+	{
+		RECT parentWindowRect;
+
+		GetWindowRect( parentHWND, &parentWindowRect );
+
+		// share centre with the parent window
+		x = (parentWindowRect.right - parentWindowRect.left - width) / 2;
+		y = (parentWindowRect.bottom - parentWindowRect.top - height) / 2;
+	}
+
+	SetActiveWindow( glw_state.hWnd );
+
+	SetWindowLong( glw_state.hWnd, GWL_EXSTYLE, exstyle );
+	SetWindowLong( glw_state.hWnd, GWL_STYLE, stylebits );
+
+	SetWindowPos( glw_state.hWnd, HWND_TOP, x, y, width, height, SWP_FRAMECHANGED );
+
+	ShowWindow( glw_state.hWnd, SW_SHOW );
+	UpdateWindow( glw_state.hWnd );
+
+	SetForegroundWindow( glw_state.hWnd );
+	SetFocus( glw_state.hWnd );
 
 }
 

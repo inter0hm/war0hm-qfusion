@@ -21,20 +21,18 @@ void R_WIN_Init(const char *applicationName, void *hinstance, void *wndproc, voi
 }
 
 
-bool R_WIN_SetFullscreen(int displayFrequency, bool fullscreen) {
+bool R_WIN_SetFullscreen(int displayFrequency, uint16_t width, uint16_t height ) {
 	assert( r_winState.sdl_window );
 	uint32_t flags = 0;
-	if( fullscreen ) {
 #ifdef __APPLE__
 		// we need to use SDL_WINDOW_FULLSCREEN_DESKTOP to support Alt+Tab from fullscreen on OS X
 		flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
 #else
 		flags = SDL_WINDOW_FULLSCREEN;
 #endif
-	}
 
+	SDL_SetWindowSize(r_winState.sdl_window, width, height);
 	if( SDL_SetWindowFullscreen( r_winState.sdl_window, flags ) == 0 ) {
-		r_winState.fullscreen = fullscreen;
 		return true;
 	}
 
@@ -81,10 +79,11 @@ bool R_WIN_GetWindowHandle(win_handle_t* handle) {
 	return handle->winType != VID_WINDOW_TYPE_UNKNOWN;
 }
 
-bool R_WIN_SetWindowSize(int x, int y, uint16_t width, uint16_t height) {
+bool R_WIN_SetWindowed(int x, int y, uint16_t width, uint16_t height) {
   if(!r_winState.sdl_window) {
     return false;
   }
+	SDL_SetWindowFullscreen( r_winState.sdl_window, 0); 
 	SDL_SetWindowSize(r_winState.sdl_window, width, height);
 	SDL_SetWindowPosition(r_winState.sdl_window, x, y);
 	return true;

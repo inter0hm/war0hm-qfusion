@@ -38,10 +38,6 @@ typedef struct {
 
 typedef struct
 {
-	unsigned		frameNum; 			// wrapped
-	unsigned		lastFrameNum;
-	uint32_t 		frameId;
-
 	uint32_t frameIndex;
 	NriFence* frameFence;
 	NriSwapChain* swapChain; 

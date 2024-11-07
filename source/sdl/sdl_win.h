@@ -31,7 +31,6 @@ typedef struct {
 	char *applicationName;
 	int *applicationIcon;
 	SDL_Window *sdl_window;
-	bool fullscreen;
 	wndproc_t wndproc;
 } winstate_t;
 

@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static ref_frontend_t rrf;
 
+static void __ShutdownSwapchainTexture();
+
 static void __R_InitVolatileAssets( void )
 {
 	// init volatile data
@@ -57,8 +59,38 @@ static void __R_InitVolatileAssets( void )
 	}
 }
 
+static void __ShutdownSwapchainTexture() {
+	if(!rsh.swapchain)
+		return;
 
-//TODO: cleanup leaking logic
+	for( size_t i = 0; i < arrlen( rsh.backBuffers ); i++ ) {
+		struct frame_tex_buffers_s *backBuffer = &rsh.backBuffers[i];
+		assert( backBuffer->colorAttachment );
+		assert( backBuffer->colorTexture );
+		assert( backBuffer->depthAttachment );
+		assert( backBuffer->depthTexture );
+
+		for( size_t pogoIdx = 0; pogoIdx < Q_ARRAY_COUNT( rsh.backBuffers->pogoBuffers ); pogoIdx++ ) {
+			rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].colorAttachment );
+			rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].shaderDescriptor.descriptor );
+			rsh.nri.coreI.DestroyTexture( backBuffer->pogoBuffers[pogoIdx].colorTexture );
+		}
+		rsh.nri.coreI.DestroyDescriptor( backBuffer->colorAttachment );
+		rsh.nri.coreI.DestroyDescriptor( backBuffer->depthAttachment );
+		rsh.nri.coreI.DestroyTexture( backBuffer->depthTexture );
+
+		for( size_t mIdx = 0; mIdx < backBuffer->memoryLen; mIdx++ ) {
+			assert( backBuffer->memory[mIdx] );
+			rsh.nri.coreI.FreeMemory( backBuffer->memory[mIdx] );
+		}
+	}
+	arrfree(rsh.backBuffers);
+	rsh.nri.swapChainI.DestroySwapChain( rsh.swapchain );
+	rsh.frameFence = NULL;
+	rsh.swapchainCount = 0;
+	rsh.swapchain = NULL;
+}
+
 rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int startupColor,
 	int iconResource, const int *iconXPM,
 	void *hinstance, void *wndproc, void *parenthWnd, 
@@ -112,40 +144,7 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 		return rserr_unknown;
 	}
 
-	win_handle_t handle = {0};
-	if(!R_WIN_GetWindowHandle( &handle ) ) {
-		ri.Com_Error(ERR_DROP, "failed to resolve window handle" );
-		return rserr_unknown;
-	}
-	NriWindow nriWindow = {0};
-	switch( handle.winType ) {
-		case VID_WINDOW_WAYLAND:
-			nriWindow.wayland.surface = handle.window.wayland.surface;
-			nriWindow.wayland.display = handle.window.wayland.display;
-			break;
-		case VID_WINDOW_TYPE_X11:
-			nriWindow.x11.window = handle.window.x11.window;
-			nriWindow.x11.dpy = handle.window.x11.dpy;
-			break;
-		case VID_WINDOW_WIN32:
-			nriWindow.windows.hwnd = handle.window.win.hwnd;
-			break;
-		default:
-			assert( false );
-			break;
-	}
-
 	rsh.shadowSamplerDescriptor = R_CreateDescriptorWrapper( &rsh.nri, R_ResolveSamplerDescriptor( IT_DEPTHCOMPARE | IT_SPECIAL | IT_DEPTH ) );
-
-	NriSwapChainDesc swapChainDesc = { 
-		.commandQueue = rsh.nri.graphicsCommandQueue,
-		.width = vid_width->integer, 
-		.height = vid_height->integer, 
-		.format = DefaultSwapchainFormat,
-		.textureNum = 3,
-		.window = nriWindow
-	};
-	NRI_ABORT_ON_FAILURE( rsh.nri.swapChainI.CreateSwapChain( rsh.nri.device, &swapChainDesc, &rsh.swapchain) );
 	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateFence( rsh.nri.device, 0, &rsh.frameFence ) );
 	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.GetCommandQueue(rsh.nri.device, NriCommandQueueType_GRAPHICS, &rsh.cmdQueue) )
 
@@ -162,108 +161,6 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 		InitBlockBufferPool( &rsh.nri, &rsh.frameCmds[i].uboBlockBuffer, &uboBlockBufferDesc );
 	}
 
-	{
-		uint32_t swapChainTextureNum = 0;
-		NriTexture *const *swapChainTextures = rsh.nri.swapChainI.GetSwapChainTextures( rsh.swapchain, &swapChainTextureNum );
-		arrsetlen(rsh.backBuffers, swapChainTextureNum);
-		char debugName[1024];
-		for( uint32_t i = 0; i < swapChainTextureNum; i++ ) {
-			rsh.backBuffers[i].memoryLen = 0;
-			rsh.backBuffers[i].screen = (NriRect) {
-				.x = 0,
-				.y = 0,
-				.width = swapChainDesc.width,
-				.height = swapChainDesc.height
-			};
-
-			const NriTextureDesc *swapChainDesc = rsh.nri.coreI.GetTextureDesc( swapChainTextures[i] );
-			rsh.backBuffers[i].colorTexture = swapChainTextures[i];
-			rsh.backBuffers[i].postProcessingSampler = R_ResolveSamplerDescriptor(IT_NOFILTERING);   
-			{
-				NriTexture2DViewDesc textureViewDesc = { 
-					swapChainTextures[i], 
-					NriTexture2DViewType_COLOR_ATTACHMENT, 
-					swapChainDesc->format };
-				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &rsh.backBuffers[i].colorAttachment) );
-			}
-
-			for(size_t pogoIdx = 0; pogoIdx < Q_ARRAY_COUNT(rsh.backBuffers->pogoBuffers); pogoIdx++) {
-				NriTextureDesc textureDesc = { 
-					.width = swapChainDesc->width,
-				  .height = swapChainDesc->height,
-				  .depth = 1,
-				  .usage = NriTextureUsageBits_COLOR_ATTACHMENT | NriTextureUsageBits_SHADER_RESOURCE,
-				  .layerNum = 1,
-				  .format = POGO_BUFFER_TEXTURE_FORMAT,
-				  .sampleNum = 1,
-				  .type = NriTextureType_TEXTURE_2D,
-				  .mipNum = 1 };
-				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture) );
-				Q_snprintfz(debugName, sizeof(debugName), "pogo[%d][%d]", i, pogoIdx);	
-				rsh.nri.coreI.SetTextureDebugName(rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture, debugName);
-				NriResourceGroupDesc resourceGroupDesc = {
-					.textureNum = 1,
-					.textures = &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture,
-					.memoryLocation = NriMemoryLocation_DEVICE,
-				};
-				const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
-				assert(numAllocations + rsh.backBuffers[i].memoryLen <= Q_ARRAY_COUNT(rsh.backBuffers[i].memory));
-				NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, rsh.backBuffers[i].memoryLen + rsh.backBuffers[i].memory ) )
-				rsh.backBuffers[i].memoryLen += numAllocations;
-			
-				NriTexture2DViewDesc attachmentViewDesc = {
-					.texture = rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture,
-					.viewType = NriTexture2DViewType_COLOR_ATTACHMENT,
-					.format = textureDesc.format
-				};
-				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &attachmentViewDesc, &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorAttachment) );
-
-				NriTexture2DViewDesc shaderViewDesc = {
-					.texture = rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture,
-					.viewType = NriTexture2DViewType_SHADER_RESOURCE_2D,
-					.format = textureDesc.format
-				};
-				NriDescriptor* descriptor;
-				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &shaderViewDesc, &descriptor));
-
-				rsh.backBuffers[i].pogoBuffers[pogoIdx].shaderDescriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
-			}
-
-			{
-				NriTextureDesc textureDesc = { 
-											   .width = swapChainDesc->width,
-											   .height = swapChainDesc->height,
-											   .depth = 1,
-											   .usage = NriTextureUsageBits_DEPTH_STENCIL_ATTACHMENT,
-											   .layerNum = 1,
-											   .format = NriFormat_D32_SFLOAT,
-											   .sampleNum = 1,
-											   .type = NriTextureType_TEXTURE_2D,
-											   .mipNum = 1 };
-				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &rsh.backBuffers[i].depthTexture ) );
-				Q_snprintfz(debugName, sizeof(debugName), "backbuffer depth[%d]", i);	
-				rsh.nri.coreI.SetTextureDebugName(rsh.backBuffers[i].depthTexture, debugName);
-				NriResourceGroupDesc resourceGroupDesc = {
-					.textureNum = 1,
-					.textures = &rsh.backBuffers[i].depthTexture,
-					.memoryLocation = NriMemoryLocation_DEVICE,
-				};
-
-				const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
-				assert(numAllocations + rsh.backBuffers[i].memoryLen <= Q_ARRAY_COUNT(rsh.backBuffers[i].memory));
-				NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, rsh.backBuffers[i].memoryLen + rsh.backBuffers[i].memory ) )
-				rsh.backBuffers[i].memoryLen += numAllocations;
-
-				NriTexture2DViewDesc textureViewDesc = {
-					.texture = rsh.backBuffers[i].depthTexture,
-					.viewType = NriTexture2DViewType_DEPTH_STENCIL_ATTACHMENT,
-					.format = textureDesc.format
-				};
-
-				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &rsh.backBuffers[i].depthAttachment) );
-			}
-		}
-	}
 
 	if( err != rserr_ok ) {
 		return err;
@@ -299,84 +196,129 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 
 rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, bool fullScreen, bool stereo )
 {
-
-	// TODO: need to handle fullscreen
-	//if( glConfig.width == width && glConfig.height == height && glConfig.fullScreen != fullScreen ) {
-	//	return GLimp_SetFullscreenMode( displayFrequency, fullScreen );
-	//}
-
-	rsh.frameCnt = 0;
-
 	rsh.nri.helperI.WaitForIdle( rsh.cmdQueue );
-	//rsh.nri.swapChainI.DestroySwapChain( rsh.swapchain );
+
+	if( fullScreen ) {
+		if( !R_WIN_SetFullscreen( displayFrequency, width, height ) ) {
+			fullScreen = false;
+		}
+	}
+	if( !fullScreen )
+		R_WIN_SetWindowed( x, y, width, height );
 
 	win_handle_t handle = {0};
 	if(!R_WIN_GetWindowHandle( &handle ) ) {
 		ri.Com_Error(ERR_DROP, "failed to resolve window handle" );
 		return rserr_unknown;
 	}
-	NriWindow nriWindow = {0};
-	switch( handle.winType ) {
-		case VID_WINDOW_WAYLAND:
-			nriWindow.wayland.surface = handle.window.wayland.surface;
-			nriWindow.wayland.display = handle.window.wayland.display;
-			break;
-		case VID_WINDOW_TYPE_X11:
-			nriWindow.x11.window = handle.window.x11.window;
-			nriWindow.x11.dpy = handle.window.x11.dpy;
-			break;
-		case VID_WINDOW_WIN32:
-			nriWindow.windows.hwnd = handle.window.win.hwnd;
-			break;
-		default:
-			assert( false );
-			break;
+	{
+		NriWindow nriWindow = { 0 };
+		switch( handle.winType ) {
+			case VID_WINDOW_WAYLAND:
+				nriWindow.wayland.surface = handle.window.wayland.surface;
+				nriWindow.wayland.display = handle.window.wayland.display;
+				break;
+			case VID_WINDOW_TYPE_X11:
+				nriWindow.x11.window = handle.window.x11.window;
+				nriWindow.x11.dpy = handle.window.x11.dpy;
+				break;
+			case VID_WINDOW_WIN32:
+				nriWindow.windows.hwnd = handle.window.win.hwnd;
+				break;
+			default:
+				assert( false );
+				break;
+		}
+
+		NriSwapChainDesc swapChainDesc = { .commandQueue = rsh.nri.graphicsCommandQueue, .width = width, .height = height, .format = DefaultSwapchainFormat, .textureNum = 3, .window = nriWindow };
+		__ShutdownSwapchainTexture();
+
+		NRI_ABORT_ON_FAILURE( rsh.nri.swapChainI.CreateSwapChain( rsh.nri.device, &swapChainDesc, &rsh.swapchain ) );
+
+		uint32_t swapChainTextureNum = 0;
+		NriTexture *const *swapChainTextures = rsh.nri.swapChainI.GetSwapChainTextures( rsh.swapchain, &swapChainTextureNum );
+		arrsetlen( rsh.backBuffers, swapChainTextureNum );
+		char debugName[1024];
+		for( uint32_t i = 0; i < swapChainTextureNum; i++ ) {
+			rsh.backBuffers[i].memoryLen = 0;
+			rsh.backBuffers[i].screen = ( NriRect ){ .x = 0, .y = 0, .width = swapChainDesc.width, .height = swapChainDesc.height };
+
+			const NriTextureDesc *swapChainDesc = rsh.nri.coreI.GetTextureDesc( swapChainTextures[i] );
+			rsh.backBuffers[i].colorTexture = swapChainTextures[i];
+			rsh.backBuffers[i].postProcessingSampler = R_ResolveSamplerDescriptor( IT_NOFILTERING );
+			{
+				NriTexture2DViewDesc textureViewDesc = { swapChainTextures[i], NriTexture2DViewType_COLOR_ATTACHMENT, swapChainDesc->format };
+				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &rsh.backBuffers[i].colorAttachment ) );
+			}
+
+			for( size_t pogoIdx = 0; pogoIdx < Q_ARRAY_COUNT( rsh.backBuffers->pogoBuffers ); pogoIdx++ ) {
+				NriTextureDesc textureDesc = { .width = swapChainDesc->width,
+											   .height = swapChainDesc->height,
+											   .depth = 1,
+											   .usage = NriTextureUsageBits_COLOR_ATTACHMENT | NriTextureUsageBits_SHADER_RESOURCE,
+											   .layerNum = 1,
+											   .format = POGO_BUFFER_TEXTURE_FORMAT,
+											   .sampleNum = 1,
+											   .type = NriTextureType_TEXTURE_2D,
+											   .mipNum = 1 };
+				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture ) );
+				Q_snprintfz( debugName, sizeof( debugName ), "pogo[%d][%d]", i, pogoIdx );
+				rsh.nri.coreI.SetTextureDebugName( rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture, debugName );
+				NriResourceGroupDesc resourceGroupDesc = {
+					.textureNum = 1,
+					.textures = &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture,
+					.memoryLocation = NriMemoryLocation_DEVICE,
+				};
+				const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
+				assert( numAllocations + rsh.backBuffers[i].memoryLen <= Q_ARRAY_COUNT( rsh.backBuffers[i].memory ) );
+				NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, rsh.backBuffers[i].memoryLen + rsh.backBuffers[i].memory ) )
+				rsh.backBuffers[i].memoryLen += numAllocations;
+
+				NriTexture2DViewDesc attachmentViewDesc = {
+					.texture = rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture, .viewType = NriTexture2DViewType_COLOR_ATTACHMENT, .format = textureDesc.format };
+				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &attachmentViewDesc, &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorAttachment ) );
+
+				NriTexture2DViewDesc shaderViewDesc = {
+					.texture = rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture, .viewType = NriTexture2DViewType_SHADER_RESOURCE_2D, .format = textureDesc.format };
+				NriDescriptor *descriptor;
+				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &shaderViewDesc, &descriptor ) );
+
+				rsh.backBuffers[i].pogoBuffers[pogoIdx].shaderDescriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
+			}
+
+			{
+				NriTextureDesc textureDesc = { .width = swapChainDesc->width,
+											   .height = swapChainDesc->height,
+											   .depth = 1,
+											   .usage = NriTextureUsageBits_DEPTH_STENCIL_ATTACHMENT,
+											   .layerNum = 1,
+											   .format = NriFormat_D32_SFLOAT,
+											   .sampleNum = 1,
+											   .type = NriTextureType_TEXTURE_2D,
+											   .mipNum = 1 };
+				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &rsh.backBuffers[i].depthTexture ) );
+				Q_snprintfz( debugName, sizeof( debugName ), "backbuffer depth[%d]", i );
+				rsh.nri.coreI.SetTextureDebugName( rsh.backBuffers[i].depthTexture, debugName );
+				NriResourceGroupDesc resourceGroupDesc = {
+					.textureNum = 1,
+					.textures = &rsh.backBuffers[i].depthTexture,
+					.memoryLocation = NriMemoryLocation_DEVICE,
+				};
+
+				const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
+				assert( numAllocations + rsh.backBuffers[i].memoryLen <= Q_ARRAY_COUNT( rsh.backBuffers[i].memory ) );
+				NRI_ABORT_ON_FAILURE( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, rsh.backBuffers[i].memoryLen + rsh.backBuffers[i].memory ) )
+				rsh.backBuffers[i].memoryLen += numAllocations;
+
+				NriTexture2DViewDesc textureViewDesc = { .texture = rsh.backBuffers[i].depthTexture, .viewType = NriTexture2DViewType_DEPTH_STENCIL_ATTACHMENT, .format = textureDesc.format };
+
+				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &rsh.backBuffers[i].depthAttachment ) );
+			}
+		}
 	}
 
-
-	//NriSwapChainDesc swapChainDesc = { 
-	//	.commandQueue = rsh.nri.graphicsCommandQueue,
-	//	.width = width, 
-	//	.height = height, 
-	//	.format = DefaultSwapchainFormat,
-	//	.textureNum = 3,
-	//	.window =nriWindow 
-	//};
-	//NRI_ABORT_ON_FAILURE( rsh.nri.swapChainI.CreateSwapChain( rsh.nri.device, &swapChainDesc, &rsh.swapchain) );
-
-	//RF_AdapterShutdown( &rrf.adapter );
-
-	// TODO: need to handle setting x,y and width,height
- // err = R_SetMode( x, y, width, height, displayFrequency, fullScreen, stereo );
- // if( err != rserr_ok ) {
- // 	return err;
- // }
-
-	rrf.frameId = 0;
-	rrf.frameNum = rrf.lastFrameNum = 0;
-
-	//if( !rrf.frame ) {
-	//	//if( glConfig.multithreading ) {
-	//	//	int i;
-	//	//	for( i = 0; i < 3; i++ )
-	//	//		rrf.frames[i] = RF_CreateCmdBuf( false );
-	//	//}
-	//	//else {
-	//		//rrf.frame = RF_CreateCmdBuf( true );
-	//	//}
-	//}
-
-	//if( glConfig.multithreading ) {
-	//	rrf.frame = rrf.frames[0];
-	//}
-
-	//rrf.frame->Clear( rrf.frame );
 	memset( rrf.customColors, 0, sizeof( rrf.customColors ) );
 
-	//rrf.adapter.owner = (void *)&rrf;
- // if( RF_AdapterInit( &rrf.adapter ) != true ) {
- // 	return rserr_unknown;
- // }
 	RB_Init();
 
 	return rserr_ok;	
@@ -384,15 +326,6 @@ rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, b
 
 rserr_t RF_SetWindow( void *hinstance, void *wndproc, void *parenthWnd )
 {
- // rserr_t err;
- // bool surfaceChangePending = false;
-
- // err = GLimp_SetWindow( hinstance, wndproc, parenthWnd, &surfaceChangePending );
-
- // if( err == rserr_ok && surfaceChangePending )
- // 	rrf.adapter.cmdPipe->SurfaceChange( rrf.adapter.cmdPipe );
-
- // return err;
  assert( false );
  return rserr_ok;
 }
@@ -443,33 +376,12 @@ void RF_Shutdown( bool verbose )
 
 	R_ExitResourceUpload();
 
-	for(size_t i = 0; i < arrlen(rsh.backBuffers); i++) {
-		struct frame_tex_buffers_s *backBuffer = &rsh.backBuffers[i];
-		assert(backBuffer->colorAttachment);
-		assert(backBuffer->colorTexture);
-		assert(backBuffer->depthAttachment);
-		assert(backBuffer->depthTexture);
-
-		for(size_t pogoIdx = 0; pogoIdx < Q_ARRAY_COUNT(rsh.backBuffers->pogoBuffers); pogoIdx++) {
-			rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].colorAttachment );
-			rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].shaderDescriptor.descriptor );
-			rsh.nri.coreI.DestroyTexture( backBuffer->pogoBuffers[pogoIdx].colorTexture );
-		}
-		rsh.nri.coreI.DestroyDescriptor(backBuffer->colorAttachment);
-		rsh.nri.coreI.DestroyDescriptor(backBuffer->depthAttachment);
-		rsh.nri.coreI.DestroyTexture(backBuffer->depthTexture);
-
-		for(size_t mIdx = 0; mIdx < backBuffer->memoryLen; mIdx++) {
-			assert(backBuffer->memory[mIdx]);
-			rsh.nri.coreI.FreeMemory(backBuffer->memory[mIdx]);
-		}
-	}
-	arrfree(rsh.backBuffers);
+	__ShutdownSwapchainTexture();
 	for(size_t i = 0; i < NUMBER_FRAMES_FLIGHT; i++) {
 		FrameCmdBufferFree(&rsh.frameCmds[i]);
 	}
 
-	rsh.frameCnt = 0;
+	rsh.swapchainCount = 0;
 
 	rsh.nri.coreI.DestroyFence(rsh.frameFence);
 	rsh.nri.swapChainI.DestroySwapChain(rsh.swapchain);
@@ -562,14 +474,14 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 
 	//rrf.adapter.maxfps = r_maxfps->integer;
 
-	const uint32_t bufferedFrameIndex = rsh.frameCnt % NUMBER_FRAMES_FLIGHT;
+	const uint32_t bufferedFrameIndex = rsh.swapchainCount % NUMBER_FRAMES_FLIGHT;
 	struct frame_cmd_buffer_s *frame = &rsh.frameCmds[bufferedFrameIndex];
 
-	if( rsh.frameCnt >= NUMBER_FRAMES_FLIGHT ) {
-		rsh.nri.coreI.Wait( rsh.frameFence, 1 + rsh.frameCnt - NUMBER_FRAMES_FLIGHT );
+	if( rsh.swapchainCount >= NUMBER_FRAMES_FLIGHT ) {
+		rsh.nri.coreI.Wait( rsh.frameFence, 1 + rsh.swapchainCount - NUMBER_FRAMES_FLIGHT );
 		rsh.nri.coreI.ResetCommandAllocator( frame->allocator );
 	}
-	frame->frameCount = rsh.frameCnt;
+	frame->frameCount = rsh.frameCount;
 	ResetFrameCmdBuffer( &rsh.nri, frame );
 
 
@@ -630,26 +542,7 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 		rsh.nri.coreI.CmdEndRendering( frame->cmd );
 	}
 
-	//FR_CmdSetDefaultState(frame);
-	// take the frame the backend is not busy processing
- // if( glConfig.multithreading ) {
- // 	ri.Mutex_Lock( rrf.adapter.frameLock );
- // 	if( rrf.lastFrameNum == rrf.adapter.frameNum )
- // 		rrf.frameNum = (rrf.adapter.frameNum + 1) % 3;
- // 	else
- // 		rrf.frameNum = 3 - (rrf.adapter.frameNum + rrf.lastFrameNum);
- // 	if( rrf.frameNum == 3 ) {
- // 		rrf.frameNum = 1;
- // 	}
- // 	rrf.frame = rrf.frames[rrf.frameNum];
- // 	ri.Mutex_Unlock( rrf.adapter.frameLock );
- // }
-
-	//rrf.frame->Clear( rrf.frame );
 	rrf.cameraSeparation = cameraSeparation;
-
-	//R_DataSync();
-
 
 
 	memset( &rf.stats, 0, sizeof( rf.stats ) );
@@ -674,7 +567,7 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 
 void RF_EndFrame( void )
 {
-	const uint32_t bufferedFrameIndex = rsh.frameCnt % NUMBER_FRAMES_FLIGHT;
+	const uint32_t bufferedFrameIndex = rsh.swapchainCount % NUMBER_FRAMES_FLIGHT;
 	struct frame_cmd_buffer_s *frame = &rsh.frameCmds[bufferedFrameIndex];
 
 	assert(frame->stackCmdBeingRendered == 0);
@@ -712,7 +605,7 @@ void RF_EndFrame( void )
 	{ // Signaling after "Present" improves D3D11 performance a bit
 		NriFenceSubmitDesc signalFence = {0};
 		signalFence.fence = rsh.frameFence;
-		signalFence.value = 1 + rsh.frameCnt;
+		signalFence.value = 1 + rsh.swapchainCount;
 
 		NriQueueSubmitDesc queueSubmitDesc = {0};
 		queueSubmitDesc.signalFences = &signalFence;
@@ -721,7 +614,8 @@ void RF_EndFrame( void )
 		rsh.nri.coreI.QueueSubmit( rsh.cmdQueue, &queueSubmitDesc );
 	}
 
-	rsh.frameCnt++;
+	rsh.swapchainCount++;
+	rsh.frameCount++;
 }
 
 void RF_BeginRegistration( void )
@@ -778,11 +672,6 @@ void RF_RenderScene( const refdef_t *fd )
 {
 	struct frame_cmd_buffer_s *cmd = R_ActiveFrameCmd();
 	R_RenderScene( cmd, fd );
-	
-	//TODO: scene rendering will need to happen at some point
-	//const uint32_t bufferedFrameIndex = rsh.frameCnt % NUMBER_FRAMES_FLIGHT;
-	//struct frame_cmd_buffer_s* cmd = &rsh.frameCmds[bufferedFrameIndex];
-	//rrf.frame->RenderScene( rrf.frame, fd );
 }
 
 void RF_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, 
