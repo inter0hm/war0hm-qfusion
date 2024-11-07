@@ -197,39 +197,6 @@ void RB_FlushTextureCache( void )
 }
 
 /*
-* RB_BindImage
-*/
-void RB_BindImage( int tmu, const image_t *tex )
-{
-
-	assert( tex != NULL );
-
-	if( tex->missing ) {
-		tex = rsh.noTexture;
-	} else if( !tex->loaded ) {
-		// not yet loaded from disk
-		tex = tex->flags & IT_CUBEMAP ? rsh.whiteCubemapTexture : rsh.whiteTexture;
-	} else if( rsh.noTexture && ( r_nobind->integer && tex->texture != NULL ) ) {
-		// performance evaluation option
-		tex = rsh.noTexture;
-	}
-
-	if( rb.gl.flushTextures ) {
-		rb.gl.flushTextures = false;
-		memset( rb.gl.currentTextures, 0, sizeof( rb.gl.currentTextures ) );
-	}
-
-	if( rb.gl.currentTextures[tmu] == tex)
-		return;
-
-	rb.gl.currentTextures[tmu] = tex;
-	assert(false);
-	//RB_SelectTextureUnit( tmu );
-
-	rb.stats.c_totalBinds++;
-}
-
-/*
 * RB_DepthRange
 */
 void RB_DepthRange( float depthmin, float depthmax )

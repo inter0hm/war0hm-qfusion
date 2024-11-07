@@ -370,8 +370,9 @@ void RF_Shutdown( bool verbose )
 	R_ShutdownImages();
 
 	R_ShutdownPortals();
+	
 	R_ShutdownShadows();
-	// destroy compiled GLSL programs
+	
 	RP_Shutdown();
 
 	R_ExitResourceUpload();
