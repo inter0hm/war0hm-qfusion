@@ -9,6 +9,8 @@
 #include "../gameshared/q_arch.h"
 #include "../gameshared/q_math.h"
 
+#include "../gameshared/q_sds.h"
+
 
 #define POGO_BUFFER_TEXTURE_FORMAT NriFormat_RGBA8_UNORM
 
@@ -130,6 +132,7 @@ struct ubo_frame_instance_s {
 };
 
 struct frame_cmd_buffer_s {
+
 	uint64_t frameCount; // this value is bound by NUMBER_FRAMES_FLIGHT
 	struct block_buffer_pool_s uboBlockBuffer; 
 	struct frame_cmd_state_s state;
