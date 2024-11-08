@@ -302,8 +302,6 @@ typedef struct
 				NriBuffer *buffer;
 				struct texture_buf_desc_s textureBuferDesc;
 			} single;
-			struct {
-			} env;
 		};
 	} screenshot;
 
