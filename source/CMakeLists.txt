@@ -1,3 +1,6 @@
+
+set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "Vcpkg toolchain file")
+
 project(qfusion)
 
 cmake_minimum_required(VERSION 2.8.12)
