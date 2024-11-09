@@ -35,8 +35,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt update
-          apt install -y curl clang cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3 autoconf libtool meson automake libtool pkg-config
-          pip3 install jinja2
+          apt install -y curl clang cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3 autoconf libtool meson automake libtool pkg-config python3-jinja2
 
       - name: Download steamworks sdk
         run: |
@@ -114,7 +113,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt update
-          apt install -y curl clang cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3 autoconf libtool meson automake libtool pkg-config
+          apt install -y curl clang cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3 autoconf libtool meson automake libtool pkg-config python3-jinja2
           pip3 install jinja2
 
       - name: Download steamworks sdk
