@@ -114,12 +114,9 @@ endif()
 
 # OS X specific settings
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(ARCHS_STANDARD_32_64_BIT "x86_64")                         # Compile only 64-bit version
-    set(CMAKE_XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET "10.11")     # Use 10.11 as deployment target
     set(CMAKE_XCODE_ATTRIBUTE_GCC_C_LANGUAGE_STANDARD "gnu99")     # Use GNU99 standart for compiling C files
-    set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11") # Use C++11 standart for compiling C++ files
+    set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++17") # Use C++11 standart for compiling C++ files
     set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")          # Use modern libc++ instead of libstdc++
-    set(CMAKE_FRAMEWORK_PATH "../libsrcs/lib/mac/Frameworks")
     set(CMAKE_MACOSX_RPATH 1)
     set(USE_SDL2 1)
 
@@ -240,15 +237,15 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 endif()
 
 if (NOT GAME_MODULES_ONLY)
-    find_package(Ogg REQUIRED)
-    find_package(Vorbis REQUIRED)
+    find_package(Ogg CONFIG REQUIRED)
+    find_package(Vorbis CONFIG REQUIRED)
     find_package(CURL REQUIRED)
     find_package(Freetype REQUIRED)
-    find_package(OpenAL REQUIRED)
+    find_package(OpenAL CONFIG REQUIRED)
 
     if (USE_SDL2)
+        find_package(SDL2 CONFIG REQUIRED)
         set(USE_SDL2 1)
-        find_package(SDL2 REQUIRED)
         add_definitions(-DUSE_SDL2)
     endif()
 endif()
