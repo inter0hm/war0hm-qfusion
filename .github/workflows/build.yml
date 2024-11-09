@@ -28,7 +28,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt update
-          apt install -y curl clang cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3
+          apt install -y curl clang cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3 autoconf
 
       - name: Download steamworks sdk
         run: |
@@ -44,7 +44,7 @@ jobs:
         working-directory: ./source
         run: |
           export CC=clang CXX=clang++
-          cmake -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 .
+          cmake -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" .
 
       - name: Build project
         working-directory: ./source
@@ -84,7 +84,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt update
-          apt install -y curl clang cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3
+          apt install -y curl clang cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3 autoconf
 
       - name: Download steamworks sdk
         run: |
@@ -100,7 +100,7 @@ jobs:
         working-directory: ./source
         run: |
           export CC=clang CXX=clang++
-          cmake -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 .
+          cmake -DCMAKE_BUILD_TYPE=DEBUG -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 .
 
       - name: Build project
         working-directory: ./source
@@ -186,7 +186,7 @@ jobs:
 
       - name: Generate makefiles
         working-directory: ./source
-        run: cmake -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 -DWF_BUILD_DSYM=ON -G Xcode .
+        run: cmake -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 -DWF_BUILD_DSYM=ON -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite"  -G Xcode .
 
       - name: Build project
         working-directory: ./source
@@ -222,7 +222,7 @@ jobs:
 
       - name: Generate makefiles
         working-directory: .\source
-        run: cmake -G "Visual Studio 17 2022" -A x64 -T "v142" -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 .
+        run: cmake -G "Visual Studio 17 2022" -A x64 -T "v142" -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" .
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1
@@ -261,7 +261,7 @@ jobs:
 
       - name: Generate makefiles
         working-directory: .\source
-        run: cmake -G "Visual Studio 17 2022" -A x64 -T "v142" -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 .
+        run: cmake -G "Visual Studio 17 2022" -A x64 -T "v142" -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" .
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1
