@@ -65,12 +65,12 @@ set(NRI_DIR ${CMAKE_HOME_DIRECTORY}/NRI)
 set(NRI_INCLUDE_DIR ${CMAKE_HOME_DIRECTORY}/NRI/Include)
 
 if (NOT GAME_MODULES_ONLY AND USE_GRAPHICS_NRI)
+    find_package(glslang CONFIG REQUIRED)
     set(NRI_STATIC_LIBRARY ON)
     set(IS_SUBMODULE ON)
     set(NRI_ENABLE_D3D12_SUPPORT OFF)
     set(NRI_ENABLE_D3D11_SUPPORT OFF)
     add_subdirectory(NRI)
-    add_subdirectory(glslang)
 endif()
 
 # Windows specific settings
