@@ -32,6 +32,11 @@ jobs:
       - name: Add safe directory - https://github.com/actions/checkout/issues/1169
         run: git config --system --add safe.directory /__w/warfork-qfusion/warfork-qfusion
 
+      - name: Install build dependencies
+        run: |
+          apt update
+          apt install -y curl clang cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3 autoconf
+
       - name: Download steamworks sdk
         run: |
           curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
@@ -157,8 +162,24 @@ jobs:
     steps:
       - name: Setup
         run: |
-          Add-Content -Path $env:GITHUB_ENV -Value "ACTIONS_CACHE_URL=$ACTIONS_CACHE_URL"
-          Add-Content -Path $env:GITHUB_ENV -Value "ACTIONS_RUNTIME_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+          brew uninstall --force azure-cli
+          brew uninstall --force aws-sam-cli
+          brew install python@3 || brew link --overwrite python@3
+          brew update
+          brew install curl cmake sdl2 openal-soft libvorbis freetype git zip unzip
+
+      - name: Download steamworks sdk
+        run: |
+          curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
+          unzip third-party/steamworks/sdk.zip -d third-party/steamworks
+
+      - name: Generate makefiles
+        working-directory: ./source
+        run: cmake -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 -DWF_BUILD_DSYM=ON -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite"  -G Xcode .
+
+      - name: Build project
+        working-directory: ./source
+        run: xcodebuild -project qfusion.xcodeproj/ -jobs 4 -configuration Debug -target ALL_BUILD CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
       
       - name: Checkout repo
         uses: actions/checkout@v4
