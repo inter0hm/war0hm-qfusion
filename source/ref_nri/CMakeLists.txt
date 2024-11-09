@@ -50,7 +50,7 @@ else()
 			"../win32/win_qgl.c"
 			)
 
-		set(REF_NRI_PLATFORM_LIBRARIES "stdc++")
+		set(REF_NRI_PLATFORM_LIBRARIES "-static-libstdc++")
 	endif()
 
 	if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
