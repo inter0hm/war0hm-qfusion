@@ -1,8 +1,5 @@
 project(ref_nri)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 if (USE_SDL2)
 	include_directories(${SDL2_INCLUDE_DIR})
 endif()
