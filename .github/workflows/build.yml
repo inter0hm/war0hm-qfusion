@@ -12,6 +12,11 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
         DEBCONF_NONINTERACTIVE_SEEN: true
     steps:
+      - name: Configure Cache
+        shell: bash
+        run: |
+          echo "ACTIONS_CACHE_URL=$ACTIONS_CACHE_URL" >> "$GITHUB_ENV"
+          echo "ACTIONS_RUNTIME_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN" >> "$GITHUB_ENV"
       - name: Update git before checkout - https://github.com/actions/checkout/issues/335
         run: |
           apt update
@@ -68,6 +73,11 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
         DEBCONF_NONINTERACTIVE_SEEN: true
     steps:
+      - name: Configure Cache
+        shell: bash
+        run: |
+          echo "ACTIONS_CACHE_URL=$ACTIONS_CACHE_URL" >> "$GITHUB_ENV"
+          echo "ACTIONS_RUNTIME_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN" >> "$GITHUB_ENV"
       - name: Update git before checkout - https://github.com/actions/checkout/issues/335
         run: |
           apt update
@@ -119,6 +129,11 @@ jobs:
   build-osx:
     runs-on: macos-12
     steps:
+      - name: Configure Cache
+        shell: bash
+        run: |
+          echo "ACTIONS_CACHE_URL=$ACTIONS_CACHE_URL" >> "$GITHUB_ENV"
+          echo "ACTIONS_RUNTIME_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN" >> "$GITHUB_ENV"
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
@@ -162,6 +177,11 @@ jobs:
   build-osx-debug:
     runs-on: macos-12
     steps:
+      - name: Configure Cache
+        shell: bash
+        run: |
+          echo "ACTIONS_CACHE_URL=$ACTIONS_CACHE_URL" >> "$GITHUB_ENV"
+          echo "ACTIONS_RUNTIME_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN" >> "$GITHUB_ENV"
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
@@ -205,6 +225,11 @@ jobs:
   build-win64:
     runs-on: windows-latest
     steps:
+      - name: Configure Cache
+        run: |
+          Add-Content -Path $env:GITHUB_ENV -Value "ACTIONS_CACHE_URL=$ACTIONS_CACHE_URL"
+          Add-Content -Path $env:GITHUB_ENV -Value "ACTIONS_RUNTIME_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+      
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
@@ -244,6 +269,11 @@ jobs:
   build-win64-debug:
     runs-on: windows-latest
     steps:
+      - name: Configure Cache
+        run: |
+          Add-Content -Path $env:GITHUB_ENV -Value "ACTIONS_CACHE_URL=$ACTIONS_CACHE_URL"
+          Add-Content -Path $env:GITHUB_ENV -Value "ACTIONS_RUNTIME_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN"
+      
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
