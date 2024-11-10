@@ -37,7 +37,7 @@ jobs:
           curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
           unzip third-party/steamworks/sdk.zip -d third-party/steamworks
 
-      - name: Building
+      - name: Building Release
         if: matrix.config.type == 'release'
         working-directory: ./source
         run: |
@@ -129,6 +129,7 @@ jobs:
 
   osx:
     strategy:
+      max-parallel: 1
       matrix:
         config:
           - { agent: "macos-12", name: "OSX-x86_64-Release", xcode-version: '13.4.1', type: "release", cmake_args: "-DBUILD_STEAMLIB=1" }
@@ -163,14 +164,14 @@ jobs:
           curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
           unzip third-party/steamworks/sdk.zip -d third-party/steamworks
 
-      - name: Building Debug
+      - name: Building Release
         if: matrix.config.type == 'release'
         working-directory: ./source
         run: |
           cmake ${{matrix.config.cmake_args}} -DCMAKE_BUILD_TYPE=RELEASE -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" -G Xcode .
           xcodebuild -project qfusion.xcodeproj/ -jobs 4 -configuration Release -target ALL_BUILD CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
-      - name: Building Release
+      - name: Building Debug
         if: matrix.config.type == 'debug'
         working-directory: ./source
         run: |
@@ -193,6 +194,7 @@ jobs:
 
   windows:
     strategy:
+      max-parallel: 1
       matrix:
         config:
           - { agent: "windows-latest", name: "win-x86_64-Release", vs_version: 'Visual Studio 17 2022', type: "release", cmake_args: "-DBUILD_STEAMLIB=1" }
@@ -369,7 +371,7 @@ jobs:
           cmake  ${{matrix.config.cmake_args}} -G "${{matrix.config.vs_version}}" -A x64 -DCMAKE_BUILD_TYPE=DEBUG -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" .
           msbuild qfusion.sln /p:configuration=Debug /maxcpucount:8
 
-      - name: Building Debug
+      - name: Building Release
         if: matrix.config.type == 'release'
         working-directory: .\source
         run: |
