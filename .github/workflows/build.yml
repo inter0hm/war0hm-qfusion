@@ -62,69 +62,69 @@ jobs:
           name: ${{matrix.config.name}}
           path: source/${{matrix.config.name}}.tar.gz
 
-    osx:
-      strategy:
-        matrix:
-          config:
-            - { agent: "macos-12", name: "OSX-x86_64-Release", xcode-version: '13.4.1', type: "release", cmake_args: "-DBUILD_STEAMLIB=1" }
-            - { agent: "macos-12", name: "OSX-x86_64-Debug", xcode-version: '13.4.1', type: "debug", cmake_args: "-DBUILD_STEAMLIB=1 -DWF_BUILD_DSYM=ON " }
-            - { agent: "macos-latest", name: "OSX-arm64-Release", xcode-version: '15.0.1', type: "release", cmake_args: "-DBUILD_STEAMLIB=1" }
-            - { agent: "macos-latest", name: "OSX-arm64-Debug", xcode-version: '15.0.1', type: "debug", cmake_args: "-DBUILD_STEAMLIB=1 -DWF_BUILD_DSYM=ON" }    
-      name: ${{ matrix.config.name }}
-      runs-on: ${{ matrix.config.agent }}
-      steps:
-        - name: Setup
-          shell: bash
-          run: |
-            echo "ACTIONS_CACHE_URL=$ACTIONS_CACHE_URL" >> "$GITHUB_ENV"
-            echo "ACTIONS_RUNTIME_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN" >> "$GITHUB_ENV"
-            brew uninstall --force azure-cli
-            brew uninstall --force aws-sam-cli
-            brew install python@3 || brew link --overwrite python@3
-            brew update
-            brew install curl cmake sdl2 openal-soft libvorbis freetype git zip unzip
+  osx:
+    strategy:
+      matrix:
+        config:
+          - { agent: "macos-12", name: "OSX-x86_64-Release", xcode-version: '13.4.1', type: "release", cmake_args: "-DBUILD_STEAMLIB=1" }
+          - { agent: "macos-12", name: "OSX-x86_64-Debug", xcode-version: '13.4.1', type: "debug", cmake_args: "-DBUILD_STEAMLIB=1 -DWF_BUILD_DSYM=ON " }
+          - { agent: "macos-latest", name: "OSX-arm64-Release", xcode-version: '15.0.1', type: "release", cmake_args: "-DBUILD_STEAMLIB=1" }
+          - { agent: "macos-latest", name: "OSX-arm64-Debug", xcode-version: '15.0.1', type: "debug", cmake_args: "-DBUILD_STEAMLIB=1 -DWF_BUILD_DSYM=ON" }    
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.agent }}
+    steps:
+      - name: Setup
+        shell: bash
+        run: |
+          echo "ACTIONS_CACHE_URL=$ACTIONS_CACHE_URL" >> "$GITHUB_ENV"
+          echo "ACTIONS_RUNTIME_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN" >> "$GITHUB_ENV"
+          brew uninstall --force azure-cli
+          brew uninstall --force aws-sam-cli
+          brew install python@3 || brew link --overwrite python@3
+          brew update
+          brew install curl cmake sdl2 openal-soft libvorbis freetype git zip unzip
 
-        - name: Checkout repo
-          uses: actions/checkout@v4
-          with:
-            submodules: recursive
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-        - uses: maxim-lobanov/setup-xcode@v1
-          with:
-            xcode-version: ${{matrix.config.xcode-version}}
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{matrix.config.xcode-version}}
 
-        - name: Download steamworks sdk
-          run: |
-            curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
-            unzip third-party/steamworks/sdk.zip -d third-party/steamworks
+      - name: Download steamworks sdk
+        run: |
+          curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
+          unzip third-party/steamworks/sdk.zip -d third-party/steamworks
 
-        - name: Building Debug
-          if: matrix.config.type == 'release'
-          working-directory: ./source
-          run: |
-            cmake ${{matrix.config.cmake_args}} -DCMAKE_BUILD_TYPE=RELEASE -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" -G Xcode .
-            xcodebuild -project qfusion.xcodeproj/ -jobs 4 -configuration Release -target ALL_BUILD CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+      - name: Building Debug
+        if: matrix.config.type == 'release'
+        working-directory: ./source
+        run: |
+          cmake ${{matrix.config.cmake_args}} -DCMAKE_BUILD_TYPE=RELEASE -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" -G Xcode .
+          xcodebuild -project qfusion.xcodeproj/ -jobs 4 -configuration Release -target ALL_BUILD CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
-        - name: Building Release
-          if: matrix.config.type == 'debug'
-          working-directory: ./source
-          run: |
-            cmake ${{matrix.config.cmake_args}} -DCMAKE_BUILD_TYPE=DEBUG -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" -G Xcode .
-            xcodebuild -project qfusion.xcodeproj/ -jobs 4 -configuration Debug -target ALL_BUILD CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+      - name: Building Release
+        if: matrix.config.type == 'debug'
+        working-directory: ./source
+        run: |
+          cmake ${{matrix.config.cmake_args}} -DCMAKE_BUILD_TYPE=DEBUG -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" -G Xcode .
+          xcodebuild -project qfusion.xcodeproj/ -jobs 4 -configuration Debug -target ALL_BUILD CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
-        - name: Build project
-          working-directory: ./source
-          run: 
-        
-        - name: Package warfork
-          working-directory: ./source/build
-          run: tar -czvf ../${{matrix.config.name}} Release/*.app
+      - name: Build project
+        working-directory: ./source
+        run: 
+      
+      - name: Package warfork
+        working-directory: ./source/build
+        run: tar -czvf ../${{matrix.config.name}} Release/*.app
 
-        - name: Upload warfork artifact
-          uses: actions/upload-artifact@v3
-          with:
-            name: osx-arm-release
-            path: source/${{matrix.config.name}}.gz
+      - name: Upload warfork artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: osx-arm-release
+          path: source/${{matrix.config.name}}.gz
 
   windows:
     strategy:
@@ -177,4 +177,4 @@ jobs:
         with:
           name: ${{matrix.config.name}}
           path: source\${{matrix.config.name}}.zip
-  
+
