@@ -293,11 +293,6 @@ jobs:
         run: |
           curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
           7z x third-party/steamworks/sdk.zip -othird-party/steamworks
-      
-      - name: Setup glslang
-        working-directory: ./source/glslang
-        run: |
-          python3 ./update_glslang_sources.py
 
       - name: Generate makefiles
         working-directory: .\source
@@ -346,10 +341,6 @@ jobs:
           curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
           7z x third-party/steamworks/sdk.zip -othird-party/steamworks
 
-      - name: Setup glslang
-        working-directory: ./source/glslang
-        run: |
-          python3 ./update_glslang_sources.py
 
       - name: Generate makefiles
         working-directory: .\source
