@@ -179,10 +179,6 @@ jobs:
           xcodebuild -project qfusion.xcodeproj/ -jobs 4 -configuration Debug -target ALL_BUILD CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
       - name: Package warfork
-        working-directory: ./source/build
-        run: tar -czvf ../${{matrix.config.name}} Release/*.app
-
-      - name: Package warfork
         if: matrix.config.type == 'debug'
         working-directory: ./source/build
         run: tar -czvf ../${{matrix.config.name}}.tar.gz Debug/*.app
