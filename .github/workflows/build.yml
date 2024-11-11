@@ -182,11 +182,22 @@ jobs:
         working-directory: ./source/build
         run: tar -czvf ../${{matrix.config.name}} Release/*.app
 
+      - name: Package warfork
+        if: matrix.config.type == 'debug'
+        working-directory: ./source/build
+        run: tar -czvf ../${{matrix.config.name}}.tar.gz Debug/*.app
+      
+      - name: Package warfork
+        if: matrix.config.type == 'release'
+        working-directory: ./source/build
+        run: tar -czvf ../${{matrix.config.name}}.tar.gz Release/*.app
+
+
       - name: Upload warfork artifact
         uses: actions/upload-artifact@v3
         with:
-          name: osx-arm-release
-          path: source/${{matrix.config.name}}.gz
+          name: ${{matrix.config.name}}
+          path: source/${{matrix.config.name}}.tar.gz
 
   windows:
     strategy:
@@ -375,6 +386,12 @@ jobs:
           msbuild qfusion.sln /p:configuration=Release /maxcpucount:8
 
       - name: Package warfork
+        if: matrix.config.type == 'debug'
+        working-directory: .\source\build\Debug
+        run: 7z a ..\..\${{matrix.config.name}}.zip * '-xr!*.exp' '-xr!*.lib'
+      
+      - name: Package warfork
+        if: matrix.config.type == 'release'
         working-directory: .\source\build\Release
         run: 7z a ..\..\${{matrix.config.name}}.zip * '-xr!*.exp' '-xr!*.lib'
 
