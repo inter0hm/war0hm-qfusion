@@ -41,14 +41,8 @@ jobs:
         run: |
           curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
           unzip third-party/steamworks/sdk.zip -d third-party/steamworks
-      
-      - name: Setup glslang
-        working-directory: ./source/glslang
-        run: |
-          python3 ./update_glslang_sources.py
 
-      - name: Building Release
-        if: matrix.config.type == 'release'
+      - name: Generate makefiles
         working-directory: ./source
         run: |
           export CC=clang CXX=clang++
@@ -119,11 +113,6 @@ jobs:
         run: |
           curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
           unzip third-party/steamworks/sdk.zip -d third-party/steamworks
-
-      - name: Setup glslang
-        working-directory: ./source/glslang
-        run: |
-          python3 ./update_glslang_sources.py
 
       - name: Generate makefiles
         working-directory: ./source
@@ -310,12 +299,32 @@ jobs:
         run: |
           python3 ./update_glslang_sources.py
 
+      - name: Generate makefiles
+        working-directory: .\source
+        run: cmake -G "Visual Studio 17 2022" -A x64 -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" .
+
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1
 
       - name: Building Debug
         if: matrix.config.type == 'debug' 
         working-directory: .\source
+        run: msbuild qfusion.sln /p:configuration=Release /maxcpucount:8
+
+      - name: Package warfork
+        working-directory: .\source\build\Release
+        run: 7z a ..\..\win-x86_64-Release.zip * '-xr!*.exp' '-xr!*.lib'
+
+      - name: Upload warfork artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: win-x86_64-release
+          path: source\win-x86_64-Release.zip
+
+  build-win64-debug:
+    runs-on: windows-2022
+    steps:
+      - name: Configure Cache
         run: |
           cmake  ${{matrix.config.cmake_args}} -G "${{matrix.config.vs_version}}" -A x64 -DBUILD_UNIT_TEST=1 .
           msbuild qfusion.sln /p:configuration=Debug /maxcpucount:8
@@ -327,14 +336,31 @@ jobs:
           cmake  ${{matrix.config.cmake_args}} -G "${{matrix.config.vs_version}}" -A x64 -DBUILD_UNIT_TEST=1 -DCMAKE_BUILD_TYPE=RELEASE .
           msbuild qfusion.sln /p:configuration=Release /maxcpucount:8
       
-      - name: Unit Test 
-        shell: bash
-        working-directory: .\source\build\${{matrix.config.build_folder}}
-        run: | 
-          set -e
-          for exc in ./test/*[^.pdb]; do
-            $exc
-          done
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Download steamworks sdk
+        run: |
+          curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
+          7z x third-party/steamworks/sdk.zip -othird-party/steamworks
+
+      - name: Setup glslang
+        working-directory: ./source/glslang
+        run: |
+          python3 ./update_glslang_sources.py
+
+      - name: Generate makefiles
+        working-directory: .\source
+        run: cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" .
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.1
+
+      - name: Build project
+        working-directory: .\source
+        run: msbuild qfusion.sln /p:configuration=Debug /maxcpucount:8
 
       - name: Package warfork
         working-directory: .\source\build\${{matrix.config.build_folder}}
