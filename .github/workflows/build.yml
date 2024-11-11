@@ -277,11 +277,6 @@ jobs:
           curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
           7z x third-party/steamworks/sdk.zip -othird-party/steamworks
 
-      - name: Setup glslang
-        working-directory: ./source/glslang
-        run: |
-          python3 ./update_glslang_sources.py
-
       - name: Generate makefiles
         working-directory: .\source
         run: cmake -G "Visual Studio 17 2022" -A x64 -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" .
@@ -321,10 +316,6 @@ jobs:
           curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
           7z x third-party/steamworks/sdk.zip -othird-party/steamworks
 
-      - name: Setup glslang
-        working-directory: ./source/glslang
-        run: |
-          python3 ./update_glslang_sources.py
 
       - name: Generate makefiles
         working-directory: .\source
