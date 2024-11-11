@@ -178,10 +178,6 @@ jobs:
           cmake ${{matrix.config.cmake_args}} -DCMAKE_BUILD_TYPE=DEBUG -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" -G Xcode .
           xcodebuild -project qfusion.xcodeproj/ -jobs 4 -configuration Debug -target ALL_BUILD CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
-      - name: Build project
-        working-directory: ./source
-        run: 
-      
       - name: Package warfork
         working-directory: ./source/build
         run: tar -czvf ../${{matrix.config.name}} Release/*.app
