@@ -83,7 +83,7 @@ static void R_ReserveDrawSurfaces( drawList_t *list, int minMeshes )
 	oldSize = maxMeshes;
 	newSize = max( minMeshes, oldSize * 2 );
 
-	newDs = R_Malloc( newSize * sizeof( sortedDrawSurf_t ) );
+	newDs = Q_Calloc( newSize, sizeof( sortedDrawSurf_t ) );
 	if( ds ) {
 		memcpy( newDs, ds, oldSize * sizeof( sortedDrawSurf_t ) );
 		Q_Free( ds );

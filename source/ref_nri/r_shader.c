@@ -2360,7 +2360,8 @@ static void __Shader_Defaults(shader_t*s, shaderType_e type, const char* longnam
 	switch( type ) {
 		case SHADER_TYPE_VERTEX:
 			// vertex lighting
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ));
 			s->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT|VATTRIB_COLOR0_BIT;
 			s->sort = SHADER_SORT_OPAQUE;
@@ -2381,7 +2382,8 @@ static void __Shader_Defaults(shader_t*s, shaderType_e type, const char* longnam
 			// deluxemapping
 			Shaderpass_LoadMaterial( &materialImages[0], &materialImages[1], &materialImages[2], shortname, 0, s->imagetags );
 
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ));
 			s->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT|SHADER_LIGHTMAP;
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT|VATTRIB_LMCOORDS0_BIT|VATTRIB_NORMAL_BIT|VATTRIB_SVECTOR_BIT;
 			s->sort = SHADER_SORT_OPAQUE;
@@ -2402,7 +2404,8 @@ static void __Shader_Defaults(shader_t*s, shaderType_e type, const char* longnam
 			pass->images[3] = materialImages[2]; // decalmap
 			break;
 		case SHADER_TYPE_CORONA:
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) * 1 );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) * 1 );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ) * 1 );
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT|VATTRIB_COLOR0_BIT;
 			s->sort = SHADER_SORT_ADDITIVE;
 			s->numpasses = 1;
@@ -2422,7 +2425,8 @@ static void __Shader_Defaults(shader_t*s, shaderType_e type, const char* longnam
 			// load material images
 			Shaderpass_LoadMaterial( &materialImages[0], &materialImages[1], &materialImages[2], shortname, 0, s->imagetags );
 
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ));
 			s->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT|VATTRIB_NORMAL_BIT;
 			s->sort = SHADER_SORT_OPAQUE;
@@ -2446,7 +2450,8 @@ static void __Shader_Defaults(shader_t*s, shaderType_e type, const char* longnam
 		case SHADER_TYPE_2D:
 		case SHADER_TYPE_2D_RAW:
 		case SHADER_TYPE_VIDEO:
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ));
 
 			s->flags = 0;
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT|VATTRIB_COLOR0_BIT;
@@ -2476,7 +2481,8 @@ static void __Shader_Defaults(shader_t*s, shaderType_e type, const char* longnam
 			break;
 		case SHADER_TYPE_OPAQUE_ENV:
 			// pad to 4 floats
-			data = R_Malloc( ALIGN( sizeof( shaderpass_t ), 16 ) + 4 * sizeof( float ) + shortname_length + 1 );
+			data = Q_Malloc( ALIGN( sizeof( shaderpass_t ), 16 ) + 4 * sizeof( float ) + shortname_length + 1 );
+			memset(data, 0, ALIGN( sizeof( shaderpass_t ), 16 ) + 4 * sizeof( float ) + shortname_length + 1);
 
 			s->vattribs = VATTRIB_POSITION_BIT;
 			s->sort = SHADER_SORT_OPAQUE;
@@ -2496,7 +2502,8 @@ static void __Shader_Defaults(shader_t*s, shaderType_e type, const char* longnam
 			pass->images[0] = rsh.whiteTexture;
 			break;
 		case SHADER_TYPE_SKYBOX:
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ) );
 
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT;
 			s->sort = SHADER_SORT_SKY;
@@ -2515,7 +2522,8 @@ static void __Shader_Defaults(shader_t*s, shaderType_e type, const char* longnam
 			pass->images[0] = rsh.whiteTexture;
 			break;
 		case SHADER_TYPE_FOG:
-			data = R_Malloc( shortname_length + 1 );
+			data = Q_Malloc( shortname_length + 1 );
+			memset(data, 0, shortname_length + 1);
 
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT;
 			s->sort = SHADER_SORT_FOG;
@@ -2861,7 +2869,8 @@ create_default:
 		switch( type ) {
 		case SHADER_TYPE_VERTEX:
 			// vertex lighting
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ));
 			s->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT|VATTRIB_COLOR0_BIT;
 			s->sort = SHADER_SORT_OPAQUE;
@@ -2882,7 +2891,8 @@ create_default:
 			// deluxemapping
 			Shaderpass_LoadMaterial( &materialImages[0], &materialImages[1], &materialImages[2], shortname, 0, s->imagetags );
 
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ));
 			s->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT|SHADER_LIGHTMAP;
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT|VATTRIB_LMCOORDS0_BIT|VATTRIB_NORMAL_BIT|VATTRIB_SVECTOR_BIT;
 			s->sort = SHADER_SORT_OPAQUE;
@@ -2903,7 +2913,8 @@ create_default:
 			pass->images[3] = materialImages[2]; // decalmap
 			break;
 		case SHADER_TYPE_CORONA:
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) * 1 );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) * 1 );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ) * 1 );
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT|VATTRIB_COLOR0_BIT;
 			s->sort = SHADER_SORT_ADDITIVE;
 			s->numpasses = 1;
@@ -2923,7 +2934,8 @@ create_default:
 			// load material images
 			Shaderpass_LoadMaterial( &materialImages[0], &materialImages[1], &materialImages[2], shortname, 0, s->imagetags );
 
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ));
 			s->flags = SHADER_DEPTHWRITE|SHADER_CULL_FRONT;
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT|VATTRIB_NORMAL_BIT;
 			s->sort = SHADER_SORT_OPAQUE;
@@ -2947,7 +2959,8 @@ create_default:
 		case SHADER_TYPE_2D:
 		case SHADER_TYPE_2D_RAW:
 		case SHADER_TYPE_VIDEO:
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ));
 
 			s->flags = 0;
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT|VATTRIB_COLOR0_BIT;
@@ -2977,7 +2990,8 @@ create_default:
 			break;
 		case SHADER_TYPE_OPAQUE_ENV:
 			// pad to 4 floats
-			data = R_Malloc( ALIGN( sizeof( shaderpass_t ), 16 ) + 4 * sizeof( float ) + shortname_length + 1 );
+			data = Q_Malloc( ALIGN( sizeof( shaderpass_t ), 16 ) + 4 * sizeof( float ) + shortname_length + 1 );
+			memset(data, 0, ALIGN( sizeof( shaderpass_t ), 16 ) + 4 * sizeof( float ) + shortname_length + 1);
 
 			s->vattribs = VATTRIB_POSITION_BIT;
 			s->sort = SHADER_SORT_OPAQUE;
@@ -2997,7 +3011,8 @@ create_default:
 			pass->images[0] = rsh.whiteTexture;
 			break;
 		case SHADER_TYPE_SKYBOX:
-			data = R_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			data = Q_Malloc( shortname_length + 1 + sizeof( shaderpass_t ) );
+			memset(data, 0, shortname_length + 1 + sizeof( shaderpass_t ) );
 
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT;
 			s->sort = SHADER_SORT_SKY;
@@ -3016,7 +3031,8 @@ create_default:
 			pass->images[0] = rsh.whiteTexture;
 			break;
 		case SHADER_TYPE_FOG:
-			data = R_Malloc( shortname_length + 1 );
+			data = Q_Malloc( shortname_length + 1 );
+			memset(data, 0, shortname_length + 1);
 
 			s->vattribs = VATTRIB_POSITION_BIT|VATTRIB_TEXCOORDS_BIT;
 			s->sort = SHADER_SORT_FOG;

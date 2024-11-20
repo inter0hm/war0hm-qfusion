@@ -905,7 +905,8 @@ void R_InitModels( void )
 	mod_isworldmodel = false;
 	mod_worldvis = NULL;
 	r_prevworldmodel = NULL;
-	mod_mapConfigs = R_MallocExt( mod_mempool, sizeof( *mod_mapConfigs ) * MAX_MOD_KNOWN, 0, 1 );
+	mod_mapConfigs = Q_Calloc(MAX_MOD_KNOWN,  sizeof( *mod_mapConfigs ));
+	Q_LinkToPool(mod_mapConfigs, mod_mempool);
 }
 
 /*

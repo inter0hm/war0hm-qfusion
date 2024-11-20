@@ -377,7 +377,8 @@ static uint8_t *_R_PrepareImageBuffer( int ctx, int buffer, size_t size,
 		r_imageBufSize[ctx][buffer] = size;
 		if( r_imageBuffers[ctx][buffer] )
 			Q_Free( r_imageBuffers[ctx][buffer] );
-		r_imageBuffers[ctx][buffer] = R_MallocExt( r_imagesPool, size, 0, 1 );
+		r_imageBuffers[ctx][buffer] = Q_Malloc( size );
+		Q_LinkToPool(r_imageBuffers[ctx][buffer],r_imagesPool);
 	}
 
 	memset( r_imageBuffers[ctx][buffer], 255, size );
@@ -1138,7 +1139,9 @@ static struct image_s *__R_AllocImage( const char *name )
 	if( !image ) {
 		ri.Com_Error( ERR_DROP, "R_LoadImage: r_numImages == MAX_GLIMAGES" );
 	}
-	image->name = R_MallocExt( r_imagesPool, nameLen + 1, 0, 1 );
+	image->name = Q_Malloc(nameLen + 1);
+	memset(image->name, 0, nameLen + 1);
+	Q_LinkToPool(image->name, r_imagesPool);
 	strcpy( image->name, name );
 	image->registrationSequence = rsh.registrationSequence;
 	image->extension = '\0';
@@ -1971,7 +1974,8 @@ void R_ScreenShot( const char *filename, int x, int y, int width, int height,
 		if( r_screenShotBuffer ) {
 			Q_Free( r_screenShotBuffer );
 		}
-		r_screenShotBuffer = R_MallocExt( r_imagesPool, buf_size, 0, 1 );
+		r_screenShotBuffer = Q_Malloc(buf_size);
+		Q_LinkToPool(r_screenShotBuffer, r_imagesPool);
 		r_screenShotBufferSize = buf_size;
 	}
 
