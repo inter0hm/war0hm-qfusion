@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define STB_DS_IMPLEMENTATION 1
 #include "stb_ds.h"
 
+#include "../qcommon/mod_cmd.h"
+
 glconfig_t glConfig;
 
 r_shared_t rsh;
@@ -265,14 +267,14 @@ static void R_Register( const char *screenshotsPrefix )
 	else
 		gl_driver = NULL;
 
-	ri.Cmd_AddCommand( "imagelist", R_ImageList_f );
-	ri.Cmd_AddCommand( "shaderlist", R_ShaderList_f );
-	ri.Cmd_AddCommand( "shaderdump", R_ShaderDump_f );
-	ri.Cmd_AddCommand( "screenshot", R_ScreenShot_f );
-	ri.Cmd_AddCommand( "envshot", R_EnvShot_f );
-	ri.Cmd_AddCommand( "modellist", Mod_Modellist_f );
-	ri.Cmd_AddCommand( "glslprogramlist", RP_ProgramList_f );
-	ri.Cmd_AddCommand( "cinlist", R_CinList_f );
+	Cmd_AddCommand( "imagelist", R_ImageList_f );
+	Cmd_AddCommand( "shaderlist", R_ShaderList_f );
+	Cmd_AddCommand( "shaderdump", R_ShaderDump_f );
+	Cmd_AddCommand( "screenshot", R_ScreenShot_f );
+	Cmd_AddCommand( "envshot", R_EnvShot_f );
+	Cmd_AddCommand( "modellist", Mod_Modellist_f );
+	Cmd_AddCommand( "glslprogramlist", RP_ProgramList_f );
+	Cmd_AddCommand( "cinlist", R_CinList_f );
 }
 
 rserr_t R_Init( const char *applicationName, const char *screenshotPrefix, int startupColor,
