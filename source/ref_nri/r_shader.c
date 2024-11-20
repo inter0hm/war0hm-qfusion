@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../qalgo/hash.h"
 #include "../gameshared/q_sds.h"
 #include "../gameshared/q_arch.h"
+#include "../qcommon/mod_mem.h"
 
 #define SHADERS_HASH_SIZE	128
 #define SHADERCACHE_HASH_SIZE	128
@@ -1860,7 +1861,7 @@ static void Shader_MakeCache( const char *filename )
 
 	if( !cacheMemSize )
 	{
-		R_Free( buf );
+		Q_Free( buf );
 		goto done;
 	}
 
@@ -1886,7 +1887,7 @@ static void Shader_MakeCache( const char *filename )
 
 set_path_and_offset:
 		if( cache->filename )
-			R_Free( cache->filename );
+			Q_Free( cache->filename );
 		cache->filename = R_CopyString( filename );
 		cache->buffer = buf;
 		cache->offset = ptr - buf;
@@ -1898,7 +1899,7 @@ done:
 	if( temp )
 		R_FreeFile( temp );
 	if( pathName )
-		R_Free( pathName );
+		Q_Free( pathName );
 }
 
 /*
@@ -2019,12 +2020,12 @@ static void R_FreeShader( shader_t *shader )
 	}
 
 	if( shader->deforms ) {
-		R_Free( shader->deforms );
+		Q_Free( shader->deforms );
 		shader->deforms = 0;
 	}
 	shader->numdeforms = 0;
 	shader->deformsKey = NULL;
-	R_Free( shader->passes );
+	Q_Free( shader->passes );
 	shader->passes = NULL;
 	shader->numpasses = 0;
 	shader->name = NULL;
@@ -2153,8 +2154,8 @@ void R_ShutdownShaders( void )
 		R_FreeShader( s );
 	}
 
-	R_Free( r_shaderTemplateBuf );
-	R_Free( r_shortShaderName );
+	Q_Free( r_shaderTemplateBuf );
+	Q_Free( r_shortShaderName );
 
 	r_shaderTemplateBuf = NULL;
 	r_shortShaderName = NULL;
@@ -3249,7 +3250,7 @@ shader_t *R_LoadShader( const char *name, shaderType_e type, bool forceDefault )
 	nameLength = strlen( name );
 	if( nameLength + 1 > r_shortShaderNameSize || r_shortShaderNameSize < MAX_QPATH ) {
 		if( r_shortShaderName ) {
-			R_Free( r_shortShaderName );
+			Q_Free( r_shortShaderName );
 			r_shortShaderName = NULL;
 		}
 		r_shortShaderNameSize = max( nameLength + 1, MAX_QPATH );

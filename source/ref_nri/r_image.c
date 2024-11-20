@@ -376,7 +376,7 @@ static uint8_t *_R_PrepareImageBuffer( int ctx, int buffer, size_t size,
 	{
 		r_imageBufSize[ctx][buffer] = size;
 		if( r_imageBuffers[ctx][buffer] )
-			R_Free( r_imageBuffers[ctx][buffer] );
+			Q_Free( r_imageBuffers[ctx][buffer] );
 		r_imageBuffers[ctx][buffer] = R_MallocExt( r_imagesPool, size, 0, 1 );
 	}
 
@@ -397,7 +397,7 @@ void R_FreeImageBuffers( void )
 		{
 			if( r_imageBuffers[i][j] )
 			{
-				R_Free( r_imageBuffers[i][j] );
+				Q_Free( r_imageBuffers[i][j] );
 				r_imageBuffers[i][j] = NULL;
 			}
 			r_imageBufSize[i][j] = 0;
@@ -1514,7 +1514,7 @@ static void __FreeImage( struct frame_cmd_buffer_s *cmd, struct image_s *image )
 		memset(&image->descriptor, 0, sizeof(struct nri_descriptor_s));
 		memset(&image->samplerDescriptor, 0, sizeof(struct  nri_descriptor_s));
 		
-		R_Free( image->name );
+		Q_Free( image->name );
 		image->flags = 0;
 		image->loaded = false;
 		image->tags = 0;
@@ -1969,7 +1969,7 @@ void R_ScreenShot( const char *filename, int x, int y, int width, int height,
 	buf_size = width * height * 4 + size;
 	if( buf_size > r_screenShotBufferSize ) {
 		if( r_screenShotBuffer ) {
-			R_Free( r_screenShotBuffer );
+			Q_Free( r_screenShotBuffer );
 		}
 		r_screenShotBuffer = R_MallocExt( r_imagesPool, buf_size, 0, 1 );
 		r_screenShotBufferSize = buf_size;
@@ -2208,7 +2208,7 @@ void R_InitImages( void )
 {
 	assert(!r_imagesPool);
 
-	r_imagesPool = R_AllocPool( r_mempool, "Images" );
+	r_imagesPool = Q_CreatePool( r_mempool, "Images" );
 	r_imagesLock = ri.Mutex_Create();
 
 	memset( images, 0, sizeof( images ) );
@@ -2343,8 +2343,8 @@ void R_ShutdownImages( void )
 
 	ri.Mutex_Destroy( &r_imagesLock );
 
-	R_FreePool( &r_imagesPool );
-
+	Q_FreePool( r_imagesPool );
+	r_imagesPool = NULL;
 	r_screenShotBuffer = NULL;
 	r_screenShotBufferSize = 0;
 
