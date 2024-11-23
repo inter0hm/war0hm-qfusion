@@ -70,6 +70,19 @@ static time_t time_since_last_pump = 0;
 
 static SteamCallbacks *GSteamCallbacks;
 
+static void processEVT( steam_evt_pkt_s *req, size_t size )
+{
+	switch(req->common.cmd) {
+		case EVT_HEART_BEAT: {
+			time( &time_since_last_pump );
+			break;
+		default:
+				assert(0);// unhandled packet
+			break;
+		}
+	}
+}
+
 static void processRPC( steam_rpc_pkt_s *req, size_t size )
 {
 	switch( req->common.cmd ) {
@@ -383,6 +396,7 @@ static void processRPC( steam_rpc_pkt_s *req, size_t size )
 			break;
 		}
 		default:
+				assert(0);// unhandled packet
 			break;
 	}
 }
@@ -424,6 +438,9 @@ static void processCommands()
 
 		if( packet.common.cmd >= RPC_BEGIN && packet.common.cmd < RPC_END ) {
 			processRPC( &packet.rpc_payload, packet.size );
+		} else if(packet.common.cmd >= EVT_BEGIN && packet.common.cmd < EVT_END) {
+			processEVT( &packet.evt_payload, packet.size );
+
 		}
 
 		if( cursor > packet.size + sizeof( uint32_t ) ) {
