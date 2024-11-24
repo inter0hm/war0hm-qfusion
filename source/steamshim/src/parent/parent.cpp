@@ -18,6 +18,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 */
 
+#include <atomic>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -53,7 +54,7 @@ struct event_subscriber_s {
 	} handles[NUM_EVT_HANDLE];
 };
 
-static size_t SyncToken;
+static std::atomic<size_t> SyncToken;
 static size_t currentSync;
 static struct steam_rpc_async_s rpc_handles[NUM_RPC_ASYNC_HANDLE];
 static struct event_subscriber_s evt_handles[STEAM_EVT_LEN];
@@ -88,11 +89,14 @@ static bool setEnvironmentVars( PipeType pipeChildRead, PipeType pipeChildWrite 
 	return true;
 }
 
-static void taskHeartbeat(){
-    while (true) {
-    	STEAMSHIM_dispatch();
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    }
+void taskHeartbeat()
+{
+	while( true ) {
+		struct steam_shim_common_s pkt;
+		pkt.cmd = EVT_HEART_BEAT;
+		STEAMSHIM_sendEVT( &pkt, sizeof( struct steam_shim_common_s ) );
+		std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
+	}
 }
 
 extern "C" {
@@ -177,6 +181,16 @@ bool STEAMSHIM_active() {
 	return ( ( GPipeRead != NULLPIPE ) && ( GPipeWrite != NULLPIPE ) );
 } 
 
+int STEAMSHIM_sendEVT( void *packet, uint32_t size)
+{
+  	writeGuard.lock();
+	writePipe( GPipeWrite, &size, sizeof( uint32_t ) );
+	writePipe( GPipeWrite, (uint8_t *)packet, size );
+	writeGuard.unlock();
+	return 0;
+}
+
+
 int STEAMSHIM_sendRPC( void *packet, uint32_t size, void *self, STEAMSHIM_rpc_handle rpc, uint32_t *sync )
 {
 	uint32_t syncIndex = ++SyncToken;
@@ -200,9 +214,9 @@ int STEAMSHIM_sendRPC( void *packet, uint32_t size, void *self, STEAMSHIM_rpc_ha
 
 int STEAMSHIM_waitDispatchSync( uint32_t syncIndex )
 {
-    if(currentSync == syncIndex) {
-        return 0; // can't wait on dispatch if there is no RPC's staged
-    }
+	if( currentSync == syncIndex ) {
+		return 0; // can't wait on dispatch if there is no RPC's staged
+	}
 	static struct steam_packet_buf packet;
 	static size_t cursor = 0;
 	while( 1 ) {
