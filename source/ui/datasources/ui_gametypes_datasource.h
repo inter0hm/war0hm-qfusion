@@ -8,7 +8,7 @@ namespace WSWUI
 	/// Provides information about game types (full name and id).
 	/// Used in the "start local game" screen to populate the game type
 	/// dropdown select box with data.
-	class GameTypesDataSource : public Rocket::Controls::DataSource
+	class GameTypesDataSource : public Rml::DataSource
 	{
 	public:
 		/// Reads the available game types from /progs/gametypes

@@ -5,7 +5,7 @@ namespace WSWUI
 {
 
 class BlockedPlayersDataSource :
-	public Rocket::Controls::DataSource
+	public Rml::DataSource
 {
 public:
 	BlockedPlayersDataSource( );

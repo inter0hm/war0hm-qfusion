@@ -6,14 +6,14 @@
 #include "widgets/ui_widgets.h"
 #include "widgets/ui_optionsform.h"
 
-#include <Rocket/Controls.h>
+#include <RmlUi/Core/Controls.h>
 
 namespace WSWUI
 {
 
 // we use this alot
 typedef Rml::Element Element;
-typedef Rocket::Controls::ElementFormControl ElementFormControl;
+typedef Rml::ElementFormControl ElementFormControl;
 
 //===================================
 
@@ -101,7 +101,7 @@ public:
 //================================================
 
 /*
-	OptionsForm is derived from regular Rocket::Controls::Form and it has the addition of
+	OptionsForm is derived from regular Rml::Form and it has the addition of
 	scanning its children for elements that have attribute called "cvar", which ties
 	the control's value to the cvars value.
 
@@ -131,7 +131,7 @@ public:
 
 // Ctor
 OptionsForm::OptionsForm( const String &tag )
-	: Rocket::Controls::ElementForm( tag ), cvarListener( __new__( CvarChangeListener ) )
+	: Rml::ElementForm( tag ), cvarListener( __new__( CvarChangeListener ) )
 {}
 
 // Dtor
@@ -147,7 +147,7 @@ void OptionsForm::ProcessEvent( Rml::Event &ev )
 	// we want to handle onsubmit
 	// Com_Printf("OptionsForm::ProcessEvent %s\n", ev.GetType().CString() );
 
-	Rocket::Controls::ElementForm::ProcessEvent( ev );
+	Rml::ElementForm::ProcessEvent( ev );
 }
 
 // predicate for foreachChildren

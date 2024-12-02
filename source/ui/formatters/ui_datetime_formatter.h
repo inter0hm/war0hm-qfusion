@@ -27,10 +27,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 namespace WSWUI
 {
 
-class DatetimeFormatter : public Rocket::Controls::DataFormatter
+class DatetimeFormatter : public Rml::DataFormatter
 {
 public:
-	DatetimeFormatter() : Rocket::Controls::DataFormatter("datetime") {}
+	DatetimeFormatter() : Rml::DataFormatter("datetime") {}
 
 	// Expects unix time as input. Formats input as "YY/MM/DD hh:mm"
 	void FormatData( Rml::String& formatted_data, const Rml::StringList& raw_data )

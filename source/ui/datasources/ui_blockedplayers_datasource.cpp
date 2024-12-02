@@ -8,7 +8,7 @@
 
 namespace WSWUI
 {
-    BlockedPlayersDataSource::BlockedPlayersDataSource():Rocket::Controls::DataSource( "blockedplayers" )
+    BlockedPlayersDataSource::BlockedPlayersDataSource():Rml::DataSource( "blockedplayers" )
 	{
 
 	}

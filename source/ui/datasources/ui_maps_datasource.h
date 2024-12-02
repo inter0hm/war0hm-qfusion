@@ -7,7 +7,7 @@ namespace WSWUI
 {
 	/// Provides a list of available maps, with their full names, short
 	/// names and pictures
-	class MapsDataSource : public Rocket::Controls::DataSource
+	class MapsDataSource : public Rml::DataSource
 	{
 	public:
 		MapsDataSource();

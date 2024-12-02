@@ -6,7 +6,7 @@
 
 namespace WSWUI
 {
-	GameTypesDataSource::GameTypesDataSource():Rocket::Controls::DataSource("gametypes_source")
+	GameTypesDataSource::GameTypesDataSource():Rml::DataSource("gametypes_source")
 	{
 		std::vector<std::string> listedGameTypes;
 		getFileList(listedGameTypes, "progs/gametypes", ".gt");

@@ -7,7 +7,7 @@
 #define MAINTABLE_NAME "list"
 
 using namespace Rml::Core;
-using namespace Rocket::Controls;
+using namespace Rml;
 
 namespace WSWUI
 {

@@ -23,12 +23,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "kernel/ui_utils.h"
 #include "widgets/ui_widgets.h"
 
-#include <Rocket/Controls.h>
+#include <RmlUi/Core/Controls.h>
 
 namespace WSWUI
 {
 using namespace Rml::Core;
-using namespace Rocket::Controls;
+using namespace Rml;
 
 class SelectableDataGrid : public ElementDataGrid
 {

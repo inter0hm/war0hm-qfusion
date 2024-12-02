@@ -7,10 +7,10 @@ namespace WSWUI
 {
 	/// Converts a map's short name into an rml with the appropriate
 	/// levelshot.
-	class LevelShotFormatter : public Rocket::Controls::DataFormatter
+	class LevelShotFormatter : public Rml::DataFormatter
 	{
 	public:
-		LevelShotFormatter() : Rocket::Controls::DataFormatter("levelshot"){}
+		LevelShotFormatter() : Rml::DataFormatter("levelshot"){}
 
 		void FormatData(Rml::String& formatted_data, const Rml::StringList& raw_data)
 		{

@@ -28,10 +28,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 namespace WSWUI
 {
 
-class ColorCodeFormatter : public Rocket::Controls::DataFormatter
+class ColorCodeFormatter : public Rml::DataFormatter
 {
 public:
-	ColorCodeFormatter() : Rocket::Controls::DataFormatter("colorcode") {}
+	ColorCodeFormatter() : Rml::DataFormatter("colorcode") {}
 
 	// Formats string into colored spans
 	// FIXME: this isn't terribly efficient, converting UTF-8 characters back and forth

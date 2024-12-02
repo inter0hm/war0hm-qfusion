@@ -46,7 +46,7 @@ namespace WSWUI
 		virtual void OnAttributeChange(const Rml::Core::AttributeNameList&);
 
 	private:
-		Rocket::Controls::DataFormatter *data_formatter;
+		Rml::DataFormatter *data_formatter;
 		Rml::String format;
 		unsigned int num_args;
 

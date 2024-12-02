@@ -124,7 +124,7 @@ public:
 				// form submission
 				String inputType;
 				Element *target = event.GetTargetElement();
-				Rocket::Controls::ElementFormControl *input = dynamic_cast<Rocket::Controls::ElementFormControl *>(target);
+				Rml::ElementFormControl *input = dynamic_cast<Rml::ElementFormControl *>(target);
 
 				if( event.GetPhase() != Rml::Event::PHASE_BUBBLE ) {
 					return;
@@ -150,9 +150,9 @@ public:
 
 				// find the parent form element
 				Element *parent = target->GetParentNode();
-				Rocket::Controls::ElementForm *form = NULL;
+				Rml::ElementForm *form = NULL;
 				while( parent ) {
-					form = dynamic_cast<Rocket::Controls::ElementForm *>(parent);
+					form = dynamic_cast<Rml::ElementForm *>(parent);
 					if( form != NULL ) {
 						// not a form, go up the tree
 						break;
@@ -173,8 +173,8 @@ public:
 				ElementList controls;
 				parent->GetElementsByTagName( controls, "input" );
 				for( size_t i = 0; i < controls.size(); i++ ) {
-					Rocket::Controls::ElementFormControl *control =
-						dynamic_cast< Rocket::Controls::ElementFormControl* >(controls[i]);
+					Rml::ElementFormControl *control =
+						dynamic_cast< Rml::ElementFormControl* >(controls[i]);
 
 					if( !control ) {
 						continue;
@@ -225,14 +225,14 @@ public:
 		if( event.GetPhase() != Rml::Event::PHASE_TARGET )
 			return;
 
-		Rocket::Controls::ElementFormControl *input =
-			dynamic_cast< Rocket::Controls::ElementFormControl * >( event.GetTargetElement() );
+		Rml::ElementFormControl *input =
+			dynamic_cast< Rml::ElementFormControl * >( event.GetTargetElement() );
 		if( !input || input->IsDisabled() )
 			return;
 
 		String inputType = input->GetAttribute< String >( "type", "" );
 		if( ( inputType != "text" ) && ( inputType != "password" ) &&
-			!dynamic_cast< Rocket::Controls::ElementFormControlTextArea * >( input ) )
+			!dynamic_cast< Rml::ElementFormControlTextArea * >( input ) )
 			return;
 
 		trap::IN_ShowSoftKeyboard( ( event.GetType() == "click" ) ? true : false );

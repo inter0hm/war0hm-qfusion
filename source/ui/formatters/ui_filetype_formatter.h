@@ -26,10 +26,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 namespace WSWUI
 {
 
-class FiletypeFormatter : public Rocket::Controls::DataFormatter
+class FiletypeFormatter : public Rml::DataFormatter
 {
 public:
-	FiletypeFormatter() : Rocket::Controls::DataFormatter("filetype") {}
+	FiletypeFormatter() : Rml::DataFormatter("filetype") {}
 
 	// Encloses filename into a <filetype> tag and sets its class to file extension (e.g. "mp3") .
 	// Directories have their own tag <dirtype> with the only possible class "back" for ".." directories.

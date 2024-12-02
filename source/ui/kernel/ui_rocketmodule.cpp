@@ -14,8 +14,8 @@
 
 #include "parsers/ui_parsersound.h"
 
-#include <Rocket/Core/FontEffectInstancer.h>
-#include <Rocket/Controls.h>
+#include <RmlUi/Core/FontEffectInstancer.h>
+#include <RmlUi/Core/Controls.h>
 
 namespace WSWUI
 {
@@ -76,7 +76,7 @@ RocketModule::RocketModule( int vidWidth, int vidHeight, float pixelRatio )
 		throw std::runtime_error( "UI: Rml::Core::Initialise failed" );
 
 	// initialize the controls plugin
-	Rocket::Controls::Initialise();
+	Rml::Initialise();
 
 	// Create our contexts
 	contextMain = Rml::Core::CreateContext( contextName, Vector2i( vidWidth, vidHeight ) );
@@ -442,9 +442,9 @@ void RocketModule::registerCustoms()
 	registerElement( "body", ASUI::GetScriptDocumentInstancer() );
 	// Soft keyboard listener
 	registerElement( "input",
-		__new__( GenericElementInstancerSoftKeyboard<Rocket::Controls::ElementFormControlInput> )() );
+		__new__( GenericElementInstancerSoftKeyboard<Rml::ElementFormControlInput> )() );
 	registerElement( "textarea",
-		__new__( GenericElementInstancerSoftKeyboard<Rocket::Controls::ElementFormControlTextArea> )() );
+		__new__( GenericElementInstancerSoftKeyboard<Rml::ElementFormControlTextArea> )() );
 	// other widgets
 	registerElement( "keyselect", GetKeySelectInstancer() );
 	registerElement( "a", GetAnchorWidgetInstancer() );

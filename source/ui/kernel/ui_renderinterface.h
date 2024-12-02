@@ -28,12 +28,12 @@ public:
 	virtual void RenderGeometry(Rml::Vertex* vertices, int num_vertices, int* indices, int num_indices, Rml::TextureHandle texture, const Rml::Vector2f& translation);
 
 	/// Called by Rocket when it wants to compile geometry it believes will be static for the forseeable future.
-	virtual Rml::Core::CompiledGeometryHandle CompileGeometry(Rml::Vertex* vertices, int num_vertices, int* indices, int num_indices, Rml::TextureHandle texture);
+	virtual Rml::CompiledGeometryHandle CompileGeometry(Rml::Vertex* vertices, int num_vertices, int* indices, int num_indices, Rml::TextureHandle texture);
 
 	/// Called by Rocket when it wants to render application-compiled geometry.
-	virtual void RenderCompiledGeometry(Rml::Core::CompiledGeometryHandle geometry, const Rml::Vector2f& translation);
+	virtual void RenderCompiledGeometry(Rml::CompiledGeometryHandle geometry, const Rml::Vector2f& translation);
 	/// Called by Rocket when it wants to release application-compiled geometry.
-	virtual void ReleaseCompiledGeometry(Rml::Core::CompiledGeometryHandle geometry);
+	virtual void ReleaseCompiledGeometry(Rml::CompiledGeometryHandle geometry);
 
 	/// Called by Rocket when it wants to enable or disable scissoring to clip content.
 	virtual void EnableScissorRegion(bool enable);

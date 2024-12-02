@@ -23,13 +23,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "widgets/ui_widgets.h"
 #include "kernel/ui_main.h"
 
-#include <Rocket/Controls.h>
-#include <Rocket/Controls/DataSource.h>
+#include <RmlUi/Core/Controls.h>
+#include <RmlUi/Core/Controls/DataSource.h>
 
 namespace WSWUI
 {
 using namespace Rml::Core;
-using namespace Rocket::Controls;
+using namespace Rml;
 
 class UI_DataSpinner : public ElementFormControl
 {
@@ -135,7 +135,7 @@ private:
 		StringList data_source_parts;
 		Rml::StringUtilities::ExpandString(data_source_parts, data_source_name, '.');
 
-		Rocket::Controls::DataSource* new_data_source = Rocket::Controls::DataSource::GetDataSource(data_source_parts[0].CString());
+		Rml::DataSource* new_data_source = Rml::DataSource::GetDataSource(data_source_parts[0].CString());
 
 		if (data_source_parts.size() != 2 || !new_data_source)
 		{

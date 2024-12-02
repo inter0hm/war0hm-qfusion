@@ -9,7 +9,7 @@
 
 namespace WSWUI
 {
-    MapsDataSource::MapsDataSource():Rocket::Controls::DataSource( MAPS_SOURCE )
+    MapsDataSource::MapsDataSource():Rml::DataSource( MAPS_SOURCE )
 	{
 		getMapsList( mapList );
 

@@ -7,7 +7,7 @@
 
 namespace ASUI {
 
-typedef Rml::Core::URL RocketURL;
+typedef Rml::URL RocketURL;
 
 class ASURL
 {

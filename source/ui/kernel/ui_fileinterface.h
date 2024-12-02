@@ -13,7 +13,7 @@
 namespace WSWUI
 {
 
-class UI_FileInterface : public Rml::Core::FileInterface
+class UI_FileInterface : public Rml::FileInterface
 {
 public:
 	UI_FileInterface();
