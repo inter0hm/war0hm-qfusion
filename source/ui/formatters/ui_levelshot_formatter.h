@@ -12,11 +12,11 @@ namespace WSWUI
 	public:
 		LevelShotFormatter() : Rocket::Controls::DataFormatter("levelshot"){}
 
-		void FormatData(Rocket::Core::String& formatted_data, const Rocket::Core::StringList& raw_data)
+		void FormatData(Rml::String& formatted_data, const Rml::StringList& raw_data)
 		{
 			// NOTE: we don't check for unescaped quotes in raw_data... probably
 			// we should.
-			for(Rocket::Core::StringList::const_iterator it = raw_data.begin(); it != raw_data.end(); ++it){
+			for(Rml::StringList::const_iterator it = raw_data.begin(); it != raw_data.end(); ++it){
 				formatted_data += " <levelshot src = \"" + (*it) + "\"/>";
 			}
 		}

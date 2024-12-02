@@ -32,7 +32,7 @@ class EmptyFormatter : public Rocket::Controls::DataFormatter
 public:
 	EmptyFormatter() : Rocket::Controls::DataFormatter("empty") {}
 
-	void FormatData( Rocket::Core::String& formatted_data, const Rocket::Core::StringList& raw_data )
+	void FormatData( Rml::String& formatted_data, const Rml::StringList& raw_data )
 	{
 		formatted_data = "&nbsp;";
 	}

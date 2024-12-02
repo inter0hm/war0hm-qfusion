@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define GAMEAJAX_SOURCE	"gameajax"
 
-using namespace Rocket::Core;
+using namespace Rml::Core;
 using namespace Rocket::Controls;
 
 namespace WSWUI

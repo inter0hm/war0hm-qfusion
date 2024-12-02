@@ -12,8 +12,8 @@ namespace WSWUI
 	public:
 		MapsDataSource();
 
-		virtual void GetRow (Rocket::Core::StringList &row, const Rocket::Core::String&, int row_index, const Rocket::Core::StringList& cols);
-		virtual int GetNumRows (const Rocket::Core::String &table);
+		virtual void GetRow (Rml::StringList &row, const Rml::String&, int row_index, const Rml::StringList& cols);
+		virtual int GetNumRows (const Rml::String &table);
 
 	private:
 		typedef std::pair<std::string, std::string> MapInfo;

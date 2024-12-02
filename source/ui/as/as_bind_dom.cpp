@@ -67,7 +67,7 @@ namespace ASUI {
 
 void PrebindEvent( ASInterface *as )
 {
-	ASBind::Class<Rocket::Core::Event, ASBind::class_ref>( as->getEngine() );
+	ASBind::Class<Rml::Event, ASBind::class_ref>( as->getEngine() );
 }
 
 static Element *Event_GetTargetElement( Event *self ) {
@@ -81,28 +81,28 @@ static asstring_t *Event_GetType( Event *self ) {
 }
 
 static asstring_t *Event_GetParameterS( Event *self, const asstring_t &a, const asstring_t &b ) {
-	Rocket::Core::String name = ASSTR(a);
-	Rocket::Core::String default_value = ASSTR(b);
+	Rml::String name = ASSTR(a);
+	Rml::String default_value = ASSTR(b);
 	return ASSTR( self->GetParameter( name, default_value ) );
 }
 
 static int Event_GetParameterI( Event *self, const asstring_t &a, const int default_value ) {
-	Rocket::Core::String name = ASSTR(a);
+	Rml::String name = ASSTR(a);
 	return self->GetParameter( name, default_value );
 }
 
 static unsigned Event_GetParameterU( Event *self, const asstring_t &a, const unsigned default_value ) {
-	Rocket::Core::String name = ASSTR(a);
+	Rml::String name = ASSTR(a);
 	return self->GetParameter( name, default_value );
 }
 
 static float Event_GetParameterF( Event *self, const asstring_t &a, const float default_value ) {
-	Rocket::Core::String name = ASSTR(a);
+	Rml::String name = ASSTR(a);
 	return self->GetParameter( name, default_value );
 }
 
 static bool Event_GetParameterB( Event *self, const asstring_t &a, const bool default_value ) {
-	Rocket::Core::String name = ASSTR(a);
+	Rml::String name = ASSTR(a);
 	return self->GetParameter( name, default_value );
 }
 
@@ -110,11 +110,11 @@ static CScriptDictionaryInterface *Event_GetParameters( Event *self ) {
 	CScriptDictionaryInterface *dict = UI_Main::Get()->getAS()->createDictionary();
 	int stringObjectTypeId = UI_Main::Get()->getAS()->getStringObjectType()->GetTypeId();
 
-	const Rocket::Core::Dictionary *parameters = self->GetParameters();
+	const Rml::Core::Dictionary *parameters = self->GetParameters();
 
 	int index = 0;
-	Rocket::Core::String name;
-	Rocket::Core::String value;
+	Rml::String name;
+	Rml::String value;
 	while( parameters->Iterate( index, name, value ) ) {
 		dict->Set( *(ASSTR( name )), ASSTR( value ), stringObjectTypeId );
 	}
@@ -154,7 +154,7 @@ void BindEvent( ASInterface *as )
 	;
 
 	// reference (without factory)
-	ASBind::GetClass<Rocket::Core::Event>( as->getEngine() )
+	ASBind::GetClass<Rml::Event>( as->getEngine() )
 		.refs( &Event::AddReference, &Event::RemoveReference )
 
 		.method( &Event_GetType, "getType", true )
@@ -178,7 +178,7 @@ void BindEvent( ASInterface *as )
 // EVENT LISTENER IS DANGEROUS, USES DUMMY REFERENCING!
 void PrebindEventListener( ASInterface *as )
 {
-	ASBind::Class<Rocket::Core::EventListener, ASBind::class_nocount>( as->getEngine() )
+	ASBind::Class<Rml::EventListener, ASBind::class_nocount>( as->getEngine() )
 		;
 }
 
@@ -193,7 +193,7 @@ void PrebindEventListener( ASInterface *as )
 // 	1) we need to wrap a few functions to handle reference-counting
 // 	2) we need few wrapper functions to look-a-like jquery
 //	3) we need to provide separate api for Form, Controls etc..
-//	4) we need to convert all Rocket::Core::String to asstring_t*
+//	4) we need to convert all Rml::String to asstring_t*
 // and thats why you have loads of misc functions in the end that use strings
 
 // dummy funcdef
@@ -393,7 +393,7 @@ static ElementDocument *Element_GetOwnerDocument( Element *elem ) {
 
 //
 //
-// NOW THE TEDIOUS PART OF WRAPPING REST OF THE FUNCTIONS USING Rocket::Core::String to use asstring_t* ...
+// NOW THE TEDIOUS PART OF WRAPPING REST OF THE FUNCTIONS USING Rml::String to use asstring_t* ...
 
 static bool Element_SetProperty( Element *elem, const asstring_t &a, const asstring_t &b ) {
 	return elem->SetProperty( ASSTR(a), ASSTR(b) );
@@ -990,13 +990,13 @@ static Element *ElementImage_CastToElement( ElementImage *self ) {
 }
 
 static float ElementImage_GetWidth( ElementImage *self ) {
-	Rocket::Core::Vector2f dimensions;
+	Rml::Vector2f dimensions;
 	self->GetIntrinsicDimensions( dimensions );
 	return dimensions.x;
 }
 
 static float ElementImage_GetHeight( ElementImage *self ) {
-	Rocket::Core::Vector2f dimensions;
+	Rml::Vector2f dimensions;
 	self->GetIntrinsicDimensions( dimensions );
 	return dimensions.y;
 }
@@ -1033,7 +1033,7 @@ static void BindElementImage( ASInterface *as )
 
 void PrebindElement( ASInterface *as )
 {
-	ASBind::Class<Rocket::Core::Element, ASBind::class_ref>( as->getEngine() );
+	ASBind::Class<Rml::Element, ASBind::class_ref>( as->getEngine() );
 
 	PreBindElementDocument( as );
 

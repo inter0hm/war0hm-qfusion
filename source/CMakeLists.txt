@@ -242,6 +242,7 @@ if (NOT GAME_MODULES_ONLY)
     find_package(CURL REQUIRED)
     find_package(Freetype REQUIRED)
     find_package(OpenAL CONFIG REQUIRED)
+    find_package(RmlUi CONFIG REQUIRED)
 
     if (USE_SDL2)
         find_package(SDL2 CONFIG REQUIRED)

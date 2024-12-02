@@ -293,7 +293,7 @@ namespace WSWUI {
 		int numNotifies;
 
 	public:
-		ServerBrowserDataSource(); // : Rocket::Core::DataSource("serverbrowser_source")
+		ServerBrowserDataSource(); // : Rml::Core::DataSource("serverbrowser_source")
 		virtual ~ServerBrowserDataSource();
 
 		//
@@ -314,7 +314,7 @@ namespace WSWUI {
 
 	#if 0
 		// benchmarking edition ltd
-		void NotifyRowAdd (const Rocket::Core::String &table, int first_row_added, int num_rows_added)
+		void NotifyRowAdd (const Rml::String &table, int first_row_added, int num_rows_added)
 		{
 			BenchmarkTimer bt;
 			Rocket::Controls::DataSource::NotifyRowAdd( table, first_row_added, num_rows_added );

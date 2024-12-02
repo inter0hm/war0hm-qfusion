@@ -33,7 +33,7 @@ public:
 	DurationFormatter() : Rocket::Controls::DataFormatter("duration") {}
 
 	// Expects number of seconds as input. Formats input as "hh:mm:ss"
-	void FormatData( Rocket::Core::String& formatted_data, const Rocket::Core::StringList& raw_data )
+	void FormatData( Rml::String& formatted_data, const Rml::StringList& raw_data )
 	{
 		if( raw_data[0].Empty() ) {
 			formatted_data = "";
@@ -41,7 +41,7 @@ public:
 		}
 
 		int i_value = ::atoi( raw_data[0].CString() );
-		formatted_data = Rocket::Core::String( 32,
+		formatted_data = Rml::String( 32,
 			"%02d:%02d:%02d", i_value/3600, i_value/60, i_value%60
 		);
 	}

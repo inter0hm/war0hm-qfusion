@@ -16,6 +16,7 @@
     "libogg",
     "libvorbis",
     "openal-soft",
-    "glslang"
+    "glslang",
+    "rmlui"
   ]
 }
