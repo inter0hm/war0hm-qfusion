@@ -1,4 +1,4 @@
-ame: Build
+name: Build
 
 on: [push, pull_request]
 jobs:
@@ -37,10 +37,6 @@ jobs:
           curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
           unzip third-party/steamworks/sdk.zip -d third-party/steamworks
       
-      - name: Setup glslang
-        working-directory: ./source/glslang
-        run: |
-          python3 ./update_glslang_sources.py
 
       - name: Building Release
         if: matrix.config.type == 'release'
@@ -82,8 +78,8 @@ jobs:
       max-parallel: 1
       matrix:
         config:
-          - { agent: "macos-13", name: "OSX-x86_64-Release", xcode-version: '14.1.0', type: "release", cmake_args: "-DBUILD_STEAMLIB=1" , build_folder: "Release" }
-          - { agent: "macos-13", name: "OSX-x86_64-Debug", xcode-version: '14.1.0', type: "debug", cmake_args: "-DBUILD_STEAMLIB=1 -DWF_BUILD_DSYM=ON", build_folder: "Debug"  }
+          - { agent: "macos-13", name: "OSX-x86_64-Release", xcode-version: '15.0.1', type: "release", cmake_args: "-DBUILD_STEAMLIB=1" , build_folder: "Release" }
+          - { agent: "macos-13", name: "OSX-x86_64-Debug", xcode-version: '15.0.1', type: "debug", cmake_args: "-DBUILD_STEAMLIB=1 -DWF_BUILD_DSYM=ON", build_folder: "Debug"  }
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.agent }}
     steps:
@@ -170,11 +166,6 @@ jobs:
           curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
           7z x third-party/steamworks/sdk.zip -othird-party/steamworks
       
-      - name: Setup glslang
-        working-directory: ./source/glslang
-        run: |
-          python3 ./update_glslang_sources.py
-
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.1
 
