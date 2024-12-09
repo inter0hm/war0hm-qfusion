@@ -58,9 +58,6 @@ set(UTEST_INCLUDE_DIR ${CMAKE_HOME_DIRECTORY}/../third-party/utest)
 set(DISCORD_DIR ${CMAKE_HOME_DIRECTORY}/../third-party/discord)
 set(DISCORD_INCLUDE_DIR ${DISCORD_DIR})
 
-set(OPENAL_DIR ${CMAKE_HOME_DIRECTORY}/../libsrcs/src/openal-soft)
-set(OPENAL_INCLUDE_DIR ${OPENAL_DIR}/include/AL)
-
 set(NRI_DIR ${CMAKE_HOME_DIRECTORY}/NRI)
 set(NRI_INCLUDE_DIR ${CMAKE_HOME_DIRECTORY}/NRI/Include)
 
@@ -81,22 +78,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
         set(QFUSION_WINDOWS_ARCH "x64")
     endif()
 
-    set(CMAKE_INCLUDE_PATH
-		"../libsrcs/src/libogg"
-		"../libsrcs/src/libvorbis"
-		"../libsrcs/src/libcurl/include"
-		"../libsrcs/src/libfreetype"
-		"../libsrcs/src/SDL2/include"
-		"../libsrcs/src/openal-soft/include/AL"
-    )
-
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DCURL_STATICLIB -DWIN32 -D_WINDOWS)
-
-    if (MSVC)
-        set(CMAKE_LIBRARY_PATH "../libsrcs/lib/win32/${QFUSION_WINDOWS_ARCH}/debug")
-    else()
-        set(CMAKE_LIBRARY_PATH "../libsrcs/lib/win32/${QFUSION_WINDOWS_ARCH}/mingw")
-    endif()
 
     if (MSVC)
         add_release_link_flags("/LTCG")

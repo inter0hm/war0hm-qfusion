@@ -1,9 +1,5 @@
 project(ref_nri)
 
-if (USE_SDL2)
-	include_directories(${SDL2_INCLUDE_DIR})
-endif()
-
 file(GLOB REF_NRI_HEADERS
 	"*.h"
 	"../gameshared/q_*.h"

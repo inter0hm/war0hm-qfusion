@@ -3,7 +3,7 @@
     "curl",
     "freetype",
     {
-      "name": "sdl2",
+      "name": "sdl3",
       "features": ["vulkan", {
         "name": "wayland",
         "platform": "linux"
