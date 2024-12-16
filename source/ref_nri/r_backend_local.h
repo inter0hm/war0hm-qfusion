@@ -81,7 +81,14 @@ typedef struct
 	int primitive;
 	vec2_t offset;
 	int scissor[4];
-	rbDrawElements_t drawElements;
+
+	const struct vbo_layout_s* layout;
+	NriBuffer* vertexBuffer;
+	NriBuffer* indexBuffer;
+	uint32_t bufferVertEleOffset;
+	uint32_t bufferIndexEleOffset;
+	unsigned int numVerts;
+	unsigned int numElems;
 } rbDynamicDraw_t;
 
 typedef struct r_backend_s
@@ -105,7 +112,6 @@ typedef struct r_backend_s
 
 		bool			depthoffset;
 
-		bool			flushTextures;
 		int				currentTMU;
 	} gl;
 
@@ -140,7 +146,13 @@ typedef struct r_backend_s
 	int currentRegProgramType;
 	r_glslfeat_t currentRegProgramFeatures;
 
-	rbDynamicStream_t dynamicStreams[RB_DYN_STREAM_NUM];
+
+	struct {
+		struct vbo_layout_s layout;
+		struct gpu_frame_ele_allocator_s vertexAlloc;
+		struct gpu_frame_ele_allocator_s indexAlloc;
+	} dynamicVertexAlloc[RB_DYN_STREAM_NUM];
+
 	rbDynamicDraw_t dynamicDraws[MAX_DYNAMIC_DRAWS];
 	unsigned int numDynamicDraws;
 

@@ -826,6 +826,25 @@ typedef enum
 	VBO_TAG_STREAM
 } vbo_tag_t;
 
+struct vbo_layout_s {
+	vattribmask_t vertexAttribs;
+	vattribmask_t halfFloatAttribs;
+	
+	uint16_t vertexStride;
+	
+	uint16_t normalsOffset;
+	uint16_t sVectorsOffset;
+	uint16_t stOffset;
+	uint16_t lmstOffset[( MAX_LIGHTMAPS + 1 ) / 2];
+	uint16_t lmstSize[( MAX_LIGHTMAPS + 1 ) / 2];
+	uint16_t lmlayersOffset[( MAX_LIGHTMAPS + 3 ) / 4];
+	uint16_t colorsOffset[MAX_LIGHTMAPS];
+	uint16_t bonesIndicesOffset;
+	uint16_t bonesWeightsOffset;
+	uint16_t spritePointsOffset; // autosprite or autosprite2 centre + radius
+	uint16_t instancesOffset;
+};
+
 typedef struct mesh_vbo_s
 {
 	uint8_t numAllocations;
@@ -837,19 +856,11 @@ typedef struct mesh_vbo_s
 	NriBuffer *indexBuffer;
 	NriBuffer *instanceBuffer;
 
-	// vbo if we want to use a ring buffer and usee this like an immedate buffer
-	struct r_ring_offset_alloc_s ringOffsetVertAlloc;	
-	struct r_ring_offset_alloc_s ringOffsetIndexAlloc;	
-	struct r_ring_offset_alloc_s ringOffsetInstAlloc;	
-
 	unsigned int		index;
 	int					registrationSequence;
 	vbo_tag_t			tag;
 
-	// unsigned int 		vertexId;
-	// unsigned int		elemId;
 	void 				*owner;
-	unsigned int 		visframe;
 
 	unsigned int 		numVerts;
 	unsigned int 		numElems;
@@ -906,9 +917,9 @@ void 		R_ShutdownVBO( void );
 
 void R_FillNriVertexAttrib(mesh_vbo_t* vbo, NriVertexAttributeDesc* desc, size_t* numDesc);
 
-//
-// r_sky.c
-//
+struct vbo_layout_s R_CreateVBOLayout( vattribmask_t vattribs, vattribmask_t halfFloatVattribs);
+vattribmask_t R_WriteMeshToVertexBuffer( const struct vbo_layout_s *layout, vattribmask_t vattribs, const mesh_t *mesh, void *dst );
+void R_FillNriVertexAttribLayout(const struct vbo_layout_s* layout, NriVertexAttributeDesc* desc, size_t* numDesc);
 
 enum
 {
