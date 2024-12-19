@@ -17,11 +17,11 @@
 namespace WSWUI
 {
 	typedef Rml::Element Element;
-	typedef Rml::Core::Decorator Decorator;
-	typedef Rml::Core::DecoratorDataHandle DecoratorDataHandle;
+	typedef Rml::Decorator Decorator;
+	typedef Rml::DecoratorDataHandle DecoratorDataHandle;
 	typedef Rml::DecoratorInstancer DecoratorInstancer;
-	typedef Rml::Core::PropertyDictionary PropertyDictionary;
-	typedef Rml::Core::Colourb Colourb;
+	typedef Rml::PropertyDictionary PropertyDictionary;
+	typedef Rml::Colourb Colourb;
 
 	//=======================================================
 
@@ -95,7 +95,7 @@ namespace WSWUI
 			int indices[6] = { 0, 1, 2, 0, 2, 3 };
 
 			// bang
-			Rml::Core::RenderInterface *renderer = element->GetRenderInterface();
+			Rml::RenderInterface *renderer = element->GetRenderInterface();
 			renderer->RenderGeometry( vertex, 4, indices, 6, 0, Vector2f( 0.0, 0.0 ) );
 			// C'MON! you say GetRenderInterface wont give a reference to refcounted object??
 			// renderer->RemoveReference();

@@ -887,7 +887,7 @@ void UI_Main::M_Menu_Open_Cmd_f_( bool modal )
 	if( trap::Cmd_Argc() < 2 )
 		return;
 
-	Rml::Core::URL url;
+	Rml::URL url;
 
 	url.SetFileName( trap::Cmd_Argv( 1 ) );
 	url.SetExtension( "rml" );
@@ -937,7 +937,7 @@ void UI_Main::M_Menu_Quick_f( void )
 		return;
 	}
 
-	Rml::Core::URL url;
+	Rml::URL url;
 
 	url.SetFileName( trap::Cmd_Argv( 1 ) );
 	url.SetExtension( "rml" );

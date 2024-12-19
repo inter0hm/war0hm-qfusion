@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 namespace WSWUI {
 
-using namespace Rml::Core;
+using namespace Rml;
 
 InlineDiv::InlineDiv( const String &tag ) : Element( tag ), timeout( WSW_UI_STREAMCACHE_TIMEOUT ), onAddLoad( false ), loading( false )
 {
@@ -149,7 +149,7 @@ void InlineDiv::LoadSource()
 }
 
 // Called when attributes on the element are changed.
-void InlineDiv::OnAttributeChange( const Rml::Core::AttributeNameList& changed_attributes )
+void InlineDiv::OnAttributeChange( const Rml::AttributeNameList& changed_attributes )
 {
 	Element::OnAttributeChange(changed_attributes);
 

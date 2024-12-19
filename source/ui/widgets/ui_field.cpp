@@ -29,14 +29,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 namespace WSWUI {
 
-using namespace Rml::Core;
+using namespace Rml;
 
 ElementField::ElementField( const String &tag ) : Element(tag), data_formatter(NULL)
 {
 }
 
 // Called when attributes on the element are changed.
-void ElementField::OnAttributeChange( const Rml::Core::AttributeNameList& changed_attributes )
+void ElementField::OnAttributeChange( const Rml::AttributeNameList& changed_attributes )
 {
 	Element::OnAttributeChange(changed_attributes);
 

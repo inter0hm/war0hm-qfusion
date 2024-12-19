@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 namespace WSWUI
 {
-using namespace Rml::Core;
+using namespace Rml;
 
 // forward-declare the instancer for keyselects
 class UI_KeySelectInstancer;

@@ -34,7 +34,7 @@ namespace WSWUI
 		virtual ~InlineDiv(){}
 
 		/// Checks for changes to source address.
-		virtual void OnAttributeChange(const Rml::Core::AttributeNameList&);
+		virtual void OnAttributeChange(const Rml::AttributeNameList&);
 		virtual void OnChildAdd( Element* element );
 
 		// streaming callbacks

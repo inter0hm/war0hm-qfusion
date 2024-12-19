@@ -5,6 +5,9 @@
 
 #include "asui_local.h"
 
+#include <RmlUi/Core/URL.h>
+
+
 namespace ASUI {
 
 typedef Rml::URL RocketURL;

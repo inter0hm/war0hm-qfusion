@@ -18,7 +18,7 @@ namespace WSWUI
 static const String SOUND_HOVER = "sound-hover";
 static const String SOUND_CLICK = "sound-click";
 
-using namespace Rml::Core;
+using namespace Rml;
 
 BaseEventListener::BaseEventListener()
 {
@@ -110,7 +110,7 @@ public:
 				}
 				event.StopPropagation();
 			}
-			else if( key == Rml::Core::Input::KI_BROWSER_BACK || key == Rml::Core::Input::KI_BACK ) {
+			else if( key == Rml::Input::KI_BROWSER_BACK || key == Rml::Input::KI_BACK ) {
 				// act as history.back()
 				if( stack && stack->hasAtLeastTwoDocuments() ) {
 					stack->popDocument();

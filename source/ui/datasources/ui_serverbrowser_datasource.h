@@ -293,7 +293,7 @@ namespace WSWUI {
 		int numNotifies;
 
 	public:
-		ServerBrowserDataSource(); // : Rml::Core::DataSource("serverbrowser_source")
+		ServerBrowserDataSource(); // : Rml::DataSource("serverbrowser_source")
 		virtual ~ServerBrowserDataSource();
 
 		//

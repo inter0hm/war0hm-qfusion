@@ -18,7 +18,7 @@ namespace WSWUI
 		/// Initializes the levelshot element
 		explicit LevelShot(const Rml::String&);
 	
-		virtual void OnAttributeChange(const Rml::Core::AttributeNameList&);
+		virtual void OnAttributeChange(const Rml::AttributeNameList&);
 
 	private:
 		/// Generates the path to the preview image from the given map name

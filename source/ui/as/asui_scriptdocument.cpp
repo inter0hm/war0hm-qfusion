@@ -7,7 +7,7 @@
 
 namespace ASUI {
 
-using namespace Rml::Core;
+using namespace Rml;
 
 UI_ScriptDocument::UI_ScriptDocument( const String &tag )
 	: ElementDocument( tag ), numScriptsAdded( 0 ), as( NULL ), module( NULL ), isLoading( false ), numScripts( 0 ), owner( NULL )
@@ -92,7 +92,7 @@ void UI_ScriptDocument::ProcessEvent( Rml::Event &event )
 	}
 
 	if( isLoading ) {
-		Rml::Event *instanced = Rml::Core::Factory::InstanceEvent( event.GetTargetElement(),
+		Rml::Event *instanced = Rml::Factory::InstanceEvent( event.GetTargetElement(),
 			event.GetType(), *event.GetParameters(), true );
 		onloads.push_back( instanced );
 		event.StopPropagation();

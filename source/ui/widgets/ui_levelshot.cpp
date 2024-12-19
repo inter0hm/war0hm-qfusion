@@ -11,7 +11,7 @@ namespace WSWUI
 	{
 	} 
 
-	void LevelShot::OnAttributeChange(const Rml::Core::AttributeNameList& anl)
+	void LevelShot::OnAttributeChange(const Rml::AttributeNameList& anl)
 	{
 		ElementImage::OnAttributeChange( anl );
 

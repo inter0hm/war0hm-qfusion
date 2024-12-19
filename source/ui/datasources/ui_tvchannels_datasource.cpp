@@ -6,7 +6,7 @@
 #define TVCHANNELS_SOURCE "tvchannels"
 #define MAINTABLE_NAME "list"
 
-using namespace Rml::Core;
+using namespace Rml;
 using namespace Rml;
 
 namespace WSWUI

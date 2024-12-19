@@ -13,7 +13,7 @@ namespace WSWUI
 		/// Initializes the video element
 		explicit Video(const Rml::String&);
 	
-		virtual void OnAttributeChange(const Rml::Core::AttributeNameList&);
+		virtual void OnAttributeChange(const Rml::AttributeNameList&);
 	private:
 	};
 }

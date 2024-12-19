@@ -18,7 +18,7 @@
 namespace ASUI
 {
 
-using namespace Rml::Core;
+using namespace Rml;
 
 //===================================================
 

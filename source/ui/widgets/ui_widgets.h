@@ -19,7 +19,7 @@ namespace WSWUI
 	template<typename T>
 	struct GenericElementInstancer : Rml::ElementInstancer
 	{
-		Rml::Element *InstanceElement(Rml::Element *parent, const String &tag, const Rml::Core::XMLAttributes &attributes)
+		Rml::Element *InstanceElement(Rml::Element *parent, const String &tag, const Rml::XMLAttributes &attributes)
 		{
 			Rml::Element *elem = __new__(T)( tag );
 			UI_Main::Get()->getRocket()->registerElementDefaults(elem);
@@ -41,7 +41,7 @@ namespace WSWUI
 	template<typename T>
 	struct GenericElementInstancerAttr : Rml::ElementInstancer
 	{
-		Rml::Element *InstanceElement(Rml::Element *parent, const String &tag, const Rml::Core::XMLAttributes &attributes)
+		Rml::Element *InstanceElement(Rml::Element *parent, const String &tag, const Rml::XMLAttributes &attributes)
 		{
 			Rml::Element *elem = __new__(T)( tag, attributes );
 			UI_Main::Get()->getRocket()->registerElementDefaults(elem);
@@ -63,7 +63,7 @@ namespace WSWUI
 	template<typename T>
 	struct GenericElementInstancerSoftKeyboard : GenericElementInstancer<T>
 	{
-		Rml::Element *InstanceElement(Rml::Element *parent, const String &tag, const Rml::Core::XMLAttributes &attributes)
+		Rml::Element *InstanceElement(Rml::Element *parent, const String &tag, const Rml::XMLAttributes &attributes)
 		{
 			Rml::Element *elem = GenericElementInstancer<T>::InstanceElement( parent, tag, attributes );
 			elem->AddEventListener( "click", UI_GetSoftKeyboardListener() );

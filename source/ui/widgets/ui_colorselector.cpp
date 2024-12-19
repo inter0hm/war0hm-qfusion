@@ -51,7 +51,7 @@
 namespace WSWUI
 {
 
-	using namespace Rml::Core;
+	using namespace Rml;
 
 	// forward decl
 	class ColorBlock;

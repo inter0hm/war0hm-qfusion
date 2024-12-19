@@ -30,12 +30,12 @@ PropertyParserSound::~PropertyParserSound()
 }
 
 // Called to parse a RCSS string declaration.
-bool PropertyParserSound::ParseValue(Rml::Core::Property& property, 
+bool PropertyParserSound::ParseValue(Rml::Property& property, 
 	const Rml::String& value, 
-	const Rml::Core::ParameterMap& ROCKET_UNUSED_PARAMETER(parameters)) const
+	const Rml::ParameterMap& ROCKET_UNUSED_PARAMETER(parameters)) const
 {
-	property.value = Rml::Core::Variant(value);
-	property.unit = Rml::Core::Property::STRING;
+	property.value = Rml::Variant(value);
+	property.unit = Rml::Property::STRING;
 
 	if( !value.Empty() ) {
 		// skip the '/' at the start of the path

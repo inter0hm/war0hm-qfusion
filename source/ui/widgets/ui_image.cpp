@@ -85,11 +85,11 @@ void ElementImage::OnRender()
 		GenerateGeometry();
 
 	// Render the geometry beginning at this element's content region.
-	geometry.Render(GetAbsoluteOffset(Rml::Core::Box::CONTENT));
+	geometry.Render(GetAbsoluteOffset(Rml::Box::CONTENT));
 }
 
 // Called when attributes on the element are changed.
-void ElementImage::OnAttributeChange(const Rml::Core::AttributeNameList& changed_attributes)
+void ElementImage::OnAttributeChange(const Rml::AttributeNameList& changed_attributes)
 {
 	// Call through to the base element's OnAttributeChange().
 	Rml::Element::OnAttributeChange(changed_attributes);
@@ -123,7 +123,7 @@ void ElementImage::OnAttributeChange(const Rml::Core::AttributeNameList& changed
 
 			if (coords_list.size() != 4)
 			{
-				Rml::Core::Log::Message(Log::LT_WARNING, "Element '%s' has an invalid 'coords' attribute; coords requires 4 values, found %d.", GetAddress().CString(), coords_list.size());
+				Rml::Log::Message(Log::LT_WARNING, "Element '%s' has an invalid 'coords' attribute; coords requires 4 values, found %d.", GetAddress().CString(), coords_list.size());
 				ResetCoords();
 			}
 			else
@@ -135,7 +135,7 @@ void ElementImage::OnAttributeChange(const Rml::Core::AttributeNameList& changed
 				if (coords[0] < 0 || coords[2] < coords[0] ||
 					coords[1] < 0 || coords[3] < coords[1])
 				{
-					Rml::Core::Log::Message(Log::LT_WARNING, "Element '%s' has an invalid 'coords' attribute; invalid coordinate values specified.", GetAddress().CString());
+					Rml::Log::Message(Log::LT_WARNING, "Element '%s' has an invalid 'coords' attribute; invalid coordinate values specified.", GetAddress().CString());
 					ResetCoords();
 				}
 				else
@@ -202,10 +202,10 @@ void ElementImage::GenerateGeometry()
 		texcoords[1] = Vector2f(1, 1);
 	}
 
-	Rml::Core::GeometryUtilities::GenerateQuad(&vertices[0],									// vertices to write to
+	Rml::GeometryUtilities::GenerateQuad(&vertices[0],									// vertices to write to
 												  &indices[0],									// indices to write to
 												  Vector2f(0, 0),					// origin of the quad
-												  GetBox().GetSize(Rml::Core::Box::CONTENT),	// size of the quad
+												  GetBox().GetSize(Rml::Box::CONTENT),	// size of the quad
 												  Colourb(255, 255, 255, 255),		// colour of the vertices
 												  texcoords[0],									// top-left texture coordinate
 												  texcoords[1]);								// top-right texture coordinate

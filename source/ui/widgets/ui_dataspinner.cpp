@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 namespace WSWUI
 {
-using namespace Rml::Core;
+using namespace Rml;
 using namespace Rml;
 
 class UI_DataSpinner : public ElementFormControl
@@ -72,7 +72,7 @@ public:
 		SetAttribute("value", value.CString());
 
 		// this calls out onchange event
-		Rml::Core::Dictionary parameters;
+		Rml::Dictionary parameters;
 		parameters.Set("value", value);
 		DispatchEvent("change", parameters);
 	}
@@ -95,7 +95,7 @@ public:
 	}
 
 	// Called when attributes on the element are changed.
-	void OnAttributeChange( const Rml::Core::AttributeNameList& changed_attributes )
+	void OnAttributeChange( const Rml::AttributeNameList& changed_attributes )
 	{
 		Element::OnAttributeChange( changed_attributes );
 

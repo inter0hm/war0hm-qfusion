@@ -6,8 +6,6 @@
 
 namespace WSWUI {
 
-namespace Core = Rml::Core;
-
 //==========================================
 
 // DocumentCache
@@ -135,8 +133,8 @@ void DocumentCache::clearCaches()
 	documentSet.clear();
 
 	// here we also do this
-	Rml::Core::Factory::ClearStyleSheetCache();
-	Rml::Core::Factory::ClearTemplateCache();
+	Rml::Factory::ClearStyleSheetCache();
+	Rml::Factory::ClearTemplateCache();
 	// and if in the future Rocket offers more cache-cleaning functions, call 'em
 }
 
@@ -153,7 +151,7 @@ void DocumentCache::printCache()
 // the assets or invalidate them
 void DocumentCache::invalidateAssets(void)
 {
-	Rml::Core::Dictionary parameters;
+	Rml::Dictionary parameters;
 	for( DocumentSet::iterator it = documentSet.begin(); it != documentSet.end(); ++it ) {
 		( *it )->getRocketDocument()->DispatchEvent( "invalidate", parameters, true );
 	}

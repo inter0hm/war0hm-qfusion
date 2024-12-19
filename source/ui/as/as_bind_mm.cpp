@@ -28,8 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 namespace ASUI {
 
 // dummy funcdef
-static void ASMatchMaker_EventListenerCallback( Event *event )
-{
+static void ASMatchMaker_EventListenerCallback( int oldState, int newState ) {
 }
 
 class ASMatchMaker
@@ -87,21 +86,17 @@ public:
 		const int pstate = state;
 		state = trap::MM_GetLoginState();
 
-		Rml::Core::Dictionary ev_parms;
-
 		if( pstate != state ) {
-			ev_parms.Set( "state", pstate );
-			ev_parms.Set( "old_state", pstate );
-			dispatchEvent( "stateChange", ev_parms );
+			dispatchStateChangeEvent( pstate, state );
 		}
 	}
 
-	void addEventListener( const asstring_t &event, asIScriptFunction *func ) {
-		EventCallback cb;
-		
+	void addEventListener( asIScriptFunction *func ) {
+		StateChangeCallback cb;
+
 		cb = ASBind::CreateFunctionPtr( func, cb );
 
-		Listener l( ASSTR( event ), cb );
+		Listener l( func->GetModuleName(), cb );
 		listeners.push_back( l );
 	}
 
@@ -110,8 +105,8 @@ public:
 
 		for( ListenersList::iterator it = listeners.begin(); it != listeners.end(); ++it ) {
 			if( it->first == l.first && it->second.getPtr() == func ) {
-				listeners.erase(it);
 				it->second.release();
+				it = listeners.erase( it );
 				break;
 			}
 		}
@@ -123,14 +118,9 @@ private:
 	int state;
 	ASInterface *asmodule;
 
-	void dispatchEvent( const char *event, const Rml::Core::Dictionary &parms )
-	{
-		Rml::Event *ev = Rml::Core::Factory::InstanceEvent( NULL, event, parms, false );
-
-		ev->SetPhase( Rml::Event::PHASE_BUBBLE ); // FIXME?
-
+	void dispatchStateChangeEvent( int oldState, int newState ) {
 		for( ListenersList::iterator it = listeners.begin(); it != listeners.end(); ) {
-			EventCallback func = it->second;
+			StateChangeCallback func = it->second;
 
 			if( !func.isValid() || !func.getModule() ) {
 erase:
@@ -139,22 +129,17 @@ erase:
 				continue;
 			}
 
-			if( it->first == event ) {
-				ev->AddReference();
-				
-				try {
-					func.setContext( asmodule->getContext() );
-					func( ev );
-				} catch( ASBind::Exception & ) {
-					Com_Printf( S_COLOR_RED "ASMatchMaker: Failed to call function %s\n", func.getName() );
-					goto erase;
-				}
+			try {
+				func.setContext( asmodule->getContext() );
+				func( oldState, newState );
+			} catch( ASBind::Exception & ) {
+				Com_Printf( S_COLOR_RED "ASMatchMaker: Failed to call function %s\n", func.getName() );
+				goto erase;
 			}
 
-			 ++it;
+			++it;
 		}
 
-		ev->RemoveReference();
 	}
 
 	void clearEventListeners( void )
@@ -164,16 +149,18 @@ erase:
 		listeners.clear();
 	}
 
-	typedef ASBind::FunctionPtr<void( Rml::Event* )> EventCallback;
-	typedef std::pair<std::string, EventCallback> Listener;
+	typedef ASBind::FunctionPtr<void ( int, int )> StateChangeCallback;
+	typedef std::pair<std::string, StateChangeCallback> Listener;
 	typedef std::vector<Listener> ListenersList;
 	ListenersList listeners;
 };
 
 }
-ASBIND_TYPE( ASUI::ASMatchMaker, Matchmaker );
 
-namespace ASUI {
+ASBIND_TYPE( ASUI::ASMatchMaker, Matchmaker )
+
+namespace ASUI
+{
 
 // ====================================================================
 
@@ -189,8 +176,8 @@ void PrebindMatchMaker( ASInterface *as )
 void BindMatchMaker( ASInterface *as )
 {
 	ASBind::Global( as->getEngine() )
-		// setTimeout and setInterval callback funcdefs
-		.funcdef( &ASMatchMaker_EventListenerCallback, "MMEventListenerCallback" )
+
+	.funcdef( &ASMatchMaker_EventListenerCallback, "MMEventListenerCallback" )
 	;
 
 	ASBind::Enum( as->getEngine(), "eMatchmakerState" )
@@ -200,16 +187,16 @@ void BindMatchMaker( ASInterface *as )
 	;
 
 	ASBind::GetClass<ASMatchMaker>( as->getEngine() )
-		.method( &ASMatchMaker::login, "login" )
-		.method( &ASMatchMaker::logout, "logout" )
-		.method( &ASMatchMaker::getState, "get_state" )
-		.method( &ASMatchMaker::getLastError, "get_lastError" )
-		.method( &ASMatchMaker::getUser, "get_user" )
-		.method( &ASMatchMaker::getProfileURL, "profileURL" )
-		.method( &ASMatchMaker::getBaseWebURL, "baseWebURL" )
+	.method( &ASMatchMaker::login, "login" )
+	.method( &ASMatchMaker::logout, "logout" )
+	.method( &ASMatchMaker::getState, "get_state" )
+	.method( &ASMatchMaker::getLastError, "get_lastError" )
+	.method( &ASMatchMaker::getUser, "get_user" )
+	.method( &ASMatchMaker::getProfileURL, "profileURL" )
+	.method( &ASMatchMaker::getBaseWebURL, "baseWebURL" )
 
-		.method2( &ASMatchMaker::addEventListener, "void addEventListener( const String &event, MMEventListenerCallback @callback )" )
-		.method2( &ASMatchMaker::removeEventListener, "void removeEventListener( const String &event, MMEventListenerCallback @callback )" )
+	.method2( &ASMatchMaker::addEventListener, "void addStateChangeCallback( MMEventListenerCallback @callback )" )
+	.method2( &ASMatchMaker::removeEventListener, "void removeStateChangeCallback( MMEventListenerCallback @callback )" )
 	;
 }
 

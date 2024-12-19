@@ -13,7 +13,7 @@
 namespace WSWUI
 {
 
-UI_FileInterface::UI_FileInterface() : Rml::Core::FileInterface()
+UI_FileInterface::UI_FileInterface() : Rml::FileInterface()
 {
 	fileSizeMap.clear();
 
@@ -28,7 +28,7 @@ Rml::FileHandle UI_FileInterface::Open(const Rml::String & path)
 {
 	int filenum = 0;
 	int length = -1;
-	Rml::Core::URL url( path );
+	Rml::URL url( path );
 	Rml::String protocol = url.GetProtocol();
 	bool cache = protocol == "cache";
 

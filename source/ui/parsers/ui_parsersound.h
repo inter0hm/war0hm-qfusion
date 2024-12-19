@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <RmlUi/Core/PropertyParser.h>
 
-class PropertyParserSound : public Rml::Core::PropertyParser
+class PropertyParserSound : public Rml::PropertyParser
 {
 public:
 	PropertyParserSound();
@@ -31,9 +31,9 @@ public:
 	/// @param[in] value The raw value defined for this property.
 	/// @param[in] parameters The parameters defined for this property; not used for this parser.
 	/// @return True if the value was validated successfully, false otherwise.
-	virtual bool ParseValue(Rml::Core::Property& property, 
+	virtual bool ParseValue(Rml::Property& property, 
 		const Rml::String& value, 
-		const Rml::Core::ParameterMap& parameters) const;
+		const Rml::ParameterMap& parameters) const;
 
 	// Destroys the parser.
 	void Release();

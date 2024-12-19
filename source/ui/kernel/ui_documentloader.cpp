@@ -6,7 +6,7 @@
 
 namespace WSWUI {
 
-namespace Core = Rml::Core;
+namespace Core = Rml::;
 
 //==========================================
 
@@ -118,7 +118,7 @@ Document *DocumentLoader::loadDocument(const char *path, NavigationStack *stack)
 	}
 
 	// handle postponed onload events (HOWTO handle these in cached documents?)
-	Rml::Core::Dictionary ev_parms;
+	Rml::Dictionary ev_parms;
 	ev_parms.Set( "owner", loadedDocument );
 	rocketDocument->DispatchEvent( "afterLoad", ev_parms );
 
@@ -133,7 +133,7 @@ void DocumentLoader::closeDocument(Document *document)
 	Rml::ElementDocument *rocketDocument = document->getRocketDocument();
 
 	// handle postponed onload events (HOWTO handle these in cached documents?)
-	Rml::Core::Dictionary ev_parms;
+	Rml::Dictionary ev_parms;
 	rocketDocument->DispatchEvent( "beforeUnload", ev_parms );
 
 	rm->closeDocument(rocketDocument);

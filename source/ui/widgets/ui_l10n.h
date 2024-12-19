@@ -43,7 +43,7 @@ namespace WSWUI
 		virtual ~ElementL10n(){}
 
 		/// Checks for changes to source address.
-		virtual void OnAttributeChange(const Rml::Core::AttributeNameList&);
+		virtual void OnAttributeChange(const Rml::AttributeNameList&);
 
 	private:
 		Rml::DataFormatter *data_formatter;

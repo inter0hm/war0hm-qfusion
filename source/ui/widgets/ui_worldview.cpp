@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 namespace WSWUI
 {
 
-using namespace Rml::Core;
+using namespace Rml;
 
 // forward-declare the instancer for keyselects
 class UI_WorldviewWidgetInstancer;
@@ -69,7 +69,7 @@ public:
 	virtual void OnRender()
 	{
 		bool firstRender = false;
-		Rml::Core::Dictionary parameters;
+		Rml::Dictionary parameters;
 
 		Element::OnRender();
 
@@ -93,7 +93,7 @@ public:
 		}
 
 		// refdef setup
-		Rml::Vector2f box = GetBox().GetSize(Rml::Core::Box::CONTENT);
+		Rml::Vector2f box = GetBox().GetSize(Rml::Box::CONTENT);
 		refdef.width = box.x;
 		refdef.height = box.y;
 		refdef.fov_x = fovX;
@@ -108,7 +108,7 @@ public:
 		}
 		AnglesToAxis( viewAngles, refdef.viewaxis );
 
-		Rml::Vector2f offset = GetAbsoluteOffset(Rml::Core::Box::CONTENT);
+		Rml::Vector2f offset = GetAbsoluteOffset(Rml::Box::CONTENT);
 		refdef.x = offset.x;
 		refdef.y = offset.y;
 
@@ -132,11 +132,11 @@ public:
 		}
 	}
 
-	virtual void OnPropertyChange(const Rml::Core::PropertyNameList& changed_properties)
+	virtual void OnPropertyChange(const Rml::PropertyNameList& changed_properties)
 	{
 		Element::OnPropertyChange(changed_properties);
 
-		for (Rml::Core::PropertyNameList::const_iterator it = changed_properties.begin(); it != changed_properties.end(); ++it)
+		for (Rml::PropertyNameList::const_iterator it = changed_properties.begin(); it != changed_properties.end(); ++it)
 		{
 			if (*it == "worldmodel")
 			{

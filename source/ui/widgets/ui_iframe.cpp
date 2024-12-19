@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 namespace WSWUI {
 
-using namespace Rml::Core;
+using namespace Rml;
 
 class IFrameWidget : public Element, EventListener
 {
@@ -44,7 +44,7 @@ public:
 	}
 	
 	// Called when attributes on the element are changed.
-	void OnAttributeChange( const Rml::Core::AttributeNameList& changed_attributes )
+	void OnAttributeChange( const Rml::AttributeNameList& changed_attributes )
 	{
 		Element::OnAttributeChange(changed_attributes);
 

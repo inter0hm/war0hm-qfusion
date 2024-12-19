@@ -26,7 +26,7 @@ class MyEventInstancer : public Rml::EventInstancer
 {
 	typedef Rml::Event Event;
 	typedef Rml::Element Element;
-	typedef Rml::Core::Dictionary Dictionary;
+	typedef Rml::Dictionary Dictionary;
 
 public:
 	MyEventInstancer() : Rml::EventInstancer() {}
@@ -62,26 +62,26 @@ RocketModule::RocketModule( int vidWidth, int vidHeight, float pixelRatio )
 	Rml::String contextName = trap::Cvar_String( "gamename" );
 
 	renderInterface = __new__( UI_RenderInterface )( vidWidth, vidHeight, pixelRatio );
-	Rml::Core::SetRenderInterface( renderInterface );
+	Rml::SetRenderInterface( renderInterface );
 	systemInterface = __new__( UI_SystemInterface )();
-	Rml::Core::SetSystemInterface( systemInterface );
+	Rml::SetSystemInterface( systemInterface );
 	fsInterface = __new__( UI_FileInterface )();
-	Rml::Core::SetFileInterface( fsInterface );
+	Rml::SetFileInterface( fsInterface );
 
 	// TODO: figure out why renderinterface has +1 refcount
 	renderInterface->AddReference();
 
-	rocketInitialized = Rml::Core::Initialise();
+	rocketInitialized = Rml::Initialise();
 	if( !rocketInitialized )
-		throw std::runtime_error( "UI: Rml::Core::Initialise failed" );
+		throw std::runtime_error( "UI: Rml::Initialise failed" );
 
 	// initialize the controls plugin
 	Rml::Initialise();
 
 	// Create our contexts
-	contextMain = Rml::Core::CreateContext( contextName, Vector2i( vidWidth, vidHeight ) );
+	contextMain = Rml::CreateContext( contextName, Vector2i( vidWidth, vidHeight ) );
 
-	contextQuick = Rml::Core::CreateContext( contextName + "_quick", Vector2i( vidWidth, vidHeight ) );
+	contextQuick = Rml::CreateContext( contextName + "_quick", Vector2i( vidWidth, vidHeight ) );
 	if( contextQuick )
 		contextQuick->ShowMouseCursor( false );
 
@@ -106,7 +106,7 @@ RocketModule::~RocketModule()
 	contextQuick = 0;
 
 	if( rocketInitialized )
-		Rml::Core::Shutdown();
+		Rml::Shutdown();
 	rocketInitialized = false;
 
 	__SAFE_DELETE_NULLIFY( fsInterface );
@@ -155,7 +155,7 @@ void RocketModule::keyEvent( int contextId, int key, bool pressed )
 	{
 		if( pressed )
 		{
-			Rml::Core::Dictionary parameters;
+			Rml::Dictionary parameters;
 			parameters.Set( "key", key );
 			element->DispatchEvent( "keyselect", parameters );
 		}
@@ -190,7 +190,7 @@ void RocketModule::keyEvent( int contextId, int key, bool pressed )
 
 			if( key == K_B_BUTTON )
 			{
-				rkey = Rml::Core::Input::KI_ESCAPE;
+				rkey = Rml::Input::KI_ESCAPE;
 				if( element )
 					element->Blur();
 			}
@@ -198,9 +198,9 @@ void RocketModule::keyEvent( int contextId, int key, bool pressed )
 			if( rkey != 0 )
 			{
 				if( pressed )
-					context->ProcessKeyDown( Rml::Core::Input::KeyIdentifier( rkey ), mod );
+					context->ProcessKeyDown( Rml::Input::KeyIdentifier( rkey ), mod );
 				else
-					context->ProcessKeyUp( Rml::Core::Input::KeyIdentifier( rkey ), mod );
+					context->ProcessKeyUp( Rml::Input::KeyIdentifier( rkey ), mod );
 			}
 		}
 	}
@@ -257,7 +257,7 @@ bool RocketModule::touchEvent( int contextId, int id, touchevent_t type, int x, 
 						}
 
 						int overflow = element->GetProperty< int >( "overflow-y" );
-						if( ( overflow != Rml::Core::OVERFLOW_AUTO ) && ( overflow != Rml::Core::OVERFLOW_SCROLL ) ) {
+						if( ( overflow != Rml::OVERFLOW_AUTO ) && ( overflow != Rml::OVERFLOW_SCROLL ) ) {
 							continue;
 						}
 
@@ -347,32 +347,32 @@ void RocketModule::registerElementDefaults( Rml::Element *element )
 
 void RocketModule::registerElement( const char *tag, Rml::ElementInstancer *instancer )
 {
-	Rml::Core::Factory::RegisterElementInstancer( tag, instancer );
+	Rml::Factory::RegisterElementInstancer( tag, instancer );
 	instancer->RemoveReference();
 	elementInstancers.push_back( instancer );
 }
 
 void RocketModule::registerFontEffect( const char *name, Rml::FontEffectInstancer *instancer )
 {
-	Rml::Core::Factory::RegisterFontEffectInstancer( name, instancer );
+	Rml::Factory::RegisterFontEffectInstancer( name, instancer );
 	instancer->RemoveReference();
 }
 
 void RocketModule::registerDecorator( const char *name, Rml::DecoratorInstancer *instancer )
 {
-	Rml::Core::Factory::RegisterDecoratorInstancer( name, instancer );
+	Rml::Factory::RegisterDecoratorInstancer( name, instancer );
 	instancer->RemoveReference();
 }
 
 void RocketModule::registerEventInstancer( Rml::EventInstancer *instancer )
 {
-	Rml::Core::Factory::RegisterEventInstancer( instancer );
+	Rml::Factory::RegisterEventInstancer( instancer );
 	instancer->RemoveReference();
 }
 
 void RocketModule::registerEventListener( Rml::EventListenerInstancer *instancer )
 {
-	Rml::Core::Factory::RegisterEventListenerInstancer( instancer );
+	Rml::Factory::RegisterEventListenerInstancer( instancer );
 	instancer->RemoveReference();
 }
 
@@ -487,13 +487,13 @@ void RocketModule::registerCustoms()
 	//
 	// GLOBAL CUSTOM PROPERTIES
 
-	Rml::Core::StyleSheetSpecification::RegisterProperty("background-music", "", false).AddParser("string");
+	Rml::StyleSheetSpecification::RegisterProperty("background-music", "", false).AddParser("string");
 
-	Rml::Core::StyleSheetSpecification::RegisterParser("sound", new PropertyParserSound());
+	Rml::StyleSheetSpecification::RegisterParser("sound", new PropertyParserSound());
 
-	Rml::Core::StyleSheetSpecification::RegisterProperty("sound-hover", "", false)
+	Rml::StyleSheetSpecification::RegisterProperty("sound-hover", "", false)
 		.AddParser("sound");
-	Rml::Core::StyleSheetSpecification::RegisterProperty("sound-click", "", false)
+	Rml::StyleSheetSpecification::RegisterProperty("sound-click", "", false)
 		.AddParser("sound");
 }
 

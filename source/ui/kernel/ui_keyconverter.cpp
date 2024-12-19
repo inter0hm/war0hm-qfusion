@@ -13,7 +13,7 @@
 
 namespace WSWUI {
 
-using namespace Rml::Core::Input;
+using namespace Rml::Input;
 
 /* Special punctuation characters */
 const char * KeyConverter::oem_keys = ";=,-./`[\\]'";

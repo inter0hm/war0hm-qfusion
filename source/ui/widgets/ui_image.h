@@ -36,8 +36,6 @@
 namespace WSWUI
 {
 
-using namespace Rml::Core;
-
 #define WSW_UI_IMAGES_CACHE_TTL		60*24			// TTL of one day (in minutes)
 
 /**
@@ -65,18 +63,18 @@ using namespace Rml::Core;
 	@author Peter Curry
  */
 
-class ElementImage : public Element
+class ElementImage : public Rml::Element
 {
 public:
 	/// Constructs a new ElementImage. This should not be called directly; use the Factory instead.
 	/// @param[in] tag The tag the element was declared as in RML.
-	ElementImage(const String& tag);
+	ElementImage(const Rml::String& tag);
 	virtual ~ElementImage();
 
 	/// Returns the element's inherent size.
 	/// @param[out] The element's intrinsic dimensions.
 	/// @return True.
-	bool GetIntrinsicDimensions(Vector2f& dimensions);
+	bool GetIntrinsicDimensions(Rml::Vector2f& dimensions);
 
 	// streaming callbacks
 	static void CacheRead(const char *fileName, void *privatep);
@@ -89,11 +87,11 @@ protected:
 
 	/// Checks for changes to the image's source or dimensions.
 	/// @param[in] changed_attributes A list of attributes changed on the element.
-	virtual void OnAttributeChange(const AttributeNameList& changed_attributes);
+	virtual void OnAttributeChange(const Rml::AttributeNameList& changed_attributes);
 
 	/// Regenerates the element's geometry on a resize event.
 	/// @param[in] event The event to process.
-	virtual void ProcessEvent(Event& event);
+	virtual void ProcessEvent(Rml::Event& event);
 
 	// Loads the element's texture, as specified by the 'src' attribute.
 	virtual bool LoadDiskTexture();
@@ -102,12 +100,12 @@ protected:
 	virtual bool LoadTexture();
 
 	// The texture this element is rendering from.
-	Texture texture;
+	Rml::Texture texture;
 	// True if we need to refetch the texture's source from the element's attributes.
 	bool texture_dirty;
 
 	// The geometry used to render this element.
-	Geometry geometry;
+	Rml::Geometry geometry;
 	bool geometry_dirty;
 
 private:
@@ -118,7 +116,7 @@ private:
 
 	// The element's computed intrinsic dimensions. If either of these values are set to -1, then
 	// that dimension has not been computed yet.
-	Vector2f dimensions;
+	Rml::Vector2f dimensions;
 
 	// The integer coords extracted from the 'coords' attribute. using_coords will be false if
 	// these have not been specified or are invalid.

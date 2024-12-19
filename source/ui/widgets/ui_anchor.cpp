@@ -6,7 +6,7 @@
 
 namespace WSWUI {
 
-using namespace Rml::Core;
+using namespace Rml;
 
 class AnchorWidget : public Element /* , public EventListener */
 {

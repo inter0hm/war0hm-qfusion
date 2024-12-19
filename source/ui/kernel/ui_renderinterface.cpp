@@ -17,8 +17,8 @@ namespace WSWUI
 typedef Rml::TextureHandle TextureHandle;
 typedef Rml::Vertex Vertex;
 typedef Rml::Vector2f Vector2f;
-typedef Rml::Core::Colourb Colourb;
-typedef Rml::Core::CompiledGeometryHandle CompiledGeometryHandle;
+typedef Rml::Colourb Colourb;
+typedef Rml::CompiledGeometryHandle CompiledGeometryHandle;
 
 typedef struct shader_s shader_t;
 
@@ -43,16 +43,16 @@ UI_RenderInterface::~UI_RenderInterface()
 	this->RemoveReference();
 }
 
-Rml::Core::CompiledGeometryHandle UI_RenderInterface::CompileGeometry(Rml::Vertex *vertices, int num_vertices, int *indices, int num_indices, Rml::TextureHandle texture)
+Rml::CompiledGeometryHandle UI_RenderInterface::CompileGeometry(Rml::Vertex *vertices, int num_vertices, int *indices, int num_indices, Rml::TextureHandle texture)
 {
 	poly_t *poly;
 
 	poly = RocketGeometry2Poly( false, vertices, num_vertices, indices, num_indices, texture );
 
-	return Rml::Core::CompiledGeometryHandle( poly );
+	return Rml::CompiledGeometryHandle( poly );
 }
 
-void UI_RenderInterface::ReleaseCompiledGeometry(Rml::Core::CompiledGeometryHandle geometry)
+void UI_RenderInterface::ReleaseCompiledGeometry(Rml::CompiledGeometryHandle geometry)
 {
 	if( geometry == 0 ) {
 		return;
@@ -62,7 +62,7 @@ void UI_RenderInterface::ReleaseCompiledGeometry(Rml::Core::CompiledGeometryHand
 	polyAlloc.free( poly );
 }
 
-void UI_RenderInterface::RenderCompiledGeometry(Rml::Core::CompiledGeometryHandle geometry, const Rml::Vector2f & translation)
+void UI_RenderInterface::RenderCompiledGeometry(Rml::CompiledGeometryHandle geometry, const Rml::Vector2f & translation)
 {
 	if( geometry == 0 ) {
 		return;

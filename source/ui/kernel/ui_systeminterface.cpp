@@ -9,7 +9,6 @@
 #include "kernel/ui_common.h"
 #include "kernel/ui_systeminterface.h"
 
-using namespace Rml::Core;
 
 namespace WSWUI
 {

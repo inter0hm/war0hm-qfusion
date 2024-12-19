@@ -17,7 +17,7 @@
 namespace WSWUI
 {
 
-using namespace Rml::Core;
+using namespace Rml;
 
 // forward-declare the instancer for keyselects
 class UI_ModelviewWidgetInstancer;
@@ -114,7 +114,7 @@ public:
 			entity.origin[0] = xoffset;
 		}
 
-		Rml::Vector2f offset = GetAbsoluteOffset(Rml::Core::Box::CONTENT);
+		Rml::Vector2f offset = GetAbsoluteOffset(Rml::Box::CONTENT);
 		refdef.x = offset.x;
 		refdef.y = offset.y;
 
@@ -139,11 +139,11 @@ public:
 		time = curtime;
 	}
 
-	virtual void OnPropertyChange(const Rml::Core::PropertyNameList& changed_properties)
+	virtual void OnPropertyChange(const Rml::PropertyNameList& changed_properties)
 	{
 		Element::OnPropertyChange(changed_properties);
 
-		for (Rml::Core::PropertyNameList::const_iterator it = changed_properties.begin(); it != changed_properties.end(); ++it)
+		for (Rml::PropertyNameList::const_iterator it = changed_properties.begin(); it != changed_properties.end(); ++it)
 		{
 			if (*it == "model-modelpath")
 			{
@@ -165,12 +165,12 @@ public:
 			}
 			else if (*it == "model-outline-color")
 			{
-				Rml::Core::Colourb color = GetProperty(*it)->Get<Rml::Core::Colourb>();
+				Rml::Colourb color = GetProperty(*it)->Get<Rml::Colourb>();
 				Vector4Set(entity.outlineRGBA, color.red, color.green, color.blue, color.alpha);
 			}
 			else if (*it == "model-shader-color")
 			{
-				Rml::Core::Colourb color = GetProperty(*it)->Get<Rml::Core::Colourb>();
+				Rml::Colourb color = GetProperty(*it)->Get<Rml::Colourb>();
 				int shaderColor = COM_ValidatePlayerColor( COLOR_RGB( color.red, color.green, color.blue ) );
 				Vector4Set(entity.shaderRGBA, COLOR_R( shaderColor ), COLOR_G( shaderColor ), COLOR_B( shaderColor ), color.alpha);
 			}
@@ -308,7 +308,7 @@ private:
 			return;
 
 		// refdef setup
-		Rml::Vector2f box = GetBox().GetSize(Rml::Core::Box::CONTENT);
+		Rml::Vector2f box = GetBox().GetSize(Rml::Box::CONTENT);
 		refdef.x = 0;
 		refdef.y = 0;
 		refdef.width = box.x;

@@ -10,7 +10,7 @@ namespace WSWUI
 
 	} 
 
-	void Video::OnAttributeChange(const Rml::Core::AttributeNameList& anl)
+	void Video::OnAttributeChange(const Rml::AttributeNameList& anl)
 	{
 		if(anl.find("src") != anl.end())
 			R_RegisterVideo( GetAttribute<Rml::String>("src", "").CString() ); // register a default video-shader, so R_RegisterPic will return this shader

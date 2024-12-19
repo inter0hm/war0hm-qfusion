@@ -47,9 +47,9 @@ public:
 
 
 	///// Called by Rocket when a texture is required by the library.
-	//virtual bool LoadTexture(Rml::TextureHandle& texture_handle, Rml::Core::Vector2i& texture_dimensions, const Rml::String& source);
+	//virtual bool LoadTexture(Rml::TextureHandle& texture_handle, Rml::Vector2i& texture_dimensions, const Rml::String& source);
 	///// Called by Rocket when a texture is required to be built from an internally-generated sequence of pixels.
-	//virtual bool GenerateTexture(Rml::TextureHandle& texture_handle, const Rml::Core::byte* source, const Rml::Core::Vector2i& source_dimensions, int source_samples);
+	//virtual bool GenerateTexture(Rml::TextureHandle& texture_handle, const Rml::byte* source, const Rml::Vector2i& source_dimensions, int source_samples);
 	///// Called by Rocket when a loaded texture is no longer required.
 	//virtual void ReleaseTexture(Rml::TextureHandle texture_handle);
 
