@@ -203,7 +203,7 @@ jobs:
           path: source/OSX-x86_64-Debug.tar.gz
 
   build-win64:
-    runs-on: windows-latest
+    runs-on:  windows-2019
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
