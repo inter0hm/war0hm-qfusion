@@ -39,7 +39,7 @@ jobs:
       - name: Install deps
         uses: gerlero/apt-install@v1
         with:
-          packages: kitware-archive-keyring git curl clang-18 cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3 autoconf libtool meson automake libtool pkg-config python3-jinja2
+          packages: kitware-archive-keyring git curl clang-18 cmake build-essential git zip unzip python3 autoconf libtool meson automake libtool pkg-config python3-jinja2 python3-setuptools libx11-dev libwayland-dev libxkbcommon-dev libegl1-mesa-dev libibus-1.0-dev libxft-dev libxext-dev
 
       - name: Checkout repo
         uses: actions/checkout@v4
