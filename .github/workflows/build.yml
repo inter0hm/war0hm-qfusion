@@ -39,7 +39,7 @@ jobs:
       - name: Install deps
         uses: gerlero/apt-install@v1
         with:
-          packages: kitware-archive-keyring git curl clang cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3 autoconf libtool meson automake libtool pkg-config python3-jinja2
+          packages: kitware-archive-keyring git curl clang-18 cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3 autoconf libtool meson automake libtool pkg-config python3-jinja2
 
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -58,7 +58,7 @@ jobs:
         if: matrix.config.type == 'release'
         working-directory: ./source
         run: |
-          export CC=clang CXX=clang++
+          export CC=clang-18 CXX=clang++-18
           cmake ${{matrix.config.cmake_args}} -DBUILD_UNIT_TEST=1 -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" -DCMAKE_BUILD_TYPE=Release .
           make -j8
 
@@ -66,7 +66,7 @@ jobs:
         if: matrix.config.type == 'debug'
         working-directory: ./source
         run: |
-          export CC=clang CXX=clang++
+          export CC=clang-18 CXX=clang++-18
           cmake ${{matrix.config.cmake_args}} -DBUILD_UNIT_TEST=1 -DCMAKE_BUILD_TYPE=Debug -DVCPKG_INSTALL_OPTIONS="--binarysource=clear\;x-gha,readwrite" .
           make -j8
 
