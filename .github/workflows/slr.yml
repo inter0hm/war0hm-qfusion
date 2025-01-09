@@ -1,0 +1,111 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+
+  build-steamlinux64:
+    runs-on: ubuntu-20.04
+    container:
+      image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
+    steps:
+      - name: Update git before checkout - https://github.com/actions/checkout/issues/335
+        run: |
+          apt update
+          apt install -y git
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Add safe directory - https://github.com/actions/checkout/issues/1169
+        run: git config --system --add safe.directory /__w/warfork-qfusion/warfork-qfusion
+
+      - name: Install build dependencies
+        run: |
+          apt update
+          apt install -y curl cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3
+
+      - name: Download steamworks sdk
+        run: |
+          curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
+          unzip third-party/steamworks/sdk.zip -d third-party/steamworks
+
+      - name: Setup glslang
+        working-directory: ./source/glslang
+        run: |
+          python3 ./update_glslang_sources.py
+
+      - name: Generate makefiles
+        working-directory: ./source
+        run: |
+          export CC=clang-11 CXX=clang++-11
+          cmake -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 .
+
+      - name: Build project
+        working-directory: ./source
+        run: make -j8
+      
+      - name: Package warfork
+        working-directory: ./source/build
+        run: tar -czvf ../SteamLinux-x86_64-Release.tar.gz * --exclude *.a --exclude base*/*.a libs/*.a
+
+      - name: Upload warfork artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: steamlinux-x86_64-release
+          path: source/SteamLinux-x86_64-Release.tar.gz
+
+  build-steamlinux64-debug:
+    runs-on: ubuntu-20.04
+    container:
+      image: registry.gitlab.steamos.cloud/steamrt/sniper/sdk:latest
+    steps:
+      - name: Update git before checkout - https://github.com/actions/checkout/issues/335
+        run: |
+          apt update
+          apt install -y git
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Add safe directory - https://github.com/actions/checkout/issues/1169
+        run: git config --system --add safe.directory /__w/warfork-qfusion/warfork-qfusion
+
+      - name: Install build dependencies
+        run: |
+          apt update
+          apt install -y curl cmake build-essential libsdl2-dev libopenal-dev libvorbis-dev libfreetype6-dev libcurl4-gnutls-dev git zip unzip python3
+
+      - name: Download steamworks sdk
+        run: |
+          curl https://warfork.com/downloads/sdk/ --output third-party/steamworks/sdk.zip
+          unzip third-party/steamworks/sdk.zip -d third-party/steamworks
+
+      - name: Setup glslang
+        working-directory: ./source/glslang
+        run: |
+          python3 ./update_glslang_sources.py
+
+      - name: Generate makefiles
+        working-directory: ./source
+        run: |
+          export CC=clang-11 CXX=clang++-11
+          cmake -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_STEAMLIB=1 -DUSE_GRAPHICS_NRI=1 .
+
+      - name: Build project
+        working-directory: ./source
+        run: make -j8
+      
+      - name: Package warfork
+        working-directory: ./source/build
+        run: tar -czvf ../SteamLinux-x86_64-Debug.tar.gz * --exclude *.a --exclude base*/*.a libs/*.a
+
+      - name: Upload warfork artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: steamlinux-x86_64-debug
+          path: source/SteamLinux-x86_64-Debug.tar.gz
