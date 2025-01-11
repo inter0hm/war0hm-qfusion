@@ -32,14 +32,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../ref_base/ref_mod.h"
 
 #include "../qcommon/mod_fs.h"
-#include "r_gpu_ring_buffer.h"
 #include "r_resource_upload.h"
 #include "r_frame_cmd_buffer.h"
 
 
 #include "r_nri.h"
 #include "r_texture_buf.h"
-#include "r_win.h"
+#include "../qcommon/mod_win.h"
 
 typedef struct { char *name; void **funcPointer; } dllfunc_t;
 
@@ -322,6 +321,12 @@ typedef struct
 	byte_vec4_t		customColors[NUM_CUSTOMCOLORS];
 } r_shared_t;
 
+typedef struct {
+	vec3_t mins;
+	vec3_t maxs;
+	byte_vec4_t color;
+} r_debug_bound_t;
+
 typedef struct
 {
 	// bumped each R_ClearScene
@@ -352,6 +357,8 @@ typedef struct
 	unsigned int	entShadowBits[MAX_REF_ENTITIES];
 
 	float			farClipMin, farClipBias;
+	
+	r_debug_bound_t* debugBounds;
 
 	unsigned int	renderedShadowBits;
 
@@ -364,8 +371,6 @@ typedef struct
 {
 	bool 			in2D;
 	int				width2D, height2D;
-
-	int				frameBufferWidth, frameBufferHeight;
 
 	float			cameraSeparation;
 	int 			swapInterval;
@@ -404,9 +409,6 @@ typedef struct
 	
 	msurface_t		*debugSurface;
 	qmutex_t		*debugSurfaceLock;
-	
-	char			drawBuffer[32];
-	bool			newDrawBuffer;
 
 	char *applicationName;
 	char *screenshotPrefix;
@@ -507,8 +509,6 @@ extern cvar_t *r_screenshot_format;
 extern cvar_t *r_swapinterval;
 extern cvar_t *r_swapinterval_min;
 
-extern cvar_t *r_temp1;
-
 extern cvar_t *r_drawflat;
 extern cvar_t *r_wallcolor;
 extern cvar_t *r_floorcolor;
@@ -574,29 +574,29 @@ bool	R_VisCullSphere( const vec3_t origin, float radius );
 int			R_CullModelEntity( const entity_t *e, vec3_t mins, vec3_t maxs, float radius, bool sphereCull, bool pvsCull );
 bool	R_CullSpriteEntity( const entity_t *e );
 
+////
+//// r_framebuffer.c
+////
+//enum
+//{
+//	FBO_COPY_NORMAL = 0,
+//	FBO_COPY_CENTREPOS = 1,
+//	FBO_COPY_INVERT_Y = 2
+//};
 //
-// r_framebuffer.c
-//
-enum
-{
-	FBO_COPY_NORMAL = 0,
-	FBO_COPY_CENTREPOS = 1,
-	FBO_COPY_INVERT_Y = 2
-};
-
-void		RFB_Init( void );
-int			RFB_RegisterObject( int width, int height, bool builtin, bool depthRB, bool stencilRB );
-void		RFB_UnregisterObject( int object );
-void		RFB_TouchObject( int object );
-void		RFB_BindObject( int object );
-int			RFB_BoundObject( void );
-void		RFB_AttachTextureToObject( int object, image_t *texture );
-image_t		*RFB_GetObjectTextureAttachment( int object, bool depth );
-void		RFB_BlitObject( int dest, int bitMask, int mode );
-bool	RFB_CheckObjectStatus( void );
-void		RFB_GetObjectSize( int object, int *width, int *height );
-void		RFB_FreeUnusedObjects( void );
-void		RFB_Shutdown( void );
+//void		RFB_Init( void );
+//int			RFB_RegisterObject( int width, int height, bool builtin, bool depthRB, bool stencilRB );
+//void		RFB_UnregisterObject( int object );
+//void		RFB_TouchObject( int object );
+//void		RFB_BindObject( int object );
+//int			RFB_BoundObject( void );
+//void		RFB_AttachTextureToObject( int object, image_t *texture );
+//image_t		*RFB_GetObjectTextureAttachment( int object, bool depth );
+//void		RFB_BlitObject( int dest, int bitMask, int mode );
+//bool	RFB_CheckObjectStatus( void );
+//void		RFB_GetObjectSize( int object, int *width, int *height );
+//void		RFB_FreeUnusedObjects( void );
+//void		RFB_Shutdown( void );
 
 //
 // r_light.c
@@ -646,10 +646,7 @@ void		R_FreeFile_( void *buffer, const char *filename, int fileline );
 #define		R_FreeFile(buffer) R_FreeFile_(buffer,__FILE__,__LINE__)
 
 bool		R_IsRenderingToScreen( void );
-void		R_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync );
-void    R_EndFrame( void );
 void		R_SetWallFloorColors( const vec3_t wallColor, const vec3_t floorColor );
-void		R_SetDrawBuffer( const char *drawbuffer );
 void		R_Set2DMode(struct frame_cmd_buffer_s* cmd, bool enable );
 void		R_RenderView(struct frame_cmd_buffer_s* frame, const refdef_t *fd );
 const msurface_t *R_GetDebugSurface( void );
@@ -678,7 +675,7 @@ void		R_TransformForWorld( void );
 void		R_TransformForEntity( const entity_t *e );
 void		R_TranslateForEntity( const entity_t *e );
 
-void		R_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, 
+void		R_DrawStretchPic(struct frame_cmd_buffer_s* cmd, int x, int y, int w, int h, float s1, float t1, float s2, float t2, 
 	const vec4_t color, const shader_t *shader );
 void		R_DrawRotatedStretchPic(struct frame_cmd_buffer_s* cmd, int x, int y, int w, int h, float s1, float t1, float s2, float t2, 
 	float angle, const vec4_t color, const shader_t *shader );
@@ -686,9 +683,9 @@ void		R_UploadRawPic( image_t *texture, int cols, int rows, uint8_t *data );
 void		R_UploadRawYUVPic( image_t **yuvTextures, ref_img_plane_t *yuv );
 void		R_DrawStretchRawYUVBuiltin( int x, int y, int w, int h, float s1, float t1, float s2, float t2, 
 	image_t **yuvTextures, int flip );
-void		R_DrawStretchRaw( int x, int y, int w, int h, float s1, float t1, float s2, float t2 );
+void		R_DrawStretchRaw(struct frame_cmd_buffer_s* cmd, int x, int y, int w, int h, float s1, float t1, float s2, float t2 );
 void		R_DrawStretchRawYUV( int x, int y, int w, int h, float s1, float t1, float s2, float t2 );
-void		R_DrawStretchQuick( int x, int y, int w, int h, float s1, float t1, float s2, float t2, 
+void		R_DrawStretchQuick(struct frame_cmd_buffer_s* cmd, int x, int y, int w, int h, float s1, float t1, float s2, float t2, 
 	const vec4_t color, int program_type, image_t *image, int blendMask );
 
 void		R_InitCustomColors( void );
@@ -701,11 +698,6 @@ void		R_ShutdownCustomColors( void );
 void		R_ClearRefInstStack( void );
 bool		R_PushRefInst( struct frame_cmd_buffer_s* frame);
 void		R_PopRefInst( struct frame_cmd_buffer_s* frame );
-void		R_BindFrameBufferObject( int object );
-
-void		R_Scissor( int x, int y, int w, int h );
-void		R_GetScissor( int *x, int *y, int *w, int *h );
-void		R_ResetScissor( void );
 
 //
 // r_mesh.c
@@ -765,7 +757,6 @@ rserr_t		R_Init( const char *applicationName, const char *screenshotPrefix, int 
 void R_DestroyVolatileAssets( void );
 void		R_BeginRegistration( void );
 void		R_EndRegistration( void );
-rserr_t		R_SetMode( int x, int y, int width, int height, int displayFrequency, bool fullScreen, bool stereo );
 
 //
 // r_scene.c
@@ -774,6 +765,7 @@ extern drawList_t r_worldlist, r_portalmasklist;
 
 void R_AddDebugBounds( const vec3_t mins, const vec3_t maxs, const byte_vec4_t color );
 void R_ClearScene( void );
+void R_DisposeScene(r_scene_t* scene);
 void R_AddEntityToScene( const entity_t *ent );
 void R_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b );
 void R_AddPolyToScene( const poly_t *poly );
@@ -831,6 +823,25 @@ typedef enum
 	VBO_TAG_STREAM
 } vbo_tag_t;
 
+struct vbo_layout_s {
+	vattribmask_t vertexAttribs;
+	vattribmask_t halfFloatAttribs;
+	
+	uint16_t vertexStride;
+	
+	uint16_t normalsOffset;
+	uint16_t sVectorsOffset;
+	uint16_t stOffset;
+	uint16_t lmstOffset[( MAX_LIGHTMAPS + 1 ) / 2];
+	uint16_t lmstSize[( MAX_LIGHTMAPS + 1 ) / 2];
+	uint16_t lmlayersOffset[( MAX_LIGHTMAPS + 3 ) / 4];
+	uint16_t colorsOffset[MAX_LIGHTMAPS];
+	uint16_t bonesIndicesOffset;
+	uint16_t bonesWeightsOffset;
+	uint16_t spritePointsOffset; // autosprite or autosprite2 centre + radius
+	uint16_t instancesOffset;
+};
+
 typedef struct mesh_vbo_s
 {
 	uint8_t numAllocations;
@@ -842,19 +853,11 @@ typedef struct mesh_vbo_s
 	NriBuffer *indexBuffer;
 	NriBuffer *instanceBuffer;
 
-	// vbo if we want to use a ring buffer and usee this like an immedate buffer
-	struct r_ring_offset_alloc_s ringOffsetVertAlloc;	
-	struct r_ring_offset_alloc_s ringOffsetIndexAlloc;	
-	struct r_ring_offset_alloc_s ringOffsetInstAlloc;	
-
 	unsigned int		index;
 	int					registrationSequence;
 	vbo_tag_t			tag;
 
-	// unsigned int 		vertexId;
-	// unsigned int		elemId;
 	void 				*owner;
-	unsigned int 		visframe;
 
 	unsigned int 		numVerts;
 	unsigned int 		numElems;
@@ -911,9 +914,9 @@ void 		R_ShutdownVBO( void );
 
 void R_FillNriVertexAttrib(mesh_vbo_t* vbo, NriVertexAttributeDesc* desc, size_t* numDesc);
 
-//
-// r_sky.c
-//
+struct vbo_layout_s R_CreateVBOLayout( vattribmask_t vattribs, vattribmask_t halfFloatVattribs);
+vattribmask_t R_WriteMeshToVertexBuffer( const struct vbo_layout_s *layout, vattribmask_t vattribs, const mesh_t *mesh, void *dst );
+void R_FillNriVertexAttribLayout(const struct vbo_layout_s* layout, NriVertexAttributeDesc* desc, size_t* numDesc);
 
 enum
 {

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef R_IMAGE_H
 #define R_IMAGE_H
 
+#include "qstr.h"
 #include "r_nri.h"
 
 enum
@@ -35,17 +36,17 @@ enum
 	,IT_FLIPY			= 1<<6
 	,IT_FLIPDIAGONAL	= 1<<7		// when used alone, equals to rotating 90 CW and flipping X; with FLIPX|Y, 90 CCW and flipping X
 	,IT_NOCOMPRESS		= 1<<8
-	,IT_DEPTH			= 1<<9
+	,IT_DEPTH			= 1<<9       // DEPCREATED
 	,IT_NORMALMAP		= 1<<10
-	,IT_FRAMEBUFFER		= 1<<11
-	,IT_DEPTHRB			= 1<<12		// framebuffer has a depth renderbuffer
+	,IT_FRAMEBUFFER		= 1<<11      // DEPCREATED
+	,IT_DEPTHRB			= 1<<12		 // DEPCREATED
 	,IT_NOFILTERING		= 1<<13
 	,IT_ALPHAMASK		= 1<<14		// image only contains an alpha mask
 	,IT_SYNC			= 1<<16		// load image synchronously
 	,IT_DEPTHCOMPARE	= 1<<17
 	,IT_ARRAY			= 1<<18
 	,IT_3D				= 1<<19
-	,IT_STENCIL			= 1<<20		// for IT_DEPTH or IT_DEPTHRB textures, whether there's stencil
+	,IT_STENCIL			= 1<<20	    // DEPCREATED	
 	,IT_NO_DATA_SYNC	= 1<<21		// owned by the drawing thread, do not sync in the frontend thread
 };
 
@@ -79,7 +80,7 @@ typedef struct image_s
 	size_t numAllocations;
 	NriMemory* memory[4];
 
-	char			*name;						// game path, not including extension
+	struct QStr name;// game path, not including extension 
 	int				registrationSequence;
 	volatile bool loaded;
 	volatile bool missing;
@@ -90,7 +91,6 @@ typedef struct image_s
 	int layers;				// texture array size
 	int minmipsize;	   // size of the smallest mipmap that should be used
 	int samples;
-	int fbo;			   // frame buffer object texture is attached to
 	unsigned int framenum; // rf.frameCount texture was updated (rendered to)
 	int tags;			   // usage tags of the image
 	struct image_s *next, *prev;

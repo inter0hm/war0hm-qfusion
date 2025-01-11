@@ -80,11 +80,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define GAMMARAMP_STRIDE				4096
 
-extern cvar_t *r_stencilbits;
-extern cvar_t *gl_drawbuffer;
-extern cvar_t *gl_driver;
-
-//====================================================================
 
 enum
 {
@@ -138,84 +133,18 @@ enum
 
 //====================================================================
 
-typedef struct
-{
-	int			_extMarker;
-
-	//
-	// only uint8_ts must follow the extensionsBoolMarker
-	//
-
-	char		draw_range_elements
-				,texture_filter_anisotropic
-				,depth_texture
-				,draw_instanced
-				,instanced_arrays
-				,meminfo
-				,framebuffer_blit
-				,depth24
-				,depth_nonlinear
-				,rgb8_rgba8
-				,ES3_compatibility
-				,blend_func_separate
-				,texture_array
-				,fragment_precision_high
-				,texture_lod
-				;
+typedef struct {
+	char instanced_arrays;
 } glextinfo_t;
 
 typedef struct
 {
-
 	const char		*applicationName;
 	const char		*screenshotPrefix;
-
-	int				version;
-	int				shadingLanguageVersion;
-
-	int				width, height;
-	bool			fullScreen;
-
-	bool			stereoEnabled;
-	int				stencilBits;
 
 	glextinfo_t		ext;
 } glconfig_t;
 
 extern glconfig_t	glConfig;
-
-/*
-====================================================================
-
-IMPLEMENTATION SPECIFIC FUNCTIONS
-
-====================================================================
-*/
-
-bool	GLimp_RenderingEnabled( void );
-void	GLimp_BeginFrame( void );
-void	GLimp_EndFrame( void );
-int		GLimp_Init( const char *applicationName, void *hinstance, void *wndproc, void *parenthWnd, 
-			int iconResource, const int *iconXPM );
-void	GLimp_Shutdown( void );
-rserr_t	GLimp_SetMode( int x, int y, int width, int height, int displayFrequency, bool fullscreen, bool stereo );
-rserr_t	GLimp_SetWindow( void *hinstance, void *wndproc, void *parenthWnd, bool *surfaceChangePending );
-rserr_t GLimp_SetFullscreenMode( int displayFrequency, bool fullscreen );
-void	GLimp_AppActivate( bool active, bool destroy );
-bool	GLimp_GetGammaRamp( size_t stride, unsigned short *psize, unsigned short *ramp );
-void	GLimp_SetGammaRamp( size_t stride, unsigned short   size, unsigned short *ramp );
-void	GLimp_SetSwapInterval( int swapInterval );
-
-bool	GLimp_MakeCurrent( void *context, void *surface );
-
-void	GLimp_EnableMultithreadedRendering( bool enable );
-// When multithreaded rendering is enabled, GetWindowSurface must be called from the rendering thread, not the main one.
-// The window surface may be managed by the rendering thread in this case, and the main thread may have a fake surface instead
-// if the context implementation doesn't support multiple contexts bound to the same surface.
-void	*GLimp_GetWindowSurface( bool *renderable );
-void	GLimp_UpdatePendingWindowSurface( void ); // Call from the rendering thread.
-
-bool	GLimp_SharedContext_Create( void **context, void **surface );
-void	GLimp_SharedContext_Destroy( void *context, void *surface );
 
 #endif // R_GLIMP_H

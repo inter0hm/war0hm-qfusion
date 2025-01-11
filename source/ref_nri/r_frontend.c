@@ -338,8 +338,6 @@ rserr_t RF_SetWindow( void *hinstance, void *wndproc, void *parenthWnd )
 
 void RF_AppActivate( bool active, bool destroy )
 {
-	//R_Flush();
-	GLimp_AppActivate( active, destroy );
 }
 
 void RF_Shutdown( bool verbose )
@@ -348,15 +346,15 @@ void RF_Shutdown( bool verbose )
 	memset( &rrf, 0, sizeof( rrf ) );
 	rsh.nri.helperI.WaitForIdle( rsh.cmdQueue );
 
-	ri.Cmd_RemoveCommand( "modellist" );
-	ri.Cmd_RemoveCommand( "screenshot" );
-	ri.Cmd_RemoveCommand( "envshot" );
-	ri.Cmd_RemoveCommand( "imagelist" );
-	ri.Cmd_RemoveCommand( "gfxinfo" );
-	ri.Cmd_RemoveCommand( "shaderdump" );
-	ri.Cmd_RemoveCommand( "shaderlist" );
-	ri.Cmd_RemoveCommand( "glslprogramlist" );
-	ri.Cmd_RemoveCommand( "cinlist" );
+	Cmd_RemoveCommand( "modellist" );
+	Cmd_RemoveCommand( "screenshot" );
+	Cmd_RemoveCommand( "envshot" );
+	Cmd_RemoveCommand( "imagelist" );
+	Cmd_RemoveCommand( "gfxinfo" );
+	Cmd_RemoveCommand( "shaderdump" );
+	Cmd_RemoveCommand( "shaderlist" );
+	Cmd_RemoveCommand( "glslprogramlist" );
+	Cmd_RemoveCommand( "cinlist" );
 
 	// free shaders, models, etc.
 
@@ -381,8 +379,12 @@ void RF_Shutdown( bool verbose )
 	
 	RP_Shutdown();
 
+	RB_Shutdown();
+
 	R_ExitResourceUpload();
-	
+
+	R_DisposeScene(&rsc);
+
 	for(size_t i = 0; i < NUMBER_FRAMES_FLIGHT; i++) {
 		FrameCmdBufferFree(&rsh.frameCmds[i]);
 	}
@@ -397,6 +399,7 @@ void RF_Shutdown( bool verbose )
 	R_WIN_Shutdown();
 
 	R_FreeNriBackend(&rsh.nri);
+
 }
 
 static void RF_CheckCvars( void )
@@ -404,7 +407,7 @@ static void RF_CheckCvars( void )
 	// disallow bogus r_maxfps values, reset to default value instead
 	if( r_maxfps->modified ) {
 		if( r_maxfps->integer <= 0 ) {
-			ri.Cvar_ForceSet( r_maxfps->name, r_maxfps->dvalue );
+			Cvar_ForceSet( r_maxfps->name, r_maxfps->dvalue );
 		}
 		r_maxfps->modified = false;
 	}
@@ -437,14 +440,6 @@ static void RF_CheckCvars( void )
 		}
 		//rrf.adapter.cmdPipe->SetWallFloorColors( rrf.adapter.cmdPipe, wallColor, floorColor );		
 	}
-
-	if( gl_drawbuffer->modified )
-	{
-		gl_drawbuffer->modified = false;
-		Q_strncpyz( rf.drawBuffer, gl_drawbuffer->string, sizeof( rf.drawBuffer ) );
-		rf.newDrawBuffer = true;
-		//rrf.adapter.cmdPipe->SetDrawBuffer( rrf.adapter.cmdPipe, gl_drawbuffer->string );
-	}
 	
 	// texturemode stuff
 	if( r_texturemode->modified )
@@ -457,10 +452,10 @@ static void RF_CheckCvars( void )
 	// keep r_outlines_cutoff value in sane bounds to prevent wallhacking
 	if( r_outlines_scale->modified ) {
 		if( r_outlines_scale->value < 0 ) {
-			ri.Cvar_ForceSet( r_outlines_scale->name, "0" );
+			Cvar_ForceSet( r_outlines_scale->name, "0" );
 		}
 		else if( r_outlines_scale->value > 3 ) {
-			ri.Cvar_ForceSet( r_outlines_scale->name, "3" );
+			Cvar_ForceSet( r_outlines_scale->name, "3" );
 		}
 		r_outlines_scale->modified = false;
 	}
@@ -565,6 +560,39 @@ void RF_BeginFrame( float cameraSeparation, bool forceClear, bool forceVsync )
 
 }
 
+static inline void __R_PolyBlendPostPass(struct frame_cmd_buffer_s* frame) {
+	if( !r_polyblend->integer )
+		return;
+	if( rsc.refdef.blend[3] < 0.01f )
+		return;
+
+	NriViewport* viewport = &frame->state.viewports[0];
+	R_Set2DMode( frame, true );
+	R_DrawStretchPic(frame, 0, 0, 
+									viewport->width, 
+									viewport->height, 0, 0, 1, 1, rsc.refdef.blend, rsh.whiteShader );
+	RB_FlushDynamicMeshes( frame );
+}
+
+static inline void __R_ApplyBrightnessBlend(struct frame_cmd_buffer_s* frame) {
+
+	float c = r_brightness->value;
+	if( c < 0.005 )
+		return;
+	else if( c > 1.0 )
+		c = 1.0;
+
+	vec4_t color;
+	color[0] = color[1] = color[2] = c;
+	color[3] = 1;
+	
+	NriViewport* viewport = &frame->state.viewports[0];
+	
+	R_Set2DMode( frame, true );
+	R_DrawStretchQuick(frame, 0, 0, viewport->width, viewport->height, 0, 0, 1, 1,
+		color, GLSL_PROGRAM_TYPE_NONE, rsh.whiteTexture, GLSTATE_SRCBLEND_ONE|GLSTATE_DSTBLEND_ONE );
+}
+
 void RF_EndFrame( void )
 {
 	const uint32_t bufferedFrameIndex = rsh.swapchainCount % NUMBER_FRAMES_FLIGHT;
@@ -573,6 +601,10 @@ void RF_EndFrame( void )
 	assert(frame->stackCmdBeingRendered == 0);
 	// render previously batched 2D geometry, if any
 	RB_FlushDynamicMeshes(frame);
+
+	__R_PolyBlendPostPass(frame);
+
+	__R_ApplyBrightnessBlend(frame);
 
 	R_ResourceSubmit();
 
@@ -758,7 +790,6 @@ void RF_DrawStretchPic( int x, int y, int w, int h, float s1, float t1, float s2
 {
 	struct frame_cmd_buffer_s *cmd = R_ActiveFrameCmd();
 	R_DrawRotatedStretchPic(cmd, x, y, w, h, s1, t1, s2, t2, 0, color, shader );
-	//rrf.frame->DrawRotatedStretchPic( rrf.frame, x, y, w, h, s1, t1, s2, t2, 0, color, shader );
 }
 
 void RF_DrawRotatedStretchPic( int x, int y, int w, int h, float s1, float t1, float s2, float t2, float angle, 
@@ -766,7 +797,6 @@ void RF_DrawRotatedStretchPic( int x, int y, int w, int h, float s1, float t1, f
 {
 	struct frame_cmd_buffer_s *cmd = R_ActiveFrameCmd();
 	R_DrawRotatedStretchPic(cmd, x, y, w, h, s1, t1, s2, t2, 0, color, shader );
-	//rrf.frame->DrawRotatedStretchPic( rrf.frame, x, y, w, h, s1, t1, s2, t2, angle, color, shader );
 }
 
 void RF_DrawStretchRaw( int x, int y, int w, int h, int cols, int rows, 
@@ -969,7 +999,8 @@ void RF_EnvShot( const char *path, const char *name, unsigned pixels )
 
 bool RF_RenderingEnabled( void )
 {
-	return GLimp_RenderingEnabled();
+	return true;
+	//return GLimp_RenderingEnabled();
 }
 
 const char *RF_GetSpeedsMessage( char *out, size_t size )

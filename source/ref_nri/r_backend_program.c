@@ -20,33 +20,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_backend_local.h"
 #include "r_descriptor_pool.h"
-#include "r_hasher.h"
 #include "r_local.h"
 #include "r_resource.h"
 #include "stb_ds.h"
 
-#define FTABLE_SIZE_POW 12
-#define FTABLE_SIZE ( 1 << FTABLE_SIZE_POW )
-#define FTABLE_CLAMP( x ) ( ( (int)( ( x ) * FTABLE_SIZE ) & ( FTABLE_SIZE - 1 ) ) )
-#define FTABLE_EVALUATE( table, x ) ( ( table )[FTABLE_CLAMP( fmod( x, 1.0 ) )] )
+#include "qhash.h"
 
 #define DRAWFLAT() ( ( rb.currentModelType == mod_brush ) && ( rb.renderFlags & RF_DRAWFLAT ) && !( rb.currentShader->flags & SHADER_NODRAWFLAT ) )
 
 enum { BUILTIN_GLSLPASS_FOG, BUILTIN_GLSLPASS_SHADOWMAP, BUILTIN_GLSLPASS_OUTLINE, BUILTIN_GLSLPASS_SKYBOX, MAX_BUILTIN_GLSLPASSES };
 
-static float rb_sintable[FTABLE_SIZE];
-static float rb_triangletable[FTABLE_SIZE];
-static float rb_squaretable[FTABLE_SIZE];
-static float rb_sawtoothtable[FTABLE_SIZE];
-static float rb_inversesawtoothtable[FTABLE_SIZE];
-
-#define NOISE_SIZE 256
-#define NOISE_VAL( a ) rb_noiseperm[( a ) & ( NOISE_SIZE - 1 )]
-#define NOISE_INDEX( x, y, z, t ) NOISE_VAL( x + NOISE_VAL( y + NOISE_VAL( z + NOISE_VAL( t ) ) ) )
 #define NOISE_LERP( a, b, w ) ( a * ( 1.0f - w ) + b * w )
 
-static float rb_noisetable[NOISE_SIZE];
-static int rb_noiseperm[NOISE_SIZE];
 
 static void RB_SetShaderpassState_2(struct frame_cmd_buffer_s *cmd, int state );
 
@@ -62,67 +47,38 @@ static int __NumberLightMaps( const struct superLightStyle_s *lightStyle )
  */
 void RB_InitShading( void )
 {
-	// build lookup tables
-	for(size_t i = 0; i < FTABLE_SIZE; i++ ) {
-		float t = (float)i / (float)FTABLE_SIZE;
-
-		rb_sintable[i] = sin( t * M_TWOPI );
-
-		if( t < 0.25 )
-			rb_triangletable[i] = t * 4.0;
-		else if( t < 0.75 )
-			rb_triangletable[i] = 2 - 4.0 * t;
-		else
-			rb_triangletable[i] = ( t - 0.75 ) * 4.0 - 1.0;
-
-		if( t < 0.5 )
-			rb_squaretable[i] = 1.0f;
-		else
-			rb_squaretable[i] = -1.0f;
-
-		rb_sawtoothtable[i] = t;
-		rb_inversesawtoothtable[i] = 1.0 - t;
-	}
-
-	// init the noise table
-	srand( 1001 );
-
-	for(size_t i = 0; i < NOISE_SIZE; i++ ) {
-		rb_noisetable[i] = (float)( ( ( rand() / (float)RAND_MAX ) * 2.0 - 1.0 ) );
-		rb_noiseperm[i] = (unsigned char)( rand() / (float)RAND_MAX * 255 );
-	}
-
 }
 
-/*
- * RB_FastSin
- */
-static inline float RB_FastSin( float t )
-{
-	return FTABLE_EVALUATE( rb_sintable, t );
-}
 
-/*
- * RB_TableForFunc
- */
-static float *RB_TableForFunc( unsigned int func )
-{
+static inline float __Shader_Func(unsigned int func, float value) {
+	const float t = fmod(value, 1.0f);
 	switch( func ) {
-		case SHADER_FUNC_SIN:
-			return rb_sintable;
 		case SHADER_FUNC_TRIANGLE:
-			return rb_triangletable;
+			if( t < 0.25 )
+				return t * 4.0;
+			else if( t < 0.75 )
+				return 2 - 4.0 * t;
+			return ( t - 0.75 ) * 4.0 - 1.0;
 		case SHADER_FUNC_SQUARE:
-			return rb_squaretable;
+			return t < 0.5 ? 1.0f : -1.0f;
 		case SHADER_FUNC_SAWTOOTH:
-			return rb_sawtoothtable;
+			return t;
 		case SHADER_FUNC_INVERSESAWTOOTH:
-			return rb_inversesawtoothtable;
+			return 1.0f - t;
+		case SHADER_FUNC_SIN:
 		default:
 			break;
 	}
 
-	return rb_sintable; // default to sintable
+	return sin(t * M_TWOPI);
+
+}
+/*
+ * RB_FastSin
+ */
+static inline float RB_FastSin( float value )
+{
+	return __Shader_Func(SHADER_FUNC_SIN, value);
 }
 
 static void __ConfigureLightCB (struct DynamicLightCB* cb,
@@ -174,10 +130,17 @@ static void __ConfigureLightCB (struct DynamicLightCB* cb,
 
 }
 
-/*
- * RB_BackendGetNoiseValue
- */
-static float RB_BackendGetNoiseValue( float x, float y, float z, float t )
+
+static inline hash_t __pseudoUniqueNoise(int a1, int a2, int a3, int a4) {
+	hash_t hash = HASH_INITIAL_VALUE;
+	hash = hash_s32(hash, a1);
+	hash = hash_s32(hash, a2);
+	hash = hash_s32(hash, a3);
+	hash = hash_s32(hash, a4);
+	return fmod((float)hash, 1.0f) * 2.0f - 1.0f;
+}
+
+static float __BackendGetNoiseValue( float x, float y, float z, float t )
 {
 	int i;
 	int ix, iy, iz, it;
@@ -195,15 +158,16 @@ static float RB_BackendGetNoiseValue( float x, float y, float z, float t )
 	ft = t - it;
 
 	for( i = 0; i < 2; i++ ) {
-		front[0] = rb_noisetable[NOISE_INDEX( ix, iy, iz, it + i )];
-		front[1] = rb_noisetable[NOISE_INDEX( ix + 1, iy, iz, it + i )];
-		front[2] = rb_noisetable[NOISE_INDEX( ix, iy + 1, iz, it + i )];
-		front[3] = rb_noisetable[NOISE_INDEX( ix + 1, iy + 1, iz, it + i )];
 
-		back[0] = rb_noisetable[NOISE_INDEX( ix, iy, iz + 1, it + i )];
-		back[1] = rb_noisetable[NOISE_INDEX( ix + 1, iy, iz + 1, it + i )];
-		back[2] = rb_noisetable[NOISE_INDEX( ix, iy + 1, iz + 1, it + i )];
-		back[3] = rb_noisetable[NOISE_INDEX( ix + 1, iy + 1, iz + 1, it + i )];
+		front[0] = __pseudoUniqueNoise( ix, iy, iz, it + i );
+		front[1] = __pseudoUniqueNoise( ix + 1, iy, iz, it + i );
+		front[2] = __pseudoUniqueNoise( ix, iy + 1, iz, it + i );
+		front[3] = __pseudoUniqueNoise( ix + 1, iy + 1, iz, it + i );
+
+		back[0] = __pseudoUniqueNoise( ix, iy, iz + 1, it + i );
+		back[1] = __pseudoUniqueNoise( ix + 1, iy, iz + 1, it + i );
+		back[2] = __pseudoUniqueNoise( ix, iy + 1, iz + 1, it + i );
+		back[3] = __pseudoUniqueNoise( ix + 1, iy + 1, iz + 1, it + i );
 
 		fvalue = NOISE_LERP( NOISE_LERP( front[0], front[1], fx ), NOISE_LERP( front[2], front[3], fx ), fy );
 		bvalue = NOISE_LERP( NOISE_LERP( back[0], back[1], fx ), NOISE_LERP( back[2], back[3], fx ), fy );
@@ -295,7 +259,6 @@ void RB_VertexTCCelshadeMatrix( mat4_t matrix )
 void RB_ApplyTCMods( const shaderpass_t *pass, mat4_t result )
 {
 	unsigned i;
-	const float *table;
 	double t1, t2, sint, cost;
 	mat4_t m1, m2;
 	const tcmod_t *tcmod;
@@ -320,9 +283,8 @@ void RB_ApplyTCMods( const shaderpass_t *pass, mat4_t result )
 				Matrix4_Scale2D( result, 1 + ( tcmod->args[1] * RB_FastSin( t2 ) + tcmod->args[0] ) * t1, 1 + ( tcmod->args[1] * RB_FastSin( t2 + 0.25 ) + tcmod->args[0] ) * t1 );
 				break;
 			case TC_MOD_STRETCH:
-				table = RB_TableForFunc( tcmod->args[0] );
 				t2 = tcmod->args[3] + rb.currentShaderTime * tcmod->args[4];
-				t1 = FTABLE_EVALUATE( table, t2 ) * tcmod->args[2] + tcmod->args[1];
+				t1 =__Shader_Func(tcmod->args[0], t2) * tcmod->args[2] + tcmod->args[1];
 				t1 = t1 ? 1.0f / t1 : 1.0f;
 				t2 = 0.5f - 0.5f * t1;
 				Matrix4_Stretch2D( result, t1, t2 );
@@ -635,8 +597,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 	struct FrameCB frameData = { 0 };
 	struct ObjectCB objectData = { 0 };
 	{
-
-		const bool isAlphaBlending = __IsAlphaBlendingGLState( rb.gl.state );
+		const bool isAlphaBlending = __IsAlphaBlendingGLState( pass->flags );
 		const shaderfunc_t *rgbgenfunc = &pass->rgbgen.func;
 		const shaderfunc_t *alphagenfunc = &pass->alphagen.func;
 	
@@ -743,13 +704,12 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 					adjust = rgbgenfunc->args[0];
 				} else {
 					if( rgbgenfunc->type == SHADER_FUNC_NOISE ) {
-						adjust = RB_BackendGetNoiseValue( 0, 0, 0, ( rb.currentShaderTime + rgbgenfunc->args[2] ) * rgbgenfunc->args[3] );
+						adjust = __BackendGetNoiseValue( 0, 0, 0, ( rb.currentShaderTime + rgbgenfunc->args[2] ) * rgbgenfunc->args[3] );
 					} else {
-						float *table = RB_TableForFunc( rgbgenfunc->type );
-						adjust = rb.currentShaderTime * rgbgenfunc->args[3] + rgbgenfunc->args[2];
-						adjust = FTABLE_EVALUATE( table, adjust ) * rgbgenfunc->args[1] + rgbgenfunc->args[0];
+						adjust = __Shader_Func( rgbgenfunc->type, 
+								rb.currentShaderTime * rgbgenfunc->args[3] + rgbgenfunc->args[2] ) * rgbgenfunc->args[1] + rgbgenfunc->args[0];
 					}
-					adjust *= rgbgenfunc->args[1] + rgbgenfunc->args[0];
+					adjust = adjust * rgbgenfunc->args[1] + rgbgenfunc->args[0];
 				}
 
 				if( pass->rgbgen.type == RGB_GEN_ENTITYWAVE ) {
@@ -823,13 +783,12 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 					break;
 				} else {
 					if( alphagenfunc->type == SHADER_FUNC_NOISE ) {
-						objectData.colorConst.v[3] = RB_BackendGetNoiseValue( 0, 0, 0, ( rb.currentShaderTime + alphagenfunc->args[2] ) * alphagenfunc->args[3] );
+						objectData.colorConst.v[3] = __BackendGetNoiseValue( 0, 0, 0, ( rb.currentShaderTime + alphagenfunc->args[2] ) * alphagenfunc->args[3] );
 					} else {
-						float *table = RB_TableForFunc( alphagenfunc->type );
-						objectData.colorConst.v[3] = alphagenfunc->args[2] + rb.currentShaderTime * alphagenfunc->args[3];
-						objectData.colorConst.v[3] = FTABLE_EVALUATE( table, objectData.colorConst.v[3] );
+						objectData.colorConst.v[3] = __Shader_Func( alphagenfunc->type, 
+													alphagenfunc->args[2] + rb.currentShaderTime * alphagenfunc->args[3] );
 					}
-					objectData.colorConst.v[3] = (objectData.colorConst.v[3] * alphagenfunc->args[1]) + alphagenfunc->args[0];
+					objectData.colorConst.v[3] = objectData.colorConst.v[3] * alphagenfunc->args[1] + alphagenfunc->args[0];
 				}
 				break;
 			case ALPHA_GEN_ENTITY:
@@ -1600,7 +1559,14 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 						corner[2] = ( ( j & 4 ) ? visMins[2] : visMaxs[2] );
 					}
 
-					if( !RB_ScissorForBounds( bbox, &groupScissor[0], &groupScissor[1], &groupScissor[2], &groupScissor[3] ) )
+					struct QRectf32_s viewport = {
+						.x = cmd->state.viewports[0].x,
+						.y = cmd->state.viewports[0].y,
+						.w = cmd->state.viewports[0].width,
+						.h = cmd->state.viewports[0].height
+					};
+				
+					if( !RB_ScissorForBounds( bbox, viewport, &groupScissor[0], &groupScissor[1], &groupScissor[2], &groupScissor[3] ) )
 						continue;
 
 					// compute scissor in absolute coordinates
@@ -1932,6 +1898,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 			break;
 		}
 		case GLSL_PROGRAM_TYPE_YUV: {
+			assert(false);
 			mat4_t texMatrix = { 0 };
 
 			// set shaderpass state (blending, depthwrite, etc)
@@ -1994,7 +1961,6 @@ void RB_BindShader( struct frame_cmd_buffer_s *frame, const entity_t *e, const s
 	rb.texFog = rb.colorFog = NULL;
 
 	rb.doneDepthPass = false;
-	rb.dirtyUniformState = true;
 
 	rb.currentEntity = e ? e : &rb.nullEnt;
 	rb.currentModelType = rb.currentEntity->rtype == RT_MODEL && rb.currentEntity->model ? rb.currentEntity->model->type : mod_bad;
@@ -2052,7 +2018,6 @@ void RB_SetLightstyle( const superLightStyle_t *lightStyle )
 {
 	assert( rb.currentShader != NULL );
 	rb.superLightStyle = lightStyle;
-	rb.dirtyUniformState = true;
 
 	RB_UpdateVertexAttribs();
 }
@@ -2064,7 +2029,6 @@ void RB_SetDlightBits( unsigned int dlightBits )
 {
 	assert( rb.currentShader != NULL );
 	rb.currentDlightBits = dlightBits;
-	rb.dirtyUniformState = true;
 }
 
 /*
@@ -2074,7 +2038,6 @@ void RB_SetShadowBits( unsigned int shadowBits )
 {
 	assert( rb.currentShader != NULL );
 	rb.currentShadowBits = shadowBits;
-	rb.dirtyUniformState = true;
 }
 
 /*
@@ -2095,7 +2058,6 @@ void RB_SetBonesData( int numBones, dualquat_t *dualQuats, int maxWeights )
 	memcpy( rb.bonesData.dualQuats, dualQuats, numBones * sizeof( *dualQuats ) );
 	rb.bonesData.maxWeights = maxWeights;
 
-	rb.dirtyUniformState = true;
 
 	RB_UpdateVertexAttribs();
 }
@@ -2107,7 +2069,6 @@ void RB_SetPortalSurface( const portalSurface_t *portalSurface )
 {
 	assert( rb.currentShader != NULL );
 	rb.currentPortalSurface = portalSurface;
-	rb.dirtyUniformState = true;
 }
 
 /*
@@ -2116,7 +2077,6 @@ void RB_SetPortalSurface( const portalSurface_t *portalSurface )
 void RB_SetSkyboxShader( const shader_t *shader )
 {
 	rb.skyboxShader = shader;
-	rb.dirtyUniformState = true;
 }
 
 /*
@@ -2129,21 +2089,6 @@ void RB_SetSkyboxSide( int side )
 	} else {
 		rb.skyboxSide = side;
 	}
-	rb.dirtyUniformState = true;
-}
-
-/*
- * RB_SetInstanceData
- *
- * Internal backend function, only used by RB_DrawElementsReal to upload
- * instance data
- */
-void RB_SetInstanceData( int numInstances, instancePoint_t *instances )
-{
-	if( !rb.currentProgram ) {
-		return;
-	}
-	//RP_UpdateInstancesUniforms( rb.currentProgram, numInstances, instances );
 }
 
 /*
@@ -2176,16 +2121,10 @@ static void RB_RenderPass( struct frame_cmd_buffer_s *cmd, const shaderpass_t *p
 		RB_RenderMeshGLSLProgrammed( cmd, pass, GLSL_PROGRAM_TYPE_Q3A_SHADER );
 	}
 
-	if( rb.dirtyUniformState ) {
-		rb.donePassesTotal = 0;
-		rb.dirtyUniformState = false;
-	}
-
-	if( rb.gl.state & GLSTATE_DEPTHWRITE ) {
+	if( cmd->state.pipelineLayout.depthWrite ) {
 		rb.doneDepthPass = true;
 	}
-
-	rb.donePassesTotal++;
+	
 }
 
 /*
@@ -2195,66 +2134,6 @@ void RB_SetShaderStateMask( int ANDmask, int ORmask )
 {
 	rb.shaderStateANDmask = ANDmask;
 	rb.shaderStateORmask = ORmask;
-}
-
-/*
- * RB_SetShaderState
- */
-static void RB_SetShaderState( void )
-{
-	int state;
-	int shaderFlags = rb.currentShader->flags;
-
-	// Face culling
-	if( !gl_cull->integer || rb.currentEntity->rtype == RT_SPRITE )
-		RB_Cull( 0 );
-	else if( shaderFlags & SHADER_CULL_FRONT )
-		RB_Cull( GL_FRONT );
-	else if( shaderFlags & SHADER_CULL_BACK )
-		RB_Cull( GL_BACK );
-	else
-		RB_Cull( 0 );
-
-	state = 0;
-
-	if( shaderFlags & SHADER_POLYGONOFFSET )
-		state |= GLSTATE_OFFSET_FILL;
-	if( shaderFlags & SHADER_STENCILTEST )
-		state |= GLSTATE_STENCIL_TEST;
-
-	if( rb.noDepthTest )
-		state |= GLSTATE_NO_DEPTH_TEST;
-
-	rb.currentShaderState = ( state & rb.shaderStateANDmask ) | rb.shaderStateORmask;
-}
-
-static void RB_SetShaderState_2( struct frame_cmd_buffer_s *cmd )
-{
-	int state;
-	int shaderFlags = rb.currentShader->flags;
-
-	// Face culling
-	if( !gl_cull->integer || rb.currentEntity->rtype == RT_SPRITE ) {
-		cmd->state.pipelineLayout.cullMode = NriCullMode_NONE;
-	} else if( shaderFlags & SHADER_CULL_FRONT ) {
-		cmd->state.pipelineLayout.cullMode = NriCullMode_FRONT;
-	} else if( shaderFlags & SHADER_CULL_BACK ) {
-		cmd->state.pipelineLayout.cullMode = NriCullMode_BACK;
-	} else {
-		cmd->state.pipelineLayout.cullMode = NriCullMode_NONE;
-	}
-
-	state = 0;
-
-	if( shaderFlags & SHADER_POLYGONOFFSET )
-		state |= GLSTATE_OFFSET_FILL;
-	if( shaderFlags & SHADER_STENCILTEST )
-		state |= GLSTATE_STENCIL_TEST;
-
-	if( rb.noDepthTest )
-		state |= GLSTATE_NO_DEPTH_TEST;
-
-	rb.currentShaderState = ( state & rb.shaderStateANDmask ) | rb.shaderStateORmask;
 }
 
 static void RB_SetShaderpassState_2( struct frame_cmd_buffer_s *cmd, int state )
@@ -2274,24 +2153,6 @@ static void RB_SetShaderpassState_2( struct frame_cmd_buffer_s *cmd, int state )
 	}
 	RB_SetState_2( cmd, state );
 }
-
-/*
- * RB_CleanSinglePass
- *
- * Attempts to reuse current GLSL state: since the dirty flag
- * is not set and there have been no uniform updates, we can simply
- * call glDrawElements with fresh vertex data
- */
-static bool RB_CleanSinglePass( void )
-{
-	// reuse current GLSL state (same program bound, same uniform values)
-	if( !rb.dirtyUniformState && rb.donePassesTotal == 1 ) {
-		RB_DrawElementsReal( &rb.drawElements );
-		return true;
-	}
-	return false;
-}
-
 
 void RB_DrawShadedElements_2( struct frame_cmd_buffer_s *cmd,
 							  int firstVert,
@@ -2320,8 +2181,29 @@ void RB_DrawShadedElements_2( struct frame_cmd_buffer_s *cmd,
 		!( rb.renderFlags & RF_SHADOWMAPVIEW ) ) {
 		addGLSLOutline = true;
 	}
-	RB_SetShaderState_2( cmd );
 
+	// Face culling
+	if( !gl_cull->integer || rb.currentEntity->rtype == RT_SPRITE ) {
+		cmd->state.pipelineLayout.cullMode = NriCullMode_NONE;
+	} else if( rb.currentShader->flags & SHADER_CULL_FRONT ) {
+		cmd->state.pipelineLayout.cullMode = NriCullMode_FRONT;
+	} else if( rb.currentShader->flags & SHADER_CULL_BACK ) {
+		cmd->state.pipelineLayout.cullMode = NriCullMode_BACK;
+	} else {
+		cmd->state.pipelineLayout.cullMode = NriCullMode_NONE;
+	}
+	
+	int state = 0;
+
+	if( rb.currentShader->flags & SHADER_POLYGONOFFSET )
+		state |= GLSTATE_OFFSET_FILL;
+	if( rb.currentShader->flags & SHADER_STENCILTEST )
+		state |= GLSTATE_STENCIL_TEST;
+
+	if( rb.noDepthTest )
+		state |= GLSTATE_NO_DEPTH_TEST;
+	
+	rb.currentShaderState = ( state & rb.shaderStateANDmask ) | rb.shaderStateORmask;
 
 	shaderpass_t *pass;
 	unsigned i;

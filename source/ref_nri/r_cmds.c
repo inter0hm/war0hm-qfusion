@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_frontend.h"
 #include "../qalgo/glob.h"
 
+#include "../qcommon/mod_cmd.h"
+#include "../qcommon/mod_cvar.h"
+
 /*
  * R_Localtime
  */
@@ -158,7 +161,7 @@ void R_ScreenShot_f( void )
 	
 	R_Localtime( time( NULL ), &newtime );
 
-	name = ri.Cmd_Argv( 1 );
+	name = Cmd_Argv( 1 );
 
 	mediadir = FS_MediaDirectory( FS_MEDIA_IMAGES );
 	if( mediadir )
@@ -179,17 +182,17 @@ void R_ScreenShot_f( void )
 	{
 		strftime( timestamp_str, sizeof( timestamp_str ), r_screenshot_fmtstr->string, &newtime );
 		if( !COM_ValidateRelativeFilename( timestamp_str ) )
-			ri.Cvar_ForceSet( r_screenshot_fmtstr->name, r_screenshot_fmtstr->dvalue );
+			Cvar_ForceSet( r_screenshot_fmtstr->name, r_screenshot_fmtstr->dvalue );
 		else
 			break;
 	}
 	
 	// hm... shouldn't really happen, but check anyway
 	if( i == 2 )
-		ri.Cvar_ForceSet( r_screenshot_fmtstr->name, glConfig.screenshotPrefix );
+		Cvar_ForceSet( r_screenshot_fmtstr->name, glConfig.screenshotPrefix );
 
 	RF_ScreenShot( path, name, r_screenshot_fmtstr->string,
-				  ri.Cmd_Argc() >= 3 && !Q_stricmp( ri.Cmd_Argv( 2 ), "silent" ) ? true : false );
+				  Cmd_Argc() >= 3 && !Q_stricmp( Cmd_Argv( 2 ), "silent" ) ? true : false );
 }
 
 /*
@@ -278,7 +281,7 @@ void R_EnvShot_f( void )
 	if( !rsh.worldModel )
 		return;
 
-	if( ri.Cmd_Argc() != 3 )
+	if( Cmd_Argc() != 3 )
 	{
 		Com_Printf( "usage: envshot <name> <size>\n" );
 		return;
@@ -290,7 +293,7 @@ void R_EnvShot_f( void )
 	path = alloca( path_size );
 	Q_snprintfz( path, path_size, "%s/%s/env/", writedir, gamedir );
 
-	RF_EnvShot( path, ri.Cmd_Argv( 1 ), atoi( ri.Cmd_Argv( 2 ) ) );
+	RF_EnvShot( path, Cmd_Argv( 1 ), atoi( Cmd_Argv( 2 ) ) );
 }
 
 /*
@@ -309,7 +312,7 @@ static bool R_GlobFilter( const char *pattern, const char *value )
 */
 void R_ImageList_f( void )
 {
-	R_PrintImageList( ri.Cmd_Argv( 1 ), R_GlobFilter );
+	R_PrintImageList( Cmd_Argv( 1 ), R_GlobFilter );
 }
 
 /*
@@ -317,7 +320,7 @@ void R_ImageList_f( void )
 */
 void R_ShaderList_f( void )
 {
-	R_PrintShaderList( ri.Cmd_Argv( 1 ), R_GlobFilter );
+	R_PrintShaderList( Cmd_Argv( 1 ), R_GlobFilter );
 }
 
 /*
@@ -330,16 +333,16 @@ void R_ShaderDump_f( void )
 	
 	debugSurface = R_GetDebugSurface();
 
-	if( (ri.Cmd_Argc() < 2) && !debugSurface )
+	if( (Cmd_Argc() < 2) && !debugSurface )
 	{
-		Com_Printf( "Usage: %s [name]\n", ri.Cmd_Argv(0) );
+		Com_Printf( "Usage: %s [name]\n", Cmd_Argv(0) );
 		return;
 	}
 
-	if( ri.Cmd_Argc() < 2 )
+	if( Cmd_Argc() < 2 )
 		name = debugSurface->shader->name;
 	else
-		name = ri.Cmd_Argv( 1 );
+		name = Cmd_Argv( 1 );
 
 	R_PrintShaderCache( name );
 }
