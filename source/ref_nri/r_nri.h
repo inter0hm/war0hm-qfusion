@@ -15,6 +15,8 @@
 #include "Extensions/NRISwapChain.h"
 #include "Extensions/NRIWrapperVK.h"
 
+#include "r_device.h"
+
 #include "vulkan/vulkan.h"
 
 const static NriSwapChainFormat DefaultSwapchainFormat = NriSwapChainFormat_BT709_G22_8BIT;

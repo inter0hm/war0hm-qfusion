@@ -332,7 +332,7 @@ endif()
 
 
 if(USE_PACKAGE_ASSETS)
-    add_custom_target(deploy ALL
+    add_custom_target(deploy
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
              COMMAND ${CMAKE_COMMAND} 
              -DBIN_DIR=${CMAKE_BINARY_DIR}/warfork-qfusion

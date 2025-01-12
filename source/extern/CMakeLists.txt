@@ -8,6 +8,10 @@ if (NOT GAME_MODULES_ONLY)
     option(ENABLE_CTEST OFF)
 
     add_subdirectory(glslang)
+ 
+    
+    option(VOLK_INSTALL "" OFF)
+    add_subdirectory(volk) 
   endif()
 
 if(USE_SYSTEM_ZLIB)
