@@ -15,7 +15,7 @@
 #include "Extensions/NRISwapChain.h"
 #include "Extensions/NRIWrapperVK.h"
 
-#include "r_device.h"
+#include "r_graphics.h"
 
 #include "vulkan/vulkan.h"
 

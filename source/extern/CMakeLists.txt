@@ -8,8 +8,8 @@ if (NOT GAME_MODULES_ONLY)
     option(ENABLE_CTEST OFF)
 
     add_subdirectory(glslang)
- 
     
+    set(VULKAN_HEADERS_INSTALL_DIR "{CMAKE_CURRENT_SOURCE_DIR}/Vulkan-Headers" )
     option(VOLK_INSTALL "" OFF)
     add_subdirectory(volk) 
   endif()

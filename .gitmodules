@@ -31,3 +31,6 @@
 [submodule "source/extern/volk"]
 	path = source/extern/volk
 	url = https://github.com/TeamForbiddenLLC/volk.git
+[submodule "source/extern/Vulkan-Headers"]
+	path = source/extern/Vulkan-Headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers.git
