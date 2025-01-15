@@ -91,61 +91,73 @@
 
 #endif
 
-#define R_VK_UTILITY_INSERT(current, next) { \
-  const void* __pNext = (current)->pNext; \
+#define R_VK_ADD_FEATURE(current, next) { \
+  void* __pNext = (current)->pNext; \
   (current)->pNext = (next); \
   (next)->pNext = __pNext; \
 }
 
+#define RI_DEVICE_MAX_QUEUE 4
+#define RI_QUEUE_RENDERER_BIT  0x1
+#define RI_QUEUE_TRANSFER_BIT  0x2
+#define RI_QUEUE_BINDLESS_BIT  0x4
 
-enum r_device_api {
-  DEVICE_API_UNKNOWN,
-  DEVICE_API_VK, 
-  DEVICE_API_D3D11, 
-  DEVICE_API_D3D12, 
-  DEVICE_API_MTL 
+enum RIDeviceAPI_e {
+  RI_DEVICE_API_UNKNOWN,
+  RI_DEVICE_API_VK, 
+  RI_DEVICE_API_D3D11, 
+  RI_DEVICE_API_D3D12, 
+  RI_DEVICE_API_MTL 
 };
 
-enum r_graphics_result_e {
-  R_GRAPHICS_FAIL = -1,
-  R_GRAPHICS_SUCCESS = 0,
-  R_GRAPHICS_INCOMPLETE 
+enum RIResult_e {
+  RI_FAIL = -1,
+  RI_SUCCESS = 0,
+  RI_INCOMPLETE 
 };
 
-struct r_GPU_device_s {
-  union {
-    #if(DEVICE_IMPL_VULKAN)
-    #endif
-    #if(DEVICE_IMPL_MTL)
-    #endif
-  };
+enum RIVendor_e {
+    RI_UNKNOWN,
+    RI_NVIDIA,
+    RI_AMD,
+    RI_INTEL
 };
 
-struct r_GPU_physical_devices_s {
-};
+const char* RIResultToString(enum RIResult_e res);
 
-struct r_device_desc_s {
-
-};
-
-struct r_renderer_s {
-  uint8_t api; // r_device_api 
+struct RICmdQueue_s {
+  struct RIRenderer_s* renderer;
+  uint8_t features;
   union {
     #if(DEVICE_IMPL_VULKAN)
       struct {
-        VkInstance instance;       
-        VkAllocationCallbacks vkAllocationCallback;
+        VkQueue queue;
       } vk;
     #endif
+  };
 
+};
+
+
+
+
+
+struct RIRenderer_s {
+  uint8_t api; // RIDeviceAPI_e  
+  union {
+    #if(DEVICE_IMPL_VULKAN)
+      struct {
+        VkInstance instance;
+        VkDebugUtilsMessengerEXT debugMessageUtils;
+      } vk;
+    #endif
   };
 };
 
 
-struct r_backend_init_s {
-  enum r_device_api api;
+struct RIBackendInit_s {
+  uint8_t api; // RIDeviceAPI_e 
   const char* applicationName;
-
   union {
     #if(DEVICE_IMPL_VULKAN)
     struct {
@@ -160,12 +172,65 @@ struct r_backend_init_s {
 };
 
 
+struct RIPhysicalAdapter_s {
+	char name[256];
+	uint64_t luid;
+	uint64_t videoMemorySize;
+	uint64_t systemMemorySize;
+	uint32_t deviceId;
+	uint8_t vendor; // RIVendor_e
+	union {
+    #if(DEVICE_IMPL_VULKAN)
+    struct {
+      VkPhysicalDevice physicalDevice; 
+    } vk; 
+    #endif
+    #if(DEVICE_IMPL_MTL)
+    #endif
+  };
+};
 
-int initRenderer(const struct r_backend_init_s* api, struct r_renderer_s* renderer);
-void shutdownGPUBackend(struct r_renderer_s* renderer);
+struct RIDevice_s {
+  struct RIRenderer_s* renderer;
+  struct RIPhysicalAdapter_s adapter;
 
-int enumerateAdapters(struct r_renderer_s* renderer,struct r_GPU_physical_devices_s* adapters, uint32_t* numAdapters);
-int initGPUDevice(struct r_device_desc_s* init, struct r_GPU_device_s device);
-int freeGPUDevice(struct r_GPU_device_s*  dev);
+  uint8_t numQueues;
+  struct RICmdQueue_s queues[RI_DEVICE_MAX_QUEUE];
+  union {
+    #if(DEVICE_IMPL_VULKAN)
+    struct {
+      VkDevice device; 
+    } vk; 
+    #endif
+    #if(DEVICE_IMPL_MTL)
+    #endif
+  };
+};
+
+
+struct RIDeviceInit_s {
+  struct RIPhysicalAdapter_s* physicalAdapter;
+};
+
+static inline enum RIVendor_e VendorFromID(uint32_t vendorID) {
+    switch (vendorID) {
+        case 0x10DE:
+            return RI_NVIDIA;
+        case 0x1002:
+            return RI_AMD;
+        case 0x8086:
+            return RI_INTEL;
+    }
+
+    return RI_UNKNOWN;
+}
+
+
+int InitRIRenderer(const struct RIBackendInit_s* api, struct RIRenderer_s* renderer);
+void ShutdownRIRenderer(struct RIRenderer_s* renderer);
+
+int EnumerateRIAdapters(struct RIRenderer_s* renderer,struct RIPhysicalAdapter_s* adapters, uint32_t* numAdapters);
+int InitRIDevice(struct RIDeviceInit_s* init, struct RIDevice_s device);
+int FreeRIDevice(struct RIDevice_s*  dev);
 
 #endif

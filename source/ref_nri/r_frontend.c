@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "NRIDescs.h"
 #include "r_frame_cmd_buffer.h"
+#include "r_graphics.h"
 #include "r_image.h"
 #include "r_local.h"
 #include "r_nri.h"
@@ -28,6 +29,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stb_ds.h"
 #include "r_capture.h"
+
+
+
 
 static ref_frontend_t rrf;
 
@@ -120,17 +124,33 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 	if( !screenshotPrefix ) screenshotPrefix = "";
 	
 	R_WIN_Init(applicationName, hinstance, wndproc, parenthWnd, iconResource, iconXPM);
-	nri_init_desc_t desc = {
-		.enableApiValidation = true,
-		.enableNriValidation = true,
-		.api = NriGraphicsAPI_VK
-	};		
-	
-	if(!R_InitNriBackend(&desc, &rsh.nri)) {
+	//nri_init_desc_t desc = {
+	//	.enableApiValidation = true,
+	//	.enableNriValidation = true,
+	//	.api = NriGraphicsAPI_VK
+	//};		
+
+	struct RIBackendInit_s backendInit = {};
+	backendInit.api = RI_DEVICE_API_VK;
+	backendInit.applicationName = applicationName;
+	backendInit.vk.enableValidationLayer = true;
+	enum RIResult_e res = InitRIRenderer(&backendInit, &rsh.renderer);
+	if(res != RI_SUCCESS) {
 		return rserr_unknown;
 	}
 
-	rf.applicationName= R_CopyString( applicationName );
+	uint32_t numAdapters = 0;
+	EnumerateRIAdapters(&rsh.renderer, NULL, &numAdapters);
+	struct RIPhysicalAdapter_s* phyiscalAdapters = alloca(sizeof(struct RIPhysicalAdapter_s) * numAdapters);
+	EnumerateRIAdapters(&rsh.renderer, phyiscalAdapters, &numAdapters);
+	uint32_t selectedAdapterIdx = 0;
+	for( size_t i = 0; i < numAdapters; i++ ) {
+		if( phyiscalAdapters[i].videoMemorySize > phyiscalAdapters[selectedAdapterIdx].videoMemorySize ) {
+			selectedAdapterIdx = i;
+		}
+	}
+
+	rf.applicationName = R_CopyString( applicationName );
 	rf.screenshotPrefix = R_CopyString( screenshotPrefix );
 	rf.startupColor = startupColor;
 

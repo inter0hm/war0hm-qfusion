@@ -39,6 +39,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_nri.h"
 #include "r_texture_buf.h"
 #include "../qcommon/mod_win.h"
+#include "r_graphics.h"
+
 
 typedef struct { char *name; void **funcPointer; } dllfunc_t;
 
@@ -309,6 +311,7 @@ typedef struct
 	struct nri_descriptor_s shadowSamplerDescriptor;
 
  	struct nri_backend_s nri;
+ 	struct RIRenderer_s renderer;
 
 	uint64_t frameCount;
 	uint64_t swapchainCount;

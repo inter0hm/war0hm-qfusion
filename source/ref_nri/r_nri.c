@@ -117,7 +117,7 @@ bool R_InitNriBackend(const nri_init_desc_t* init, struct nri_backend_s* backend
 			deviceCreationDesc.graphicsAPI = NriGraphicsAPI_VK;
 
 #ifndef NDEBUG
-			deviceCreationDesc.enableGraphicsAPIValidation = true;
+			deviceCreationDesc.enableGraphicsAPIValidation = false;
 			deviceCreationDesc.enableNRIValidation = true;
 #else
       deviceCreationDesc.enableGraphicsAPIValidation = false;

@@ -2,8 +2,6 @@
 #include "../gameshared/q_arch.h"
 #include "ref_mod.h"
 
-
-
 #if ( DEVICE_IMPL_VULKAN )
 inline static bool __vk_isExtensionSupported( const char *targetExt, VkExtensionProperties *properties, size_t numExtensions )
 {
@@ -16,11 +14,40 @@ inline static bool __vk_isExtensionSupported( const char *targetExt, VkExtension
 	return false;
 }
 
-VkBool32 VKAPI_PTR __VK_DebugUtilsMessenger(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* callbackData, void* userData) {
+VkBool32 VKAPI_PTR __VK_DebugUtilsMessenger( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+											 VkDebugUtilsMessageTypeFlagsEXT messageType,
+											 const VkDebugUtilsMessengerCallbackDataEXT *callbackData,
+											 void *userData )
+{
+	switch( messageSeverity ) {
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+			Com_Printf( "KV ERROR: %s", callbackData->pMessage );
+			break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+			Com_Printf( "KV WARNING: %s", callbackData->pMessage );
+			break;
+		default:
+			Com_Printf( "KV INFO: %s", callbackData->pMessage );
+			break;
+	}
+	return VK_FALSE;
 }
 #endif
 
-int initRenderer( const struct r_backend_init_s *init, struct r_renderer_s *renderer )
+const char* RIResultToString(enum RIResult_e res) {
+	switch(res) {
+  	case RI_FAIL: 
+  		return "RI_FAIL";
+  	case RI_SUCCESS:
+  		return "RI_SUCCESS";
+  	case RI_INCOMPLETE:
+  		return "RI_INCOMPLETE";
+	}
+	return "RI_UNKNOWN";
+}
+
+
+int InitRIRenderer( const struct RIBackendInit_s *init, struct RIRenderer_s *renderer )
 {
 	renderer->api = init->api;
 	GPU_VULKAN_BLOCK( renderer, {
@@ -101,15 +128,18 @@ int initRenderer( const struct r_backend_init_s *init, struct r_renderer_s *rend
 			}
 			free( extProperties );
 		}
-		
-		VkResult result = vkCreateInstance( &instanceCreateInfo, &renderer->vk.vkAllocationCallback, &renderer->vk.instance );
+
+		if( init->vk.enableValidationLayer ) {
+			R_VK_ADD_FEATURE( &instanceCreateInfo, &validationFeatures );
+		}
+
+		VkResult result = vkCreateInstance( &instanceCreateInfo, NULL, &renderer->vk.instance);
 		if(result != VK_SUCCESS) { 
 			Com_Printf("Vulkan failed error - vk: %d", result);
-			return R_GRAPHICS_FAIL;  
+			return RI_FAIL;  
 		}
 
 		if( init->vk.enableValidationLayer ) {
-			R_VK_UTILITY_INSERT( &instanceCreateInfo, &validationFeatures );
 			VkDebugUtilsMessengerCreateInfoEXT createInfo = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
 			createInfo.pUserData = renderer;
 			createInfo.pfnUserCallback = __VK_DebugUtilsMessenger;
@@ -119,50 +149,85 @@ int initRenderer( const struct r_backend_init_s *init, struct r_renderer_s *rend
 
 			createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
 			createInfo.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-
-			vkCreateDebugUtilsMessengerEXT( renderer->vk.instance, &createInfo, &renderer->vk.vkAllocationCallback, NULL );
+			vkCreateDebugUtilsMessengerEXT( renderer->vk.instance, &createInfo, NULL, &renderer->vk.debugMessageUtils);
 		}
 
-		// Com_Printf ("Creating VkInstance with %ti enabled instance layers:", arrlen(layerTemp));
-		// for (int i = 0; i < arrlen(layerTemp); i++)
-		//     LOGF(eINFO, "\tLayer %i: %s", i, layerTemp[i]);
-
-		// renderer->vk.instance =
 	} );
+	return RI_SUCCESS; 
 }
 
-void shutdownGPUBackend(struct r_renderer_s* renderer)
+void ShutdownRIRenderer(struct RIRenderer_s* renderer)
 {
-	GPU_VULKAN_BLOCK(renderer, { volkFinalize(); } )
+	GPU_VULKAN_BLOCK(renderer, { 
+		vkDestroyDebugUtilsMessengerEXT(renderer->vk.instance, renderer->vk.debugMessageUtils, NULL);
+
+		vkDestroyInstance(renderer->vk.instance, NULL);
+		volkFinalize(); 
+	})
 }
 
-int initGPUDevice( struct r_device_desc_s *init, struct r_GPU_device_s device ) {}
+int InitRIDevice(struct RIDeviceInit_s* init, struct RIDevice_s device) {
+	assert(init->physicalAdapter);
 
-int enumerateAdapters(struct r_renderer_s* renderer, struct r_GPU_physical_devices_s* adapters, uint32_t* numAdapters) {
-  GPU_VULKAN_BLOCK(renderer ,{
+	struct RIPhysicalAdapter_s* physicalAdapter = init->physicalAdapter;
+	memcpy(&device.adapter, physicalAdapter, sizeof(struct RIPhysicalAdapter_s));
+  
+  VkDeviceCreateInfo deviceCreateInfo = {VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 
-    // Create instance
-    VkApplicationInfo applicationInfo = {};
-    applicationInfo.apiVersion = VK_API_VERSION_1_3;
+	GPU_VULKAN_BLOCK( renderer, {
+		vkCreateDevice(physicalAdapter->vk.physicalDevice, &deviceCreateInfo, NULL, &device.vk.device );
 
-    VkInstanceCreateInfo instanceCreateInfo = {VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
-    instanceCreateInfo.pApplicationInfo = &applicationInfo;
-    VkInstance instance = VK_NULL_HANDLE;
-    VkResult result = vkCreateInstance(&instanceCreateInfo, NULL, &instance);
-    
-    if(adapters == NULL) {
+	});
 
-    } else {
-
-
-    }
-
-    if (instance)
-        vkDestroyInstance(instance, NULL);
-
-  });
-
-  return -1;
+	return RI_SUCCESS;
 }
 
-int freeGPUDevice( struct r_GPU_device_s *dev ) {}
+int EnumerateRIAdapters( struct RIRenderer_s *renderer, struct RIPhysicalAdapter_s *adapters, uint32_t *numAdapters )
+{
+	GPU_VULKAN_BLOCK( renderer, {
+		uint32_t deviceGroupNum = 0;
+		VkResult result = vkEnumeratePhysicalDeviceGroups( renderer->vk.instance, &deviceGroupNum, NULL );
+		if( result != VK_SUCCESS ) {
+			Com_Printf( "Vulkan failed error - vk: %d", result );
+			return RI_FAIL;
+		}
+
+		if( adapters ) {
+			VkPhysicalDeviceGroupProperties *physicalDeviceGroupProperties = alloca( sizeof( VkPhysicalDeviceGroupProperties ) * deviceGroupNum );
+			result = vkEnumeratePhysicalDeviceGroups( renderer->vk.instance, &deviceGroupNum, physicalDeviceGroupProperties );
+			assert( ( *numAdapters ) >= deviceGroupNum );
+
+			for( size_t i = 0; i < deviceGroupNum; i++ ) {
+				struct RIPhysicalAdapter_s *physicalAdapter = &adapters[i];
+
+				VkPhysicalDeviceIDProperties deviceIDProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES };
+				VkPhysicalDeviceProperties2 properties2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+				R_VK_ADD_FEATURE( &properties2, &deviceIDProperties );
+
+				VkPhysicalDevice physicalDevice = physicalDeviceGroupProperties[i].physicalDevices[0];
+
+				VkPhysicalDeviceMemoryProperties memoryProperties = {};
+				vkGetPhysicalDeviceMemoryProperties( physicalDevice, &memoryProperties );
+				vkGetPhysicalDeviceProperties2( physicalDevice, &properties2 );
+
+				memset( physicalAdapter, 0, sizeof( struct RIPhysicalAdapter_s ) );
+				physicalAdapter->luid = *(uint64_t *)&deviceIDProperties.deviceLUID[0];
+				physicalAdapter->deviceId = properties2.properties.deviceID;
+				physicalAdapter->vendor = VendorFromID( properties2.properties.vendorID );
+				physicalAdapter->vk.physicalDevice = physicalDevice;
+				for( uint32_t k = 0; k < memoryProperties.memoryHeapCount; k++ ) {
+					if( memoryProperties.memoryHeaps[k].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT )
+						physicalAdapter->videoMemorySize += memoryProperties.memoryHeaps[k].size;
+					else
+						physicalAdapter->systemMemorySize += memoryProperties.memoryHeaps[k].size;
+				}
+			}
+		} else {
+			( *numAdapters ) = deviceGroupNum;
+		}
+	} );
+
+	return RI_SUCCESS;
+}
+
+int FreeRIDevice( struct RIDevice_s *dev ) {}
