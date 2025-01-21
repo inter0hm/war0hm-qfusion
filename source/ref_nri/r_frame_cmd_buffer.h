@@ -12,6 +12,7 @@
 
 #include "../gameshared/q_sds.h"
 
+#include "r_graphics.h"
 
 #include "qhash.h"
 
@@ -136,6 +137,15 @@ struct ubo_frame_instance_s {
 };
 
 struct frame_cmd_buffer_s {
+
+  union {
+    #if(DEVICE_IMPL_VULKAN)
+    struct {
+    	VkCommandPool pool;
+    } vk;
+		#endif
+  };
+	struct RICmd_s command;
 
 	uint64_t frameCount; // this value is bound by NUMBER_FRAMES_FLIGHT
 	struct block_buffer_pool_s uboBlockBuffer; 

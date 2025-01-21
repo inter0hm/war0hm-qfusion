@@ -312,6 +312,7 @@ typedef struct
 
  	struct nri_backend_s nri;
  	struct RIRenderer_s renderer;
+ 	struct RIDevice_s device;
 
 	uint64_t frameCount;
 	uint64_t swapchainCount;

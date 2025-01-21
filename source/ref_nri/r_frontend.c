@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stb_ds.h"
 #include "r_capture.h"
+#include <vulkan/vulkan_core.h>
 
 
 
@@ -139,6 +140,7 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 		return rserr_unknown;
 	}
 
+
 	uint32_t numAdapters = 0;
 	EnumerateRIAdapters(&rsh.renderer, NULL, &numAdapters);
 	struct RIPhysicalAdapter_s* phyiscalAdapters = alloca(sizeof(struct RIPhysicalAdapter_s) * numAdapters);
@@ -149,6 +151,9 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 			selectedAdapterIdx = i;
 		}
 	}
+	struct RIDeviceInit_s deviceInit = {};
+	deviceInit.physicalAdapter = &phyiscalAdapters[selectedAdapterIdx];
+	InitRIDevice(&rsh.renderer, &deviceInit, &rsh.device );
 
 	rf.applicationName = R_CopyString( applicationName );
 	rf.screenshotPrefix = R_CopyString( screenshotPrefix );
@@ -166,17 +171,41 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 		ri.Com_Error(ERR_DROP, "failed to create window" );
 		return rserr_unknown;
 	}
-
-	rsh.shadowSamplerDescriptor = R_CreateDescriptorWrapper( &rsh.nri, R_ResolveSamplerDescriptor( IT_DEPTHCOMPARE | IT_SPECIAL | IT_DEPTH ) );
-	assert(rsh.frameFence == NULL);
-	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateFence( rsh.nri.device, 0, &rsh.frameFence ) );
-	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.GetCommandQueue(rsh.nri.device, NriCommandQueueType_GRAPHICS, &rsh.cmdQueue) )
-
+	
 	const struct block_buffer_pool_desc_s uboBlockBufferDesc = {
 		.blockSize = UBOBlockerBufferSize,
 		.alignmentReq = UBOBlockerBufferAlignmentReq,
-		.usageBits = NriBufferUsageBits_CONSTANT_BUFFER | NriBufferUsageBits_SHADER_RESOURCE
+		.usageBits = RI_BUFFER_USAGE_CONSTANT_BUFFER | RI_BUFFER_USAGE_SHADER_RESOURCE
 	};
+	
+	rsh.shadowSamplerDescriptor = R_CreateDescriptorWrapper( &rsh.nri, R_ResolveSamplerDescriptor( IT_DEPTHCOMPARE | IT_SPECIAL | IT_DEPTH ) );
+	GPU_VULKAN_BLOCK( renderer, ( {
+						  for( size_t i = 0; i < NUMBER_FRAMES_FLIGHT; i++ ) {
+							  VkCommandPoolCreateInfo commandPoolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+							  commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+							  commandPoolInfo.queueFamilyIndex = rsh.device.queues[RI_QUEUE_GRAPHICS].vk.queueFamilyIdx;
+							  VkResult result = vkCreateCommandPool( rsh.device.vk.device, &commandPoolInfo, NULL, &rsh.frameCmds[i].vk.pool );
+							  if( result != VK_SUCCESS ) {
+								  Com_Printf( "Vulkan failed error - vk: %d", result );
+								  return rserr_unknown;
+							  }
+
+							  VkCommandBufferAllocateInfo info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+							  info.commandPool = rsh.frameCmds[i].vk.pool;
+							  info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+							  info.commandBufferCount = 1;
+							  result = vkAllocateCommandBuffers( rsh.device.vk.device, &info, &rsh.frameCmds[i].command.vk.cmd );
+							  if( result != VK_SUCCESS ) {
+								  Com_Printf( "Vulkan failed error - vk: %d", result );
+								  return rserr_unknown;
+							  }
+								InitBlockBufferPool( &rsh.nri, &rsh.frameCmds[i].uboBlockBuffer, &uboBlockBufferDesc );
+						  }
+	}));
+
+	assert(rsh.frameFence == NULL);
+	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateFence( rsh.nri.device, 0, &rsh.frameFence ) );
+	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.GetCommandQueue(rsh.nri.device, NriCommandQueueType_GRAPHICS, &rsh.cmdQueue) )
 
 	for(size_t i = 0; i < NUMBER_FRAMES_FLIGHT; i++) {
 		rsh.frameCmds[i].frameCount = i;
@@ -254,7 +283,13 @@ rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, b
 				break;
 		}
 
-		NriSwapChainDesc swapChainDesc = { .commandQueue = rsh.nri.graphicsCommandQueue, .width = width, .height = height, .format = DefaultSwapchainFormat, .textureNum = 3, .window = nriWindow };
+		NriSwapChainDesc swapChainDesc = { 
+			.commandQueue = rsh.nri.graphicsCommandQueue, 
+			.width = width, 
+			.height = height, 
+			.format = DefaultSwapchainFormat, 
+			.textureNum = 3, 
+			.window = nriWindow };
 		__ShutdownSwapchainTexture();
 
 		assert(rsh.frameFence == NULL);

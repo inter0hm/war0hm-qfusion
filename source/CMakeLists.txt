@@ -48,6 +48,9 @@ option(GAME_MODULES_ONLY "Only build game modules" OFF)
 option(BUILD_STEAMLIB "Include the steamlib module (requires Steamworks SDK)" OFF)
 option(USE_GRAPHICS_NRI "Build using Nvidia NRI" OFF)
 
+option(USE_GRAPHICS_X11 "Build using X11" ON)
+option(USE_GRAPHICS_WAYLAND "Build using wayland" ON)
+
 OPTION(USE_SYSTEM_ZLIB "Prefer system ZLIB instead of the bundled one" OFF)
 OPTION(USE_SYSTEM_OPENAL "Prefer system OpenAL Soft instead of the bundled one" OFF)
 OPTION(USE_SYSTEM_CURL "Prefer system cURL instead of the bundled one" OFF)
