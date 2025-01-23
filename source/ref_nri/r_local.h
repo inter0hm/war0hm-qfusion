@@ -314,6 +314,8 @@ typedef struct
  	struct RIRenderer_s renderer;
  	struct RIDevice_s device;
 
+	struct RISwapchain_s riSwapchain;
+
 	uint64_t frameCount;
 	uint64_t swapchainCount;
  	NriCommandQueue* cmdQueue;

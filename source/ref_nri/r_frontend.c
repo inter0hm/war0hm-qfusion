@@ -151,7 +151,7 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 			selectedAdapterIdx = i;
 		}
 	}
-	struct RIDeviceInit_s deviceInit = {};
+	struct RIDeviceDesc_s deviceInit = {};
 	deviceInit.physicalAdapter = &phyiscalAdapters[selectedAdapterIdx];
 	InitRIDevice(&rsh.renderer, &deviceInit, &rsh.device );
 
@@ -265,23 +265,50 @@ rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, b
 		return rserr_unknown;
 	}
 	{
+		struct RIWindowHandle_s windowHandle = {};
+		
 		NriWindow nriWindow = { 0 };
 		switch( handle.winType ) {
 			case VID_WINDOW_WAYLAND:
+				windowHandle.type = RI_WINDOW_WAYLAND;
+				windowHandle.wayland.surface = handle.window.wayland.surface; 
+				windowHandle.wayland.display = handle.window.wayland.display; 
+
 				nriWindow.wayland.surface = handle.window.wayland.surface;
 				nriWindow.wayland.display = handle.window.wayland.display;
 				break;
 			case VID_WINDOW_TYPE_X11:
+				windowHandle.type = RI_WINDOW_X11;
+				windowHandle.x11.window = handle.window.x11.window; 
+				windowHandle.x11.dpy = handle.window.x11.dpy; 
+				
 				nriWindow.x11.window = handle.window.x11.window;
 				nriWindow.x11.dpy = handle.window.x11.dpy;
 				break;
 			case VID_WINDOW_WIN32:
+				windowHandle.type = RI_WINDOW_WIN32;
+				windowHandle.windows.hwnd = handle.window.win.hwnd; 
+				
 				nriWindow.windows.hwnd = handle.window.win.hwnd;
 				break;
 			default:
 				assert( false );
 				break;
 		}
+		struct RISwapchainDesc_s swapchainInit = {};
+		swapchainInit.windowHandle = &windowHandle;
+		swapchainInit.imageCount = 3;
+		swapchainInit.queue = &rsh.device.queues[RI_QUEUE_GRAPHICS];
+		swapchainInit.width = width;
+		swapchainInit.height = height;
+		swapchainInit.format = RI_SWAPCHAIN_BT709_G22_8BIT;
+		InitRISwapchain(&rsh.device, &swapchainInit, &rsh.riSwapchain);
+
+		arrsetlen( rsh.backBuffers, rsh.riSwapchain.imageCount);
+		for( uint32_t i = 0; i < rsh.riSwapchain.imageCount; i++ ) {
+			rsh.backBuffers[i].riColorTexture = rsh.riSwapchain.images + i;
+		}
+
 
 		NriSwapChainDesc swapChainDesc = { 
 			.commandQueue = rsh.nri.graphicsCommandQueue, 
@@ -308,7 +335,10 @@ rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, b
 			rsh.backBuffers[i].colorTexture = swapChainTextures[i];
 			rsh.backBuffers[i].postProcessingSampler = R_ResolveSamplerDescriptor( IT_NOFILTERING );
 			{
-				NriTexture2DViewDesc textureViewDesc = { swapChainTextures[i], NriTexture2DViewType_COLOR_ATTACHMENT, swapChainDesc->format };
+				NriTexture2DViewDesc textureViewDesc = { 
+					swapChainTextures[i],
+					NriTexture2DViewType_COLOR_ATTACHMENT, 
+					swapChainDesc->format };
 				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &rsh.backBuffers[i].colorAttachment ) );
 			}
 
@@ -336,7 +366,9 @@ rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, b
 				rsh.backBuffers[i].memoryLen += numAllocations;
 
 				NriTexture2DViewDesc attachmentViewDesc = {
-					.texture = rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture, .viewType = NriTexture2DViewType_COLOR_ATTACHMENT, .format = textureDesc.format };
+					.texture = rsh.backBuffers[i].pogoBuffers[pogoIdx].colorTexture, 
+					.viewType = NriTexture2DViewType_COLOR_ATTACHMENT, 
+					.format = textureDesc.format };
 				NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &attachmentViewDesc, &rsh.backBuffers[i].pogoBuffers[pogoIdx].colorAttachment ) );
 
 				NriTexture2DViewDesc shaderViewDesc = {

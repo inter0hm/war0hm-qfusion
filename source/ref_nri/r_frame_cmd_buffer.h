@@ -105,9 +105,13 @@ struct frame_tex_buffers_s {
 	NriRect screen; 	
 	NriDescriptor *colorAttachment;
 	NriTexture *colorTexture;
+
+	struct RITexture_s* riColorTexture;
 	
 	NriDescriptor *depthAttachment;
 	NriTexture* depthTexture;
+	
+	struct RITexture_s* riDepthTexture;
 
 	// used for post processing
 	struct pogo_buffers_s {
