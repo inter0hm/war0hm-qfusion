@@ -46,7 +46,6 @@
 
 #if(DEVICE_IMPL_MUTLI)
 
-
 #if(DEVICE_IMPL_VULKAN)
   #define GPU_VULKAN_BLOCK(backend, block) if(backend->api == DEVICE_API_VK) { Q_UNPAREN(block) }
 #else
@@ -147,13 +146,12 @@ enum RITextureViewType_s {
 };
 
 enum RIUsageBits_e {
-	RI_USAGE_NONE,
-	RI_USAGE_RESOURCE,
-	RI_USAGE_RESOURCE_STORAGE,
-	RI_USAGE_COLOR_ATTACHMENT,
-	RI_USAGE_DEPTH_STENCIL_ATTACHMENT,
-	RI_USAGE_SHADING_RATE,
-
+	RI_USAGE_NONE = 0,
+	RI_USAGE_SHADER_RESOURCE = 0x1,
+	RI_USAGE_SHADER_RESOURCE_STORAGE = 0x2,
+	RI_USAGE_COLOR_ATTACHMENT = 0x4,
+	RI_USAGE_DEPTH_STENCIL_ATTACHMENT = 0x8,
+	RI_USAGE_SHADING_RATE = 0x10,
 };
 
 enum RISampleCount_e
@@ -606,18 +604,5 @@ struct RIDevice_s {
     #endif
   };
 };
-
-static inline enum RIVendor_e VendorFromID(uint32_t vendorID) {
-    switch (vendorID) {
-		case 0x10DE:
-			return RI_NVIDIA;
-		case 0x1002:
-			return RI_AMD;
-		case 0x8086:
-			return RI_INTEL;
-	}
-	return RI_UNKNOWN;
-}
-
 
 #endif
