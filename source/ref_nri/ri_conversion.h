@@ -30,28 +30,6 @@ static inline VkImageType ri_vk_RITextureTypeToVKImageType( enum RITextureType_e
 	assert( false );
 	return VK_IMAGE_TYPE_MAX_ENUM;
 }
-
-static inline VkImageType ri_vk_RIUsageBitsToVkImageUsageFlags( enum RIUsageBits_e e )
-{
-	VkImageUsageFlags flags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-	if( e & RI_USAGE_SHADER_RESOURCE )
-		flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
-
-	if( e & RI_USAGE_SHADER_RESOURCE_STORAGE )
-		flags |= VK_IMAGE_USAGE_STORAGE_BIT;
-
-	if( e & RI_USAGE_COLOR_ATTACHMENT )
-		flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-	if( e & RI_USAGE_DEPTH_STENCIL_ATTACHMENT )
-		flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-	if( e & RI_USAGE_SHADING_RATE )
-		flags |= VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
-
-	return flags;
-}
 #endif
 
 #endif

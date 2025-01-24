@@ -9,7 +9,6 @@
 
 #define VK_USE_PLATFORM_XLIB_KHR 1
 #define VK_NO_PROTOTYPES 1
-#include <vulkan/vulkan_core.h>
 // #include <vulkan/vulkan_xlib.h>
 // #include <vulkan/vulkan_wayland.h>
 

@@ -6,8 +6,6 @@
 #include "../gameshared/q_arch.h"
 #include "math/qmath.h"
 #include "qtypes.h"
-#include "ri_format.h"
-
 
 #define DEVICE_SUPPORT_VULKAN
 
@@ -73,7 +71,7 @@
 #else
 
 #if(DEVICE_IMPL_VULKAN)
-  #define GPU_VULKAN_BLOCK(backend, block)  { assert(backend->api == DEVICE_API_VK);  Q_UNPAREN(block) }
+  #define GPU_VULKAN_BLOCK(backend, block)  { assert(backend->api == RI_DEVICE_API_VK);  Q_UNPAREN(block) }
 #else
   #define GPU_VULKAN_BLOCK(backend, block) 
 #endif
@@ -113,7 +111,6 @@ static inline bool __vk_WrapResult(VkResult result, const char *sourceFilename, 
 	return true;
 }
 
-
 #define RI_QUEUE_GRAPHICS_BIT 0x1
 #define RI_QUEUE_COMPUTE_BIT 0x2
 #define RI_QUEUE_TRANSFER_BIT 0x4
@@ -125,27 +122,27 @@ static inline bool __vk_WrapResult(VkResult result, const char *sourceFilename, 
 #define RI_QUEUE_INVALID 0x0
 
 enum RITextureViewType_s {
-    RI_VIEWTYPE_SHADER_RESOURCE_1D,
-    RI_VIEWTYPE_SHADER_RESOURCE_1D_ARRAY,
-    RI_VIEWTYPE_SHADER_RESOURCE_STORAGE_1D,
-    RI_VIEWTYPE_SHADER_RESOURCE_STORAGE_1D_ARRAY,
-  	RI_VIEWTYPE_SHADER_RESOURCE_2D,
-    RI_VIEWTYPE_SHADER_RESOURCE_2D_ARRAY,
-    RI_VIEWTYPE_SHADER_RESOURCE_CUBE,
-    RI_VIEWTYPE_SHADER_RESOURCE_CUBE_ARRAY,
-    RI_VIEWTYPE_SHADER_RESOURCE_STORAGE_2D,
-    RI_VIEWTYPE_SHADER_RESOURCE_STORAGE_2D_ARRAY,
-   
-  	RI_VIEWTYPE_COLOR_ATTACHMENT,
-    RI_VIEWTYPE_DEPTH_STENCIL_ATTACHMENT,
-    RI_VIEWTYPE_DEPTH_READONLY_STENCIL_ATTACHMENT,
-    RI_VIEWTYPE_DEPTH_ATTACHMENT_STENCIL_READONLY,
-    RI_VIEWTYPE_DEPTH_STENCIL_READONLY,
-    RI_VIEWTYPE_SHADING_RATE_ATTACHMENT
+	RI_VIEWTYPE_SHADER_RESOURCE_1D,
+	RI_VIEWTYPE_SHADER_RESOURCE_1D_ARRAY,
+	RI_VIEWTYPE_SHADER_RESOURCE_STORAGE_1D,
+	RI_VIEWTYPE_SHADER_RESOURCE_STORAGE_1D_ARRAY,
+	RI_VIEWTYPE_SHADER_RESOURCE_2D,
+	RI_VIEWTYPE_SHADER_RESOURCE_2D_ARRAY,
+	RI_VIEWTYPE_SHADER_RESOURCE_CUBE,
+	RI_VIEWTYPE_SHADER_RESOURCE_CUBE_ARRAY,
+	RI_VIEWTYPE_SHADER_RESOURCE_STORAGE_2D,
+	RI_VIEWTYPE_SHADER_RESOURCE_STORAGE_2D_ARRAY,
+
+	RI_VIEWTYPE_COLOR_ATTACHMENT,
+	RI_VIEWTYPE_DEPTH_STENCIL_ATTACHMENT,
+	RI_VIEWTYPE_DEPTH_READONLY_STENCIL_ATTACHMENT,
+	RI_VIEWTYPE_DEPTH_ATTACHMENT_STENCIL_READONLY,
+	RI_VIEWTYPE_DEPTH_STENCIL_READONLY,
+	RI_VIEWTYPE_SHADING_RATE_ATTACHMENT
 
 };
 
-enum RIUsageBits_e {
+enum RITextureUsageBits_e {
 	RI_USAGE_NONE = 0,
 	RI_USAGE_SHADER_RESOURCE = 0x1,
 	RI_USAGE_SHADER_RESOURCE_STORAGE = 0x2,
@@ -188,6 +185,7 @@ enum RIQueueType_e {
 };
 
 enum RIResult_e { 
+	RI_INCOMPLETE_DEVICE = -2,
 	RI_FAIL = -1, 
 	RI_SUCCESS = 0, 
 	RI_INCOMPLETE 
@@ -201,6 +199,12 @@ enum RIBufferUsage_e {
 	RI_BUFFER_USAGE_INDEX_BUFFER = 0x8,
 	RI_BUFFER_USAGE_CONSTANT_BUFFER = 0x10,
 	RI_BUFFER_USAGE_ARGUMENT_BUFFER = 0x20,
+
+	RI_BUFFER_USAGE_SCRATCH = 0x40,
+	RI_BUFFER_USAGE_BINDING_TABLE = 0x80,
+	RI_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPT = 0x100,
+	RI_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE = 0x200,
+
 };
 
 enum RITextureType_e { 
@@ -223,7 +227,18 @@ enum RIWindowType_e {
 	RI_WINDOW_WAYLAND
 };
 
+struct RIHeap_s {
+
+};
+
 struct RIMemory_s {
+	union {
+    #if(DEVICE_IMPL_VULKAN)
+    struct {
+			struct VmaAllocation_T* vmaAlloc; // pointering to owning allocation
+    } vk;
+    #endif
+	};
 
 };
 
@@ -235,11 +250,9 @@ struct RIBuffer_s {
     } vk;
     #endif
 	};
-
 };
 
 struct RITexture_s {
-	
 	uint8_t type; // RITextureType_e
 	uint8_t mipNum;
 	uint8_t sampleNum;
@@ -252,7 +265,7 @@ struct RITexture_s {
 	union {
     #if(DEVICE_IMPL_VULKAN)
     struct {
-    	VkImage image;	
+    	VkImage image;
     } vk;
     #endif
 	};
@@ -604,5 +617,6 @@ struct RIDevice_s {
     #endif
   };
 };
+
 
 #endif

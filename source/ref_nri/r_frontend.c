@@ -29,9 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "stb_ds.h"
 #include "r_capture.h"
-#include <vulkan/vulkan_core.h>
-
-
 
 
 static ref_frontend_t rrf;

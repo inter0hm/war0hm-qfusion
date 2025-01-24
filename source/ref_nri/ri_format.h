@@ -1,4 +1,5 @@
-#include "../gameshared/q_arch.h"
+#include <qtypes.h>
+#include "ri_types.h"
 
 enum RI_Format_e {
 	RI_FORMAT_UNKNOWN,
@@ -101,27 +102,49 @@ enum RI_Format_e {
 	RI_TEXTURE_FORMAT_COUNT
 };
 
-struct RIFormatProps_s {
-    const char* name;            // format name
-    uint32_t format;          // self
-    uint8_t redBits;             // R (or depth) bits
-    uint8_t greenBits;           // G (or stencil) bits (0 if channels < 2)
-    uint8_t blueBits;            // B bits (0 if channels < 3)
-    uint8_t alphaBits;           // A (or shared exponent) bits (0 if channels < 4)
-    uint32_t stride         : 6; // block size in bytes
-    uint32_t blockWidth     : 4; // 1 for plain formats, >1 for compressed
-    uint32_t blockHeight    : 4; // 1 for plain formats, >1 for compressed
-    uint32_t isBgr          : 1; // reversed channels (RGBA => BGRA)
-    uint32_t isCompressed   : 1; // block-compressed format
-    uint32_t isDepth        : 1; // has depth component
-    uint32_t isExpShared    : 1; // shared exponent in alpha channel
-    uint32_t isFloat        : 1; // floating point
-    uint32_t isPacked       : 1; // 16- or 32- bit packed
-    uint32_t isInteger      : 1; // integer
-    uint32_t isNorm         : 1; // [0; 1] normalized
-    uint32_t isSigned       : 1; // signed
-    uint32_t isSrgb         : 1; // sRGB
-    uint32_t isStencil      : 1; // has stencil component
-    uint32_t unused         : 7;
-
+enum RI_LogicalChannel_e {
+	RI_LOGICAL_C_RED = 0,
+	RI_LOGICAL_C_GREEN = 1,
+	RI_LOGICAL_C_BLUE = 2,
+	RI_LOGICAL_C_ALPHA = 3,
+	RI_LOGICAL_C_DEPTH = 0,
+	RI_LOGICAL_C_STENCIL = 1,
+	RI_LOGICAL_C_LUMINANCE = 0,
+	RI_LOGICAL_C_MAX = 6
 };
+
+struct RIFormatProps_s {
+	const char *name;		       // format name
+	uint32_t format;		       // self
+	union {
+	  uint8_t redBits;	         // R bits
+	  uint8_t depthBits;	       // D bits
+	};
+	union {
+	  uint8_t greenBits;	       // G (or stencil) bits (0 if channels < 2)
+	  uint8_t stencilBits;	       // G (or stencil) bits (0 if channels < 2)
+	};
+	uint8_t blueBits;	         // B bits (0 if channels < 3)
+	uint8_t alphaBits;	       // A (or shared exponent) bits (0 if channels < 4)
+	uint8_t luminanceBits;     // L luminance
+	uint32_t stride : 6;	     // block size in bytes
+	uint32_t blockWidth : 4;   // 1 for plain formats, >1 for compressed
+	uint32_t blockHeight : 4;  // 1 for plain formats, >1 for compressed
+	uint32_t isBgr : 1;		     // reversed channels (RGBA => BGRA)
+	uint32_t isCompressed : 1; // block-compressed format
+	uint32_t isDepth : 1;	     // has depth component
+	uint32_t isExpShared : 1;  // shared exponent in alpha channel
+	uint32_t isFloat : 1;	     // floating point
+	uint32_t isPacked : 1;	   // 16- or 32- bit packed
+	uint32_t isInteger : 1;	   // integer
+	uint32_t isNorm : 1;	     // [0; 1] normalized
+	uint32_t isSigned : 1;	   // signed
+	uint32_t isSrgb : 1;	     // sRGB
+	uint32_t isStencil : 1;	   // has stencil component
+};
+
+const struct RIFormatProps_s* GetRIFormatProps(uint32_t format);
+
+#if DEVICE_IMPL_VULKAN 
+const VkFormat RIFormatToVK(uint32_t format);
+#endif

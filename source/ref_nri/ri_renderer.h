@@ -18,7 +18,6 @@ static inline uint32_t RIGetQueueFlags(struct RIRenderer_s* renderer,const struc
 	return 0;
 }
 
-
 struct RIDeviceDesc_s {
   struct RIPhysicalAdapter_s* physicalAdapter;
 };
@@ -29,7 +28,6 @@ int EnumerateRIAdapters(struct RIRenderer_s* renderer,struct RIPhysicalAdapter_s
 
 int InitRIDevice(struct RIRenderer_s* renderer, struct RIDeviceDesc_s* init, struct RIDevice_s* device);
 int FreeRIDevice(struct RIDevice_s*  dev);
-
 
 #endif
 
