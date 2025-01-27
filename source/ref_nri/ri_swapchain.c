@@ -1,4 +1,5 @@
 #include "ri_swapchain.h"
+#include "ri_types.h"
 
 #if ( DEVICE_IMPL_VULKAN )
 
@@ -24,8 +25,6 @@ static uint32_t __priority_BT2020_G2084_10BIT(const VkSurfaceFormatKHR* surface)
   				 ((surface->colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT) << 1);
 }
 
-
-
 #endif
 
 int InitRISwapchain(struct RIDevice_s* dev, struct RISwapchainDesc_s* init, struct RISwapchain_s* swapchain) {
@@ -33,21 +32,10 @@ int InitRISwapchain(struct RIDevice_s* dev, struct RISwapchainDesc_s* init, stru
 	assert(init);
 	assert(swapchain);
 	assert( init->imageCount <= Q_ARRAY_COUNT( swapchain->vk.images ) );
-	swapchain->imageCount = init->imageCount;
+	swapchain->width = init->width;
+	swapchain->height = init->height;
 	VkResult result = VK_SUCCESS;
 	GPU_VULKAN_BLOCK(dev->renderer, ({ 
-		for(size_t i = 0; i < init->imageCount; i++) {
-			VkSemaphoreCreateInfo createInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-      VkSemaphoreTypeCreateInfo timelineCreateInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO};
-      timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_BINARY;
-			R_VK_ADD_STRUCT(&createInfo, &timelineCreateInfo);
-
-			result = vkCreateSemaphore(dev->vk.device, &createInfo, NULL, &swapchain->vk.imageAcquireSem[i]);
-			VK_WrapResult(result);
-			
-			result = vkCreateSemaphore(dev->vk.device, &createInfo, NULL, &swapchain->vk.finishSem[i]);
-			VK_WrapResult(result);
-		}
 
 		
 		switch(init->windowHandle->type) {
@@ -190,27 +178,29 @@ int InitRISwapchain(struct RIDevice_s* dev, struct RISwapchainDesc_s* init, stru
 		result = vkCreateSwapchainKHR( dev->vk.device, &swapChainCreateInfo, NULL, &swapchain->vk.swapchain);
 	}
 
-	VkImage* imageHandles = NULL;
 	{
 		uint32_t imageNum = 0;
 		vkGetSwapchainImagesKHR(dev->vk.device, swapchain->vk.swapchain, &imageNum, NULL);
-		imageHandles = malloc(imageNum * sizeof(VkImage));
-		vkGetSwapchainImagesKHR(dev->vk.device, swapchain->vk.swapchain, &imageNum, imageHandles);
+		assert(imageNum >= RI_MAX_SWAPCHAIN_IMAGES);
+		vkGetSwapchainImagesKHR(dev->vk.device, swapchain->vk.swapchain, &imageNum, swapchain->vk.images);
+		swapchain->imageCount = imageNum;
+		swapchain->format = VKToRIFormat(selectedSurf->format);
 
-		for(uint32_t i = 0; i < imageNum; i++) {
-			struct RITexture_s* tex = &swapchain->images[i];
-			tex->vk.image = imageHandles[i];
-			tex->type = RI_TEXTURE_2D;
-			tex->width = init->width;
-			tex->height = init->height;
-			tex->depth = 1;
-			tex->mipNum = 1;
-			tex->layerNum = 1;
-			tex->sampleNum = 1;
+		for(size_t i = 0; i < imageNum; i++) {
+			VkSemaphoreCreateInfo createInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+      VkSemaphoreTypeCreateInfo timelineCreateInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO};
+      timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_BINARY;
+			R_VK_ADD_STRUCT(&createInfo, &timelineCreateInfo);
+
+
+			result = vkCreateSemaphore(dev->vk.device, &createInfo, NULL, &swapchain->vk.imageAcquireSem[i]);
+			VK_WrapResult(result);
+			
+			result = vkCreateSemaphore(dev->vk.device, &createInfo, NULL, &swapchain->vk.finishSem[i]);
+			VK_WrapResult(result);
 		}
 	}
 	free(supportedPresentMode);
 	free(surfaceFormats);
-	free(imageHandles);
   return RI_SUCCESS;
 }

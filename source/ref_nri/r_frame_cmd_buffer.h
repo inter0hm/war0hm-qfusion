@@ -15,8 +15,9 @@
 #include "r_graphics.h"
 
 #include "qhash.h"
+#include "ri_format.h"
 
-#define POGO_BUFFER_TEXTURE_FORMAT NriFormat_RGBA8_UNORM
+#define POGO_BUFFER_TEXTURE_FORMAT RI_FORMAT_RGBA8_UNORM
 
 typedef struct mesh_vbo_s mesh_vbo_t;
 typedef struct mfog_s mfog_t;
@@ -106,12 +107,10 @@ struct frame_tex_buffers_s {
 	NriDescriptor *colorAttachment;
 	NriTexture *colorTexture;
 
-	struct RITexture_s* riColorTexture;
-	
 	NriDescriptor *depthAttachment;
 	NriTexture* depthTexture;
 	
-	struct RITexture_s* riDepthTexture;
+	struct RITextureHandle_s* riDepthTexture;
 
 	// used for post processing
 	struct pogo_buffers_s {
@@ -149,7 +148,7 @@ struct frame_cmd_buffer_s {
     } vk;
 		#endif
   };
-	struct RICmd_s command;
+	struct RICmdHandle_s command;
 
 	uint64_t frameCount; // this value is bound by NUMBER_FRAMES_FLIGHT
 	struct block_buffer_pool_s uboBlockBuffer; 

@@ -29,5 +29,11 @@ int EnumerateRIAdapters(struct RIRenderer_s* renderer,struct RIPhysicalAdapter_s
 int InitRIDevice(struct RIRenderer_s* renderer, struct RIDeviceDesc_s* init, struct RIDevice_s* device);
 int FreeRIDevice(struct RIDevice_s*  dev);
 
+#if DEVICE_IMPL_VULKAN
+  void vk_fillQueueFamilies(struct RIDevice_s* dev, uint32_t* queueFamilies, uint32_t* queueFamiliesIdx, size_t reservedLen);
+#endif
+
+
+
 #endif
 

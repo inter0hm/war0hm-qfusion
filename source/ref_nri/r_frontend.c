@@ -176,7 +176,7 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 	};
 	
 	rsh.shadowSamplerDescriptor = R_CreateDescriptorWrapper( &rsh.nri, R_ResolveSamplerDescriptor( IT_DEPTHCOMPARE | IT_SPECIAL | IT_DEPTH ) );
-	GPU_VULKAN_BLOCK( renderer, ( {
+	GPU_VULKAN_BLOCK( (&rsh.renderer), ( {
 						  for( size_t i = 0; i < NUMBER_FRAMES_FLIGHT; i++ ) {
 							  VkCommandPoolCreateInfo commandPoolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 							  commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -191,11 +191,11 @@ rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int 
 							  info.commandPool = rsh.frameCmds[i].vk.pool;
 							  info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 							  info.commandBufferCount = 1;
-							  result = vkAllocateCommandBuffers( rsh.device.vk.device, &info, &rsh.frameCmds[i].command.vk.cmd );
-							  if( result != VK_SUCCESS ) {
-								  Com_Printf( "Vulkan failed error - vk: %d", result );
-								  return rserr_unknown;
-							  }
+							 // result = vkAllocateCommandBuffers( rsh.device.vk.device, &info, &rsh.frameCmds[i].command.vk.cmd );
+							 // if( result != VK_SUCCESS ) {
+							 //   Com_Printf( "Vulkan failed error - vk: %d", result );
+							 //   return rserr_unknown;
+							 // }
 								InitBlockBufferPool( &rsh.nri, &rsh.frameCmds[i].uboBlockBuffer, &uboBlockBufferDesc );
 						  }
 	}));
@@ -264,29 +264,21 @@ rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, b
 	{
 		struct RIWindowHandle_s windowHandle = {};
 		
-		NriWindow nriWindow = { 0 };
 		switch( handle.winType ) {
 			case VID_WINDOW_WAYLAND:
 				windowHandle.type = RI_WINDOW_WAYLAND;
 				windowHandle.wayland.surface = handle.window.wayland.surface; 
 				windowHandle.wayland.display = handle.window.wayland.display; 
 
-				nriWindow.wayland.surface = handle.window.wayland.surface;
-				nriWindow.wayland.display = handle.window.wayland.display;
 				break;
 			case VID_WINDOW_TYPE_X11:
 				windowHandle.type = RI_WINDOW_X11;
 				windowHandle.x11.window = handle.window.x11.window; 
 				windowHandle.x11.dpy = handle.window.x11.dpy; 
-				
-				nriWindow.x11.window = handle.window.x11.window;
-				nriWindow.x11.dpy = handle.window.x11.dpy;
 				break;
 			case VID_WINDOW_WIN32:
 				windowHandle.type = RI_WINDOW_WIN32;
 				windowHandle.windows.hwnd = handle.window.win.hwnd; 
-				
-				nriWindow.windows.hwnd = handle.window.win.hwnd;
 				break;
 			default:
 				assert( false );
@@ -301,10 +293,54 @@ rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, b
 		swapchainInit.format = RI_SWAPCHAIN_BT709_G22_8BIT;
 		InitRISwapchain(&rsh.device, &swapchainInit, &rsh.riSwapchain);
 
+		GPU_VULKAN_BLOCK( ( &rsh.renderer ), ({
+				uint32_t queueFamilies[RI_QUEUE_LEN] = { 0 };
+				VkImageCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+				VkImageCreateFlags flags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT | VK_IMAGE_CREATE_EXTENDED_USAGE_BIT; // typeless
+				info.flags = flags;
+				info.imageType = VK_IMAGE_TYPE_2D;
+				info.extent.width = rsh.riSwapchain.width;
+				info.extent.height = rsh.riSwapchain.height;
+				info.extent.depth = 1;
+				info.mipLevels = 1;
+				info.arrayLayers = 1;
+				info.samples = 1;
+				info.tiling = VK_IMAGE_TILING_OPTIMAL;
+				info.pQueueFamilyIndices = queueFamilies;
+				vk_fillQueueFamilies( &rsh.device, queueFamilies, &info.queueFamilyIndexCount, RI_QUEUE_LEN );
+				info.sharingMode = ( info.queueFamilyIndexCount > 0 ) ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE; // TODO: still no DCC on AMD with concurrent?
+				info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+				VkImageViewUsageCreateInfo usageInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO };
+				usageInfo.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+				VkImageSubresourceRange subresource = {
+					VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
+				};
+				VkImageViewCreateInfo createInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+				createInfo.pNext = &usageInfo;
+				createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+				createInfo.format = info.format;
+				createInfo.subresourceRange = subresource;
+
+				for( uint32_t i = 0; i < NUMBER_FRAMES_FLIGHT; i++ ) {
+					info.format = RIFormatToVK( POGO_BUFFER_TEXTURE_FORMAT );
+					if( VK_WrapResult( vkCreateImage( rsh.device.vk.device, &info, NULL, &rsh.vk.pogo[( i * 2 )] ) ) ) {
+					}
+					if( VK_WrapResult( vkCreateImage( rsh.device.vk.device, &info, NULL, &rsh.vk.pogo[( i * 2 ) + 1] ) ) ) {
+					}
+					info.format = RIFormatToVK( RI_FORMAT_D32_SFLOAT );
+					if( VK_WrapResult( vkCreateImage( rsh.device.vk.device, &info, NULL, &rsh.vk.depthImages[i] ) ) ) {
+					}
+
+					createInfo.image = rsh.vk.depthImages[i];
+					RI_VK_InitImageView(&rsh.device, &createInfo, rsh.vk.depthAttachment + i );
+				}
+		}));
+
 		arrsetlen( rsh.backBuffers, rsh.riSwapchain.imageCount);
-		for( uint32_t i = 0; i < rsh.riSwapchain.imageCount; i++ ) {
-			rsh.backBuffers[i].riColorTexture = rsh.riSwapchain.images + i;
-		}
+		//for( uint32_t i = 0; i < rsh.riSwapchain.imageCount; i++ ) {
+		//	rsh.backBuffers[i].riColorTexture = rsh.riSwapchain.images + i;
+		//}
 
 
 		NriSwapChainDesc swapChainDesc = { 
@@ -312,8 +348,7 @@ rserr_t RF_SetMode( int x, int y, int width, int height, int displayFrequency, b
 			.width = width, 
 			.height = height, 
 			.format = DefaultSwapchainFormat, 
-			.textureNum = 3, 
-			.window = nriWindow };
+			.textureNum = 3 };
 		__ShutdownSwapchainTexture();
 
 		assert(rsh.frameFence == NULL);

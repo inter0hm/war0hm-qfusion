@@ -1,3 +1,6 @@
+#ifndef RI_FORMAT_H
+#define RI_FORMAT_H
+
 #include <qtypes.h>
 #include "ri_types.h"
 
@@ -147,4 +150,7 @@ const struct RIFormatProps_s* GetRIFormatProps(uint32_t format);
 
 #if DEVICE_IMPL_VULKAN 
 const VkFormat RIFormatToVK(uint32_t format);
+const enum RI_Format_e VKToRIFormat(VkFormat);  
+#endif
+
 #endif

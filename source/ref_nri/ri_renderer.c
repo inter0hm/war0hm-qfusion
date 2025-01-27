@@ -78,6 +78,21 @@ const static char *DefaultDeviceExtension[] = {
 	VK_EXT_ASTC_DECODE_MODE_EXTENSION_NAME,
 };
 
+void vk_fillQueueFamilies( struct RIDevice_s *dev, uint32_t *queueFamilies, uint32_t *queueFamiliesIdx, size_t reservedLen )
+{
+	uint32_t uniqueQueue = 0;
+	for( size_t i = 0; i < RI_QUEUE_LEN; i++ ) {
+		if( dev->queues[i].vk.queue ) {
+			const uint32_t queueBit = ( 1 << dev->queues[i].vk.queueFamilyIdx );
+			if( ( uniqueQueue & queueBit ) > 0 ) {
+				assert( ( *queueFamiliesIdx ) < reservedLen );
+				queueFamilies[( *queueFamiliesIdx )++] = dev->queues[i].vk.queueFamilyIdx;
+			}
+			uniqueQueue |= queueBit;
+		}
+	}
+}
+
 VkBool32 VKAPI_PTR __VK_DebugUtilsMessenger( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 											 VkDebugUtilsMessageTypeFlagsEXT messageType,
 											 const VkDebugUtilsMessengerCallbackDataEXT *callbackData,
@@ -437,7 +452,8 @@ int InitRIDevice(struct RIRenderer_s* renderer, struct RIDeviceDesc_s* init, str
 			const uint32_t requiredFlags = configureQueue[initIdx].requiredBits;
 			for( size_t familyIdx = 0; familyIdx < familyNum; familyIdx++ ) {
 				uint32_t avaliableQueues = 0;
-				for( size_t createQueueIdx = 0; createQueueIdx < Q_ARRAY_COUNT( queueCreateInfoPool ); createQueueIdx++ ) {
+				size_t createQueueIdx = 0;
+				for( ; createQueueIdx < Q_ARRAY_COUNT( queueCreateInfoPool ); createQueueIdx++ ) {
 					const bool foundQueueFamily = queueCreateInfoPool[createQueueIdx].queueFamilyIndex == familyIdx;
 					if( foundQueueFamily || queueCreateInfoPool[createQueueIdx].queueCount == 0 ) {
 						selectedQueue = &queueCreateInfoPool[createQueueIdx];

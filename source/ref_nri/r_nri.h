@@ -76,6 +76,8 @@ static const char *NriDescriptorTypeToString[NriDescriptorType_MAX_NUM] = { [Nri
 																			[NriDescriptorType_STORAGE_STRUCTURED_BUFFER] = "STORAGE_STRUCTURED_BUFFER",
 																			[NriDescriptorType_ACCELERATION_STRUCTURE] = "ACCELERATION_STRUCTURE" };
 
+
+
 // a wrapper to hold onto the hash + cookie
 struct nri_descriptor_s {
 	NriDescriptor *descriptor;

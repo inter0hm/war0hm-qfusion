@@ -1,11 +1,14 @@
 
-
 #ifndef RI_TYPES_H
 #define RI_TYPES_H
 
 #include "../gameshared/q_arch.h"
 #include "math/qmath.h"
 #include "qtypes.h"
+
+#define RI_MAX_SWAPCHAIN_IMAGES 8
+#define RI_NUMBER_FRAMES_FLIGHT 3
+
 
 #define DEVICE_SUPPORT_VULKAN
 
@@ -142,6 +145,7 @@ enum RITextureViewType_s {
 
 };
 
+
 enum RITextureUsageBits_e {
 	RI_USAGE_NONE = 0,
 	RI_USAGE_SHADER_RESOURCE = 0x1,
@@ -204,7 +208,6 @@ enum RIBufferUsage_e {
 	RI_BUFFER_USAGE_BINDING_TABLE = 0x80,
 	RI_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPT = 0x100,
 	RI_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE = 0x200,
-
 };
 
 enum RITextureType_e { 
@@ -227,22 +230,7 @@ enum RIWindowType_e {
 	RI_WINDOW_WAYLAND
 };
 
-struct RIHeap_s {
-
-};
-
-struct RIMemory_s {
-	union {
-    #if(DEVICE_IMPL_VULKAN)
-    struct {
-			struct VmaAllocation_T* vmaAlloc; // pointering to owning allocation
-    } vk;
-    #endif
-	};
-
-};
-
-struct RIBuffer_s {
+struct RIBufferHandle_s {
 	union {
     #if(DEVICE_IMPL_VULKAN)
     struct {
@@ -252,16 +240,46 @@ struct RIBuffer_s {
 	};
 };
 
-struct RITexture_s {
-	uint8_t type; // RITextureType_e
-	uint8_t mipNum;
-	uint8_t sampleNum;
+enum RIDescriptorType_e {
+	RI_DESCRIPTOR_NONE,
+	RI_DESCRIPTOR_BUFFER_VIEW,
+	RI_DESCRIPTOR_IMAGE_VIEW,
+	RI_DESCRIPTOR_SAMPLER,
+	RI_DESCRIPTOR_ACCELERATION_STRUCTURE,
+};
 
-	uint16_t width;
-	uint16_t height;
-	uint16_t depth;
-	uint16_t layerNum;
+struct RIDescriptor_s {
+	union {
+#if ( DEVICE_IMPL_VULKAN )
+		struct {
+			uint8_t type; // RI_DescriptorTypeVK
+			union {
+				struct {
+					VkImageView view;
+				} image;
+				struct {
+				} buffer;
+				struct {
+					VkSampler sampler;
+				} sampler;
+			};
+		} vk;
+#endif
+	};
+	uint32_t cookie;
+};
 
+
+struct RICmdHandle_s {
+	union {
+#if ( DEVICE_IMPL_VULKAN )
+		struct {
+		} vk;
+#endif
+	};
+};
+
+struct RITextureHandle_s {
 	union {
     #if(DEVICE_IMPL_VULKAN)
     struct {
@@ -269,19 +287,22 @@ struct RITexture_s {
     } vk;
     #endif
 	};
-
 };
+
 
 struct RISwapchain_s {
 	uint16_t imageCount;
-  struct RITexture_s images[8];
+	uint16_t width;
+	uint16_t height;
+	uint32_t format; // RI_Format_e 
 	union {
     #if(DEVICE_IMPL_VULKAN)
     struct {
     	VkSwapchainKHR swapchain;
     	VkSurfaceKHR surface;
-    	VkSemaphore imageAcquireSem[8];
-    	VkSemaphore finishSem[8];
+    	VkImage images[RI_MAX_SWAPCHAIN_IMAGES];
+    	VkSemaphore imageAcquireSem[RI_MAX_SWAPCHAIN_IMAGES];
+    	VkSemaphore finishSem[RI_MAX_SWAPCHAIN_IMAGES];
     } vk;
     #endif
 	};
@@ -310,7 +331,6 @@ struct RIQueue_s {
     #endif
   };
 };
-
 
 struct RIRenderer_s {
   uint8_t api; // RIDeviceAPI_e  
@@ -617,6 +637,4 @@ struct RIDevice_s {
     #endif
   };
 };
-
-
 #endif

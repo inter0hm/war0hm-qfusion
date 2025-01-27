@@ -47,6 +47,10 @@
 
 #include <stdint.h>
 
+#define KB_TO_BYTE (1024)
+#define MB_TO_BYTE (1024 * KB_TO_BYTE)
+#define GB_TO_BYTE (1024 * MB_TO_BYTE)
+
 #if INTPTR_MAX == 0x7FFFFFFFFFFFFFFFLL
   #define Q_PTR_SIZE 8
 #elif INTPTR_MAX == 0x7FFFFFFF
