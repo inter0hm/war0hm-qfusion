@@ -32,5 +32,7 @@ struct RISwapchainDesc_s {
 };
 
 int InitRISwapchain(struct RIDevice_s* dev, struct RISwapchainDesc_s* init, struct RISwapchain_s* swapchain);
+uint32_t RISwapchainAcquireNextTexture(struct RIDevice_s* dev, struct RISwapchain_s* swapchain);
+void RISwapchainPresent(struct RIDevice_s* dev, struct RISwapchain_s* swapchain);
 
 #endif

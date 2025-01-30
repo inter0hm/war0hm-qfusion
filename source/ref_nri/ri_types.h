@@ -255,6 +255,7 @@ struct RIDescriptor_s {
 			uint8_t type; // RI_DescriptorTypeVK
 			union {
 				struct {
+					VkImage handle;
 					VkImageView view;
 				} image;
 				struct {
@@ -269,11 +270,11 @@ struct RIDescriptor_s {
 	uint32_t cookie;
 };
 
-
 struct RICmdHandle_s {
 	union {
 #if ( DEVICE_IMPL_VULKAN )
 		struct {
+			VkCommandBuffer cmd;
 		} vk;
 #endif
 	};
@@ -287,26 +288,6 @@ struct RITextureHandle_s {
     } vk;
     #endif
 	};
-};
-
-
-struct RISwapchain_s {
-	uint16_t imageCount;
-	uint16_t width;
-	uint16_t height;
-	uint32_t format; // RI_Format_e 
-	union {
-    #if(DEVICE_IMPL_VULKAN)
-    struct {
-    	VkSwapchainKHR swapchain;
-    	VkSurfaceKHR surface;
-    	VkImage images[RI_MAX_SWAPCHAIN_IMAGES];
-    	VkSemaphore imageAcquireSem[RI_MAX_SWAPCHAIN_IMAGES];
-    	VkSemaphore finishSem[RI_MAX_SWAPCHAIN_IMAGES];
-    } vk;
-    #endif
-	};
-
 };
 
 struct RICmd_s {
@@ -331,6 +312,30 @@ struct RIQueue_s {
     #endif
   };
 };
+
+struct RISwapchain_s {
+  struct RIQueue_s* presentQueue;
+	uint16_t imageCount;
+	uint16_t width;
+	uint16_t height;
+	uint32_t format; // RI_Format_e 
+	union {
+#if ( DEVICE_IMPL_VULKAN )
+		struct {
+			uint32_t frameIndex;
+			uint32_t textureIndex;
+			uint64_t presentID;
+			VkSwapchainKHR swapchain;
+			VkSurfaceKHR surface;
+			VkImage images[RI_MAX_SWAPCHAIN_IMAGES];
+			VkSemaphore imageAcquireSem[RI_MAX_SWAPCHAIN_IMAGES];
+			VkSemaphore finishSem[RI_MAX_SWAPCHAIN_IMAGES];
+		} vk;
+#endif
+	};
+
+};
+
 
 struct RIRenderer_s {
   uint8_t api; // RIDeviceAPI_e  
@@ -577,6 +582,7 @@ struct RIPhysicalAdapter_s {
 			uint32_t isSwapChainSupported : 1;	// swapchain Support
 			uint32_t isBufferDeviceAddressSupported: 1;
 			uint32_t isAMDDeviceCoherentMemorySupported: 1;
+			uint32_t isPresentIDSupported: 1;
 			//uint32_t YCbCrExtension : 1;
 			//uint32_t FillModeNonSolid : 1;
 			//uint32_t KHRRayQueryExtension : 1;

@@ -270,8 +270,10 @@ void __ColorCorrection_PostProcessing(const refdef_t* ref,struct frame_cmd_buffe
 }
 
 
+//TODO: remove frame only bound to primary backbuffer
 void R_RenderScene(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 {
+	assert(frame == &rsh.primaryCmd);
 	R_FlushTransitionBarrier(frame->cmd);
 
 	uint8_t pogoIndex = 0;
@@ -337,11 +339,16 @@ void R_RenderScene(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 	VectorCopy( fd->vieworg, rn.pvsOrigin );
 	VectorCopy( fd->vieworg, rn.lodOrigin );
 
-	if(numPostProcessing > 0) {
+	if( numPostProcessing > 0 ) {
+		GPU_VULKAN_BLOCK( ( &rsh.renderer ), ( {
+			vkCmdEndRendering(frame->vk.cmd);
+		} ) );
+
 		FR_BindPogoBufferAttachment(frame, &frame->textureBuffers.pogoBuffers[pogoIndex]);
-	} else {
-		FR_CmdResetAttachmentToBackbuffer(frame);
-	}
+	} 
+	//else {
+	//	FR_CmdResetAttachmentToBackbuffer(frame);
+	//}
 
 	FR_CmdSetViewportAll(frame, (NriViewport) {
 		.x = fd->x,
@@ -398,6 +405,8 @@ void R_RenderScene(struct frame_cmd_buffer_s* frame, const refdef_t *fd )
 		FR_CmdBeginRendering(frame);	
 		postProcessingHandlers[numPostProcessing - 1](fd, frame, src->shaderDescriptor);
 		FR_CmdEndRendering(frame);
+
+
 	}
 	FR_CmdResetAttachmentToBackbuffer(frame);
 

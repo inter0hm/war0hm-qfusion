@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "../../gameshared/q_arch.h"
 #include "qhash.h"
+#include "vulkan/vulkan_core.h"
 
 #define MAX_GLSL_PROGRAMS			1024
 #define GLSL_PROGRAMS_HASH_SIZE		256
@@ -1037,6 +1038,53 @@ struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, stru
 	if(pipeline->pipeline) {
 		return pipeline; // pipeline is present in slot
 	}
+	GPU_VULKAN_BLOCK( ( &rsh.renderer ), ( {
+		uint32_t numModules = 0;
+		VkShaderModule modules[4] = {};
+		VkPipelineShaderStageCreateInfo stageCreateInfo[4] = {};
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+		pipelineCreateInfo.pStages = stageCreateInfo;
+
+		if( program->shaderBin[GLSL_STAGE_VERTEX].bin && program->shaderBin[GLSL_STAGE_FRAGMENT].bin ) {
+		pipelineCreateInfo.stageCount = 2;
+			const VkShaderModuleCreateInfo vertModuleCreateInfo = {
+				VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+				NULL,
+				(VkShaderModuleCreateFlags)0,
+				(size_t)program->shaderBin[GLSL_STAGE_VERTEX].size,
+				(const uint32_t *)program->shaderBin[GLSL_STAGE_VERTEX].bin,
+			};
+			vkCreateShaderModule( rsh.device.vk.device, &vertModuleCreateInfo, NULL, &modules[numModules] );
+			stageCreateInfo[0] = (VkPipelineShaderStageCreateInfo){
+				.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage = VK_SHADER_STAGE_VERTEX_BIT,
+				.module = modules[numModules] 
+			};
+			numModules++;
+
+			const VkShaderModuleCreateInfo fragModuleCreateInfo = {
+				VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+				NULL,
+				(VkShaderModuleCreateFlags)0,
+				(size_t)program->shaderBin[GLSL_STAGE_VERTEX].size,
+				(const uint32_t *)program->shaderBin[GLSL_STAGE_VERTEX].bin,
+			};
+			vkCreateShaderModule( rsh.device.vk.device, &fragModuleCreateInfo, NULL, &modules[numModules] );
+			stageCreateInfo[1] = (VkPipelineShaderStageCreateInfo){
+				.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage = VK_SHADER_STAGE_FRAGMENT_BIT ,
+				.module = modules[numModules] 
+			};
+			numModules++;
+		} else {
+			assert( false && "failed to resolve bin" );
+		}
+
+		for( size_t i = 0; i < numModules; i++ ) {
+			vkDestroyShaderModule( rsh.device.vk.device, modules[i], NULL );
+		}
+	}));
+
 	NriGraphicsPipelineDesc graphicsPipelineDesc = {0};
 	NriColorAttachmentDesc colorAttachmentDesc[MAX_COLOR_ATTACHMENTS] = {0};
 	for( size_t i = 0; i < def->numColorAttachments; i++ ) {
@@ -1093,6 +1141,8 @@ struct pipeline_hash_s *RP_ResolvePipeline( struct glsl_program_s *program, stru
 	} else {
 		assert(false && "failed to resolve bin");
 	}
+
+
 	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateGraphicsPipeline( rsh.nri.device, &graphicsPipelineDesc, &pipeline->pipeline ) );
 	rsh.nri.coreI.SetPipelineDebugName( pipeline->pipeline, program->name );
 	
@@ -1107,7 +1157,7 @@ static NriDescriptorRangeDesc *__FindAndInsertNriDescriptorRange( const SpvRefle
 			return &( *ranges )[i];
 		}
 	}
-	
+
 	const size_t insertIndex = arraddnindex( (*ranges), 1 );
 	memset( &( *ranges )[insertIndex], 0, sizeof( NriDescriptorRangeDesc ) );
 	return &( *ranges )[insertIndex];
@@ -1137,9 +1187,9 @@ void RP_BindDescriptorSets(struct frame_cmd_buffer_s* cmd, struct glsl_program_s
 		struct glsl_commit_slots_s { 
 			struct glsl_descriptor_binding_s* binding;
 			const struct descriptor_reflection_s* reflection;
-		} slots[DESCRIPTOR_MAX_BINDINGS]; 
-	} commit[DESCRIPTOR_SET_MAX] = {0};
-	
+		} slots[DESCRIPTOR_MAX_BINDINGS];
+	} commit[DESCRIPTOR_SET_MAX] = { 0 };
+
 	for(size_t i = 0; i < numDescriptorData; i++) {
 		if(!bindings[i].descriptor.descriptor) 
 			continue;
@@ -1662,7 +1712,7 @@ void RP_Shutdown( void )
 	for( i = 0, program = r_glslprograms; i < r_numglslprograms; i++, program++ ) {
 		RF_DeleteProgram( program );
 	}
-	
+
 	Trie_Destroy( glsl_cache_trie );
 	glsl_cache_trie = NULL;
 

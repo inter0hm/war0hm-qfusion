@@ -27,6 +27,7 @@ const static uint32_t UBOBlockerBufferSize = 256 * 128;
 const static uint32_t UBOBlockerBufferAlignmentReq = 256;
 
 #define NUMBER_FRAMES_FLIGHT 3
+#define NUMBER_SUBFRAMES_FLIGHT 64 
 #define NUMBER_RESERVED_BACKBUFFERS 4
 #define DESCRIPTOR_MAX_BINDINGS 32
 #define MAX_COLOR_ATTACHMENTS 8 

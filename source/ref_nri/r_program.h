@@ -225,6 +225,14 @@ struct glsl_program_s {
 	NriPipelineLayout *layout;
 	struct pipeline_hash_s {
 		uint64_t hash;
+
+		union {
+#if ( DEVICE_IMPL_VULKAN )
+			struct {
+					
+			} vk;
+#endif
+		};
 		NriPipeline *pipeline;
 	} pipelines[PIPELINE_LAYOUT_HASH_SIZE];
 

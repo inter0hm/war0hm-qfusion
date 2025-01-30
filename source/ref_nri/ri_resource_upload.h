@@ -21,8 +21,8 @@ struct RIResourceReq {
 	};
 };
 
-struct RIResourceUploader_s{
-	struct RIQueue_s* copyQueue;
+struct RIResourceUploader_s {
+	struct RIQueue_s *copyQueue;
 	size_t tailOffset;
 	size_t remaningSpace;
 	size_t reservedSpacePerSet[RI_RESOURCE_NUM_COMMAND_SETS];
@@ -31,17 +31,18 @@ struct RIResourceUploader_s{
 	union {
 #if ( DEVICE_IMPL_VULKAN )
 		struct {
-    	struct VmaAllocation_T* stageAlloc;
+			struct VmaAllocation_T *stageAlloc;
 			VkBuffer stageBuffer;
 			void *pMappedData;
-
+			
+			VkSemaphore uploadSem;	
 			struct {
-			  VkCommandPool cmdPool;
-			  VkCommandBuffer cmdBuffer;
-			  struct RI_VK_TempBuffers {
-				  VkBuffer buffer;
-				  struct VmaAllocation_T *alloc;
-			  } *temporary;
+				VkCommandPool cmdPool;
+				VkCommandBuffer cmdBuffer;
+				struct RI_VK_TempBuffers {
+					VkBuffer buffer;
+					struct VmaAllocation_T *alloc;
+				} *temporary;
 			} cmdSets[RI_RESOURCE_NUM_COMMAND_SETS];
 		} vk;
 #endif

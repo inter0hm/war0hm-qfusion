@@ -34,9 +34,9 @@ int InitRISwapchain(struct RIDevice_s* dev, struct RISwapchainDesc_s* init, stru
 	assert( init->imageCount <= Q_ARRAY_COUNT( swapchain->vk.images ) );
 	swapchain->width = init->width;
 	swapchain->height = init->height;
+	swapchain->presentQueue = init->queue;
 	VkResult result = VK_SUCCESS;
 	GPU_VULKAN_BLOCK(dev->renderer, ({ 
-
 		
 		switch(init->windowHandle->type) {
 #ifdef VK_USE_PLATFORM_XLIB_KHR
@@ -186,12 +186,11 @@ int InitRISwapchain(struct RIDevice_s* dev, struct RISwapchainDesc_s* init, stru
 		swapchain->imageCount = imageNum;
 		swapchain->format = VKToRIFormat(selectedSurf->format);
 
-		for(size_t i = 0; i < imageNum; i++) {
+		for(size_t i = 0; i < RI_MAX_SWAPCHAIN_IMAGES; i++) {
 			VkSemaphoreCreateInfo createInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
       VkSemaphoreTypeCreateInfo timelineCreateInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO};
       timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_BINARY;
 			R_VK_ADD_STRUCT(&createInfo, &timelineCreateInfo);
-
 
 			result = vkCreateSemaphore(dev->vk.device, &createInfo, NULL, &swapchain->vk.imageAcquireSem[i]);
 			VK_WrapResult(result);
@@ -203,4 +202,56 @@ int InitRISwapchain(struct RIDevice_s* dev, struct RISwapchainDesc_s* init, stru
 	free(supportedPresentMode);
 	free(surfaceFormats);
   return RI_SUCCESS;
+}
+
+uint32_t RISwapchainAcquireNextTexture(struct RIDevice_s* dev, struct RISwapchain_s* swapchain) {
+	GPU_VULKAN_BLOCK( dev->renderer, ( {
+						  VkSemaphore imageAcquiredSemaphore = swapchain->vk.imageAcquireSem[swapchain->vk.frameIndex];
+						  VK_WrapResult( vkAcquireNextImageKHR( dev->vk.device, swapchain->vk.swapchain, 1000 * 1000, imageAcquiredSemaphore, VK_NULL_HANDLE, &swapchain->vk.textureIndex ) );
+						  return swapchain->vk.textureIndex;
+					  } ) );
+	return 0;
+}
+
+void RISwapchainPresent(struct RIDevice_s* dev, struct RISwapchain_s* swapchain) {
+	GPU_VULKAN_BLOCK( dev->renderer, ( {
+		VkSemaphore imageAcquiredSemaphore = swapchain->vk.imageAcquireSem[swapchain->vk.frameIndex];
+		VkSemaphore renderingFinishedSemaphore = swapchain->vk.finishSem[swapchain->vk.frameIndex];
+    { // Wait & Signal
+        VkSemaphoreSubmitInfo waitSemaphore = {VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO};
+        waitSemaphore.semaphore = imageAcquiredSemaphore;
+        waitSemaphore.stageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+        VkSemaphoreSubmitInfo signalSemaphore = {VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO};
+        signalSemaphore.semaphore = renderingFinishedSemaphore;
+        signalSemaphore.stageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+        VkSubmitInfo2 submitInfo = {VK_STRUCTURE_TYPE_SUBMIT_INFO_2};
+        submitInfo.waitSemaphoreInfoCount = 1;
+        submitInfo.pWaitSemaphoreInfos = &waitSemaphore;
+        submitInfo.signalSemaphoreInfoCount = 1;
+        submitInfo.pSignalSemaphoreInfos = &signalSemaphore;
+        VK_WrapResult(vkQueueSubmit2(swapchain->presentQueue->vk.queue, 1, &submitInfo, VK_NULL_HANDLE));
+    }
+    {
+        VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = &renderingFinishedSemaphore;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &swapchain->vk.swapchain;
+        presentInfo.pImageIndices = &swapchain->vk.textureIndex;
+
+        VkPresentIdKHR presentId = {VK_STRUCTURE_TYPE_PRESENT_ID_KHR};
+        presentId.swapchainCount = 1;
+        presentId.pPresentIds = &swapchain->vk.presentID;
+
+        if (dev->physicalAdapter.vk.isPresentIDSupported)
+            presentInfo.pNext = &presentId;
+        VK_WrapResult(vkQueuePresentKHR(swapchain->presentQueue->vk.queue, &presentInfo));
+    }
+    swapchain->vk.presentID++;
+    swapchain->vk.frameIndex = (swapchain->vk.frameIndex + 1) % RI_MAX_SWAPCHAIN_IMAGES; 
+
+	} ) );
+
 }

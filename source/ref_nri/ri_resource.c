@@ -11,6 +11,7 @@ VkResult RI_VK_InitImageView(struct RIDevice_s* dev,VkImageViewCreateInfo* info,
 	assert(dev->renderer->api == RI_DEVICE_API_VK);
 	desc->cookie = cookie++;
 	desc->vk.type = RI_DESCRIPTOR_BUFFER_VIEW;
+	desc->vk.image.handle = info->image; 
 	return vkCreateImageView( dev->vk.device, info, NULL, &desc->vk.image.view);
 }
 VkResult RI_VK_InitSampler(struct RIDevice_s* dev, VkSamplerCreateInfo* info, struct RIDescriptor_s* desc) {

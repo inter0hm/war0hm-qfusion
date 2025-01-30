@@ -53,6 +53,7 @@ struct frame_cmd_save_attachment_s {
 	NriDescriptor const *depthAttachment;
 };
 
+
 // the serialized state of the pipeline
 struct frame_cmd_state_s {
 	uint32_t dirty;
@@ -140,17 +141,20 @@ struct ubo_frame_instance_s {
 };
 
 struct frame_cmd_buffer_s {
-
-  union {
+ 
+ 	union {
     #if(DEVICE_IMPL_VULKAN)
     struct {
-    	VkCommandPool pool;
+    	VkCommandBuffer cmd;
     } vk;
 		#endif
   };
-	struct RICmdHandle_s command;
-
+  struct RIScratchAlloc_s* uboScratchAlloc;
+	struct RIDescriptor_s* colorAttachment;
+	struct RIDescriptor_s* depthAttachment;
+	struct RIDescriptor_s* pogoAttachment[2]; // for portals a pogo attachment is not provided
 	uint64_t frameCount; // this value is bound by NUMBER_FRAMES_FLIGHT
+	
 	struct block_buffer_pool_s uboBlockBuffer; 
 	struct frame_cmd_state_s state;
 	struct frame_tex_buffers_s textureBuffers;
@@ -177,7 +181,6 @@ struct frame_cmd_buffer_s {
 
 	int stackCmdBeingRendered;
 };
-
 
 struct frame_cmd_save_attachment_s R_CmdState_StashAttachment(struct frame_cmd_buffer_s* cmd);
 void R_CmdState_RestoreAttachment(struct frame_cmd_buffer_s* cmd, const struct frame_cmd_save_attachment_s* stashed);

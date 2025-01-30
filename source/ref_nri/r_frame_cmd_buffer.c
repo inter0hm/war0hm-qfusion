@@ -9,6 +9,8 @@
 #include "stb_ds.h"
 #include "qhash.h"
 
+
+
 void FR_CmdResetAttachmentToBackbuffer( struct frame_cmd_buffer_s *cmd )
 {
 	const NriTextureDesc *colorDesc = rsh.nri.coreI.GetTextureDesc( cmd->textureBuffers.colorTexture );
@@ -184,7 +186,7 @@ void FrameCmdBufferFree(struct frame_cmd_buffer_s* cmd) {
 	arrfree(cmd->freeTextures);
 	arrfree(cmd->freeBuffers);
 	arrfree(cmd->frameTemporaryDesc);
-	BlockBufferPoolFree( &rsh.nri, &cmd->uboBlockBuffer );
+	FreeRIScratchAlloc( &rsh.nri, &cmd->uboBlockBuffer );
 	
 	memset( &cmd->uboSceneFrame, 0, sizeof( struct ubo_frame_instance_s ) );
 	memset( &cmd->uboSceneObject, 0, sizeof( struct ubo_frame_instance_s ) );
@@ -198,25 +200,19 @@ void FrameCmdBufferFree(struct frame_cmd_buffer_s* cmd) {
 }
 void ResetFrameCmdBuffer( struct nri_backend_s *backend, struct frame_cmd_buffer_s *cmd )
 {
+	const uint32_t swapchainIndex = RISwapchainAcquireNextTexture( &rsh.device, &rsh.riSwapchain );
+	cmd->pogoAttachment[0] = &rsh.pogoAttachment[2 * swapchainIndex];
+	cmd->pogoAttachment[1] = &rsh.pogoAttachment[( 2 * swapchainIndex ) + 1];
+	cmd->colorAttachment = &rsh.colorAttachment[swapchainIndex];
+	cmd->depthAttachment = &rsh.depthAttachment[swapchainIndex];
 	cmd->textureBuffers = rsh.backBuffers[rsh.nri.swapChainI.AcquireNextSwapChainTexture( rsh.swapchain )];
-	
-	for( size_t i = 0; i < arrlen( cmd->freeTextures ); i++ ) {
-		rsh.nri.coreI.DestroyTexture( cmd->freeTextures[i] );
-	}
-	for( size_t i = 0; i < arrlen( cmd->freeBuffers ); i++ ) {
-		rsh.nri.coreI.DestroyBuffer( cmd->freeBuffers[i] );
-	}
-	for( size_t i = 0; i < arrlen( cmd->freeMemory ); i++ ) {
-		rsh.nri.coreI.FreeMemory( cmd->freeMemory[i] );
-	}
-	for( size_t i = 0; i < arrlen( cmd->frameTemporaryDesc ); i++ ) {
-		backend->coreI.DestroyDescriptor( cmd->frameTemporaryDesc[i] );
-	}
+
+	// TODO: need to re-work this logic
 	arrsetlen( cmd->freeMemory, 0 );
 	arrsetlen( cmd->freeTextures, 0 );
 	arrsetlen( cmd->freeBuffers, 0 );
 	arrsetlen( cmd->frameTemporaryDesc, 0);
-	BlockBufferPoolReset( &cmd->uboBlockBuffer );
+	//RIResetScratchAlloc( &cmd->uboBlockBuffer );
 
 	memset( &cmd->uboSceneFrame, 0, sizeof( struct ubo_frame_instance_s ) );
 	memset( &cmd->uboSceneObject, 0, sizeof( struct ubo_frame_instance_s ) );

@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../qcommon/mod_win.h"
 #include "r_graphics.h"
 #include "ri_resource_upload.h"
+#include "ri_scratch_alloc.h"
 
 typedef struct { char *name; void **funcPointer; } dllfunc_t;
 
@@ -317,25 +318,33 @@ typedef struct
  	struct RIDevice_s device;
 
 	uint64_t frameCount;
-	uint64_t swapchainCount;
+	uint64_t frameCmdBufferIndex;
  	NriCommandQueue* cmdQueue;
  	NriSwapChain* swapchain;
 	NriFence* frameFence;
 	struct frame_tex_buffers_s* backBuffers;
-	struct frame_cmd_buffer_s frameCmds[NUMBER_FRAMES_FLIGHT];
+
+	struct frame_cmd_buffer_s primaryCmd;
 
 	union {
 #if ( DEVICE_IMPL_VULKAN )
 		struct {
-			VkImage depthImages[NUMBER_FRAMES_FLIGHT];	
-			VkImage pogo[NUMBER_FRAMES_FLIGHT * 2];
-
-			struct RIDescriptor_s depthAttachment[NUMBER_FRAMES_FLIGHT];
-			struct RIDescriptor_s colorAttachment[NUMBER_FRAMES_FLIGHT];
-			struct RIDescriptor_s pogoAttachment[NUMBER_FRAMES_FLIGHT * 2];
+			VkSemaphore frameSemaphore;	
+			VkImage depthImages[RI_MAX_SWAPCHAIN_IMAGES];	
+			VkImage pogo[RI_MAX_SWAPCHAIN_IMAGES * 2];
+			struct {
+				VkCommandPool pool;
+				VkCommandBuffer primaryBuffer;
+				uint32_t numSecondary;
+				VkCommandBuffer secondary[NUMBER_SUBFRAMES_FLIGHT]; // secondary views
+			} frameSets[NUMBER_FRAMES_FLIGHT];
 		} vk;
 #endif
 	};
+	struct RIScratchAlloc_s uboFrameScratchAlloc[NUMBER_FRAMES_FLIGHT]; 	
+	struct RIDescriptor_s colorAttachment[RI_MAX_SWAPCHAIN_IMAGES];
+	struct RIDescriptor_s depthAttachment[RI_MAX_SWAPCHAIN_IMAGES];
+	struct RIDescriptor_s pogoAttachment[RI_MAX_SWAPCHAIN_IMAGES * 2];
 
 	byte_vec4_t		customColors[NUM_CUSTOMCOLORS];
 } r_shared_t;
@@ -985,10 +994,10 @@ typedef struct
 extern mapconfig_t	mapConfig;
 extern refinst_t	rn;
 
-static inline struct frame_cmd_buffer_s *R_ActiveFrameCmd()
-{
-	const uint32_t bufferedFrameIndex = rsh.swapchainCount % NUMBER_FRAMES_FLIGHT;
-	return &rsh.frameCmds[bufferedFrameIndex];
-}
+//static inline struct frame_cmd_buffer_s *R_ActiveFrameCmd()
+//{
+//	const uint32_t bufferedFrameIndex = rsh.frameCmdBufferIndex % NUMBER_FRAMES_FLIGHT;
+//	return &rsh.frameCmds[bufferedFrameIndex];
+//}
 
 #endif // R_LOCAL_H

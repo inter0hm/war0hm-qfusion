@@ -180,7 +180,12 @@ int EnumerateRIAdapters( struct RIRenderer_s *renderer, struct RIPhysicalAdapter
 				R_VK_ADD_STRUCT( &features, &features11  );
 				R_VK_ADD_STRUCT( &features, &features12 );
 				R_VK_ADD_STRUCT( &features, &features13 );
-				
+
+				VkPhysicalDevicePresentIdFeaturesKHR presentIdFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR };
+				if( __VK_SupportExtension( extensionProperties, extensionNum, qCToStrRef( VK_KHR_PRESENT_ID_EXTENSION_NAME ) ) ) {
+					R_VK_ADD_STRUCT( &features, &features13 );
+				}
+
 				VkPhysicalDeviceMemoryProperties memoryProperties = {};
 				vkGetPhysicalDeviceMemoryProperties( physicalDevice, &memoryProperties );
 				vkGetPhysicalDeviceProperties2( physicalDevice, &properties );
@@ -194,12 +199,13 @@ int EnumerateRIAdapters( struct RIRenderer_s *renderer, struct RIPhysicalAdapter
 				physicalAdapter->vk.apiVersion = properties.properties.apiVersion;
         
         physicalAdapter->vk.isSwapChainSupported = __VK_SupportExtension(extensionProperties, extensionNum,qCToStrRef(VK_KHR_SWAPCHAIN_EXTENSION_NAME));
-       	
-       	physicalAdapter->vk.isBufferDeviceAddressSupported = physicalAdapter->vk.apiVersion >= VK_API_VERSION_1_2 || 
-       		__VK_SupportExtension(extensionProperties, extensionNum,qCToStrRef(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)); 
-       	physicalAdapter->vk.isBufferDeviceAddressSupported =__VK_SupportExtension(extensionProperties, extensionNum,qCToStrRef(VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME)); 
+       
+       	physicalAdapter->vk.isPresentIDSupported = presentIdFeatures.presentId;
+        physicalAdapter->vk.isBufferDeviceAddressSupported = physicalAdapter->vk.apiVersion >= VK_API_VERSION_1_2 || 
+       	__VK_SupportExtension(extensionProperties, extensionNum,qCToStrRef(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME)); 
+        physicalAdapter->vk.isBufferDeviceAddressSupported =__VK_SupportExtension(extensionProperties, extensionNum,qCToStrRef(VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME)); 
 
-				const VkPhysicalDeviceLimits* limits = &properties.properties.limits;
+			const VkPhysicalDeviceLimits* limits = &properties.properties.limits;
 
 				physicalAdapter->viewportMaxNum = limits->maxViewports;
 				physicalAdapter->viewportBoundsRange[0] = limits->viewportBoundsRange[0];
