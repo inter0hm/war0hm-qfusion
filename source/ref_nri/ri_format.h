@@ -104,6 +104,7 @@ enum RI_Format_e {
 
 	RI_TEXTURE_FORMAT_COUNT
 };
+typedef uint16_t RI_Format;
 
 enum RI_LogicalChannel_e {
 	RI_LOGICAL_C_RED = 0,
