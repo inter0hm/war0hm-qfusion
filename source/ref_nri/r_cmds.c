@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void R_VK_CmdBeginRenderingBackBuffer( struct RIDevice_s *device, VkCommandBuffer cmd, bool attachAndClear )
 {
 	VkRenderingAttachmentInfo colorAttachment = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
-	colorAttachment.imageView = rsh.colorAttachment[rsh.vk.swapchainIndex].vk.image.view;
+	colorAttachment.imageView = rsh.colorAttachment[rsh.vk.swapchainIndex].vk.image.imageInfo.imageView;
 	colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	colorAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
 	colorAttachment.resolveImageView = VK_NULL_HANDLE;
@@ -40,7 +40,7 @@ void R_VK_CmdBeginRenderingBackBuffer( struct RIDevice_s *device, VkCommandBuffe
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 	VkRenderingAttachmentInfo depthStencil = { VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
-	depthStencil.imageView = rsh.depthAttachment[rsh.vk.swapchainIndex].vk.image.view;
+	depthStencil.imageView = rsh.depthAttachment[rsh.vk.swapchainIndex].vk.image.imageInfo.imageView;
 	depthStencil.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
 	depthStencil.resolveMode = VK_RESOLVE_MODE_NONE;
 	depthStencil.resolveImageView = VK_NULL_HANDLE;

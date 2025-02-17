@@ -5,6 +5,7 @@
 #include "../gameshared/q_arch.h"
 #include "math/qmath.h"
 #include "qtypes.h"
+#include "vulkan/vulkan_core.h"
 
 #define RI_MAX_SWAPCHAIN_IMAGES 8
 #define RI_NUMBER_FRAMES_FLIGHT 3
@@ -164,7 +165,6 @@ enum RISampleCount_e
     RI_SAMPLE_COUNT_16 = 16,
     RI_SAMPLE_COUNT_COUNT = 5,
 };
-
 
 enum RIDeviceAPI_e { 
 	RI_DEVICE_API_UNKNOWN, 
@@ -329,7 +329,6 @@ enum RIDescriptorType_e {
 	RI_DESCRIPTOR_BUFFER_VIEW,
 	RI_DESCRIPTOR_IMAGE_VIEW,
 	RI_DESCRIPTOR_SAMPLER,
-	RI_DESCRIPTOR_ACCELERATION_STRUCTURE,
 };
 
 struct RIViewport_s {
@@ -343,25 +342,23 @@ struct RIViewport_s {
 };
 
 struct RIDescriptor_s {
+	// unique id to mark the descriptor
+	uint32_t cookie; 
 	union {
-#if ( DEVICE_IMPL_VULKAN )
+#if( DEVICE_IMPL_VULKAN )
 		struct {
-			uint8_t type; // RI_DescriptorTypeVK
+			VkDescriptorType type;
 			union {
 				struct {
-					VkImage handle;
-					VkImageView view;
+					struct VkDescriptorBufferInfo info;
 				} image;
 				struct {
+					struct VkDescriptorBufferInfo info;
 				} buffer;
-				struct {
-					VkSampler sampler;
-				} sampler;
 			};
 		} vk;
 #endif
 	};
-	uint32_t cookie;
 };
 
 struct RIRect_s {

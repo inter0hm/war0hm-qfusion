@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_program.c - OpenGL Shading Language support
 
 #include "NRIDescs.h"
+#include "qtypes.h"
 #include "r_descriptor_pool.h"
 #include "r_local.h"
 #include "../qalgo/q_trie.h"
@@ -28,6 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Public/resource_limits_c.h>
 #include <glslang/Include/glslang_c_shader_types.h>
+#include "ri_resource.h"
 #include "spirv_reflect.h"
 
 #include "r_vattribs.h"
@@ -38,6 +40,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../../gameshared/q_arch.h"
 #include "qhash.h"
 #include "ri_conversion.h"
+#include "vulkan/vulkan_core.h"
 
 #define MAX_GLSL_PROGRAMS			1024
 #define GLSL_PROGRAMS_HASH_SIZE		256
@@ -72,8 +75,8 @@ static glslang_stage_t __RP_GLStageToSlang( glsl_program_stage_t stage )
 
 static struct ProgramDescriptorInfo* __GetDescriptorInfo(struct glsl_program_s* program, uint32_t set) {
 	for( size_t i = 0; i < program->numSets; i++ ) {
-		if( program->descriptorSetInfo[i].registerSpace == set ) {
-			return &program->descriptorSetInfo[i];
+		if( program->programDescriptors[i].registerSpace == set ) {
+			return &program->programDescriptors[i];
 		}
 	}
 	return NULL;
@@ -248,8 +251,8 @@ static void RF_DeleteProgram( struct glsl_program_s *program )
 	}
 
 	for( size_t i = 0; i < DESCRIPTOR_SET_MAX; i++ ) {
-		if( program->descriptorSetInfo[i].alloc )
-			FreeDescriptorSetAlloc( &rsh.nri, program->descriptorSetInfo[i].alloc );
+		if( program->programDescriptors[i].alloc )
+			FreeDescriptorSetAlloc( &rsh.nri, program->programDescriptors[i].alloc );
 	}
 
 	hash_next = program->hash_next;
@@ -1210,7 +1213,8 @@ static NriDescriptorRangeDesc *__FindAndInsertNriDescriptorRange( const SpvRefle
 	return &( *ranges )[insertIndex];
 }
 
-static const struct descriptor_reflection_s* __ReflectDescriptorSet(const struct glsl_program_s *program,const struct glsl_descriptor_handle_s* handle) {
+static const struct descriptor_reflection_s *__ReflectDescriptorSet( const struct glsl_program_s *program, const struct glsl_descriptor_handle_s *handle )
+{
 	for( size_t i = 0; i < program->numDescriptorReflections; i++ ) {
 		if( program->descriptorReflection[i].hash == handle->hash ) {
 			return &program->descriptorReflection[i];
@@ -1219,70 +1223,131 @@ static const struct descriptor_reflection_s* __ReflectDescriptorSet(const struct
 	return NULL;
 }
 
-bool RP_ProgramHasUniform(const struct glsl_program_s *program,const struct glsl_descriptor_handle_s handle) {
-	if(__ReflectDescriptorSet(program, &handle)) {
+bool RP_ProgramHasUniform( const struct glsl_program_s *program, const struct glsl_descriptor_handle_s handle )
+{
+	if( __ReflectDescriptorSet( program, &handle ) ) {
 		return true;
 	}
 	return false;
 }
 
-
-void RP_BindDescriptorSets(struct frame_cmd_buffer_s* cmd, struct glsl_program_s *program, struct glsl_descriptor_binding_s *bindings, size_t numDescriptorData )
+void RP_BindDescriptorSets( struct RIDevice_s *device, struct frame_cmd_buffer_s *cmd, struct glsl_program_s *program, struct glsl_descriptor_binding_s *bindings, size_t numDescriptorData )
 {
-	struct glsl_descriptor_commit_s {
-		size_t numBindings;
-		struct glsl_commit_slots_s { 
-			struct glsl_descriptor_binding_s* binding;
-			const struct descriptor_reflection_s* reflection;
-		} slots[DESCRIPTOR_MAX_BINDINGS];
-	} commit[DESCRIPTOR_SET_MAX] = { 0 };
+	GPU_VULKAN_BLOCK( ( &device->renderer ), ( {
+						  size_t numWrites = 0;
+						  VkWriteDescriptorSet descriptorWrite[32]; // write 32 descriptors at once
+						  for( uint32_t setIndex = 0; setIndex < DESCRIPTOR_SET_MAX; setIndex++ ) {
+							  hash_t hash = HASH_INITIAL_VALUE;
+							  for( size_t i = 0; i < numDescriptorData; i++ ) {
+								  const struct descriptor_reflection_s *refl = __ReflectDescriptorSet( program, &bindings[i].handle );
+								  if( !refl || setIndex != refl->baseRegisterIndex || IsEmptyDescriptor( device, &bindings[i].descriptor ) )
+									  continue;
+								  hash = hash_u64( hash, refl->hash );
+								  hash = hash_u64( hash, bindings[i].descriptor.cookie );
+							  }
+							  struct glsl_program_descriptor_s *info = &program->programDescriptors[setIndex];
+							  struct descriptor_set_result_s result = ResolveDescriptorSet( &rsh.device, &info->alloc, cmd->frameCount, hash );
+							  if( !result.found ) {
+								  for( size_t i = 0; i < numDescriptorData; i++ ) {
+									  const struct descriptor_reflection_s *refl = __ReflectDescriptorSet( program, &bindings[i].handle );
+									  if( !refl || setIndex != refl->baseRegisterIndex || IsEmptyDescriptor( device, &bindings[i].descriptor ) )
+										  continue;
+									  VkWriteDescriptorSet *vkDesc = descriptorWrite + ( numWrites++ );
+									  memset( vkDesc, 0, sizeof( VkWriteDescriptorSet ) );
+									  vkDesc->dstSet = result.set->vk.handle;
+									  if( refl->isArray ) {
+										  vkDesc->dstBinding = refl->baseRegisterIndex;
+										  vkDesc->dstArrayElement = refl->rangeOffset;
+									  } else {
+										  vkDesc->dstBinding = refl->baseRegisterIndex + refl->rangeOffset;
+										  vkDesc->dstArrayElement = 0;
+									  }
+									  vkDesc->descriptorType = bindings[i].descriptor.vk.type;
+									  switch( bindings[i].descriptor.vk.type ) {
+										  case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+										  case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+											  vkDesc->pBufferInfo = &bindings[i].descriptor.vk.buffer.info;
+											  break;
+										  case VK_DESCRIPTOR_TYPE_SAMPLER:
+										  case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+										  case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+											  vkDesc->pImageInfo = &bindings[i].descriptor.vk.image.imageInfo;
+											  break;
+										  default:
+											  assert( false ); // this is bad
+											  break;
+									  }
 
-	for(size_t i = 0; i < numDescriptorData; i++) {
-		if(!bindings[i].descriptor.descriptor) 
-			continue;
-		const struct descriptor_reflection_s* refl = __ReflectDescriptorSet(program, &bindings[i].handle);
-		// we skip reflection if we can't resolve it for the shader
-		if( refl ) {
-			//const uint32_t setIndex = refl->setIndex;
-			//const uint32_t slotIndex = refl->baseRegisterIndex + bindings[i].registerOffset;
-			struct glsl_descriptor_commit_s* glsl_commit = &commit[refl->setIndex];
-			struct glsl_commit_slots_s* slot = &glsl_commit->slots[glsl_commit->numBindings++];
-			slot->binding = &bindings[i]; 
-			slot->reflection = refl; 
-			//commit[setIndex]
-			//setsChangeMask |= ( 1u << setIndex );
-			//commit[setIndex].descriptorChangeMask |= ( 1u << slotIndex );
-			//commit[setIndex].hashes[slotIndex] = data->descriptor.descriptor;
-			//commit[setIndex].hashes = hash_u64( ( commit[setIndex].hashes == 0 ) ? HASH_INITIAL_VALUE : commit[setIndex].hashes, data->descriptor.cookie );
-		} 
-	}
+									  if( numWrites >= Q_ARRAY_COUNT( descriptorWrite ) ) {
+										  vkUpdateDescriptorSets( device->vk.device, numWrites, descriptorWrite, 0, NULL );
+										  numWrites = 0;
+									  }
+								  }
+							  }
+						  }
+						  if( numWrites > 0 ) {
+							  vkUpdateDescriptorSets( device->vk.device, numWrites, descriptorWrite, 0, NULL );
+						  }
+					  } ) );
 
-	for( uint32_t setIndex = 0; setIndex < program->numSets; setIndex++ ) {
-		struct glsl_descriptor_commit_s *c = &commit[setIndex];
-		if( c->numBindings == 0 )
-			continue;
-		hash_t hash = HASH_INITIAL_VALUE;
-		for( size_t descIndex = 0; descIndex < commit[setIndex].numBindings; descIndex++ ) {
-			struct glsl_descriptor_binding_s *binding = commit[setIndex].slots[descIndex].binding;
-			hash = hash_u64( hash, binding->descriptor.cookie );
-			hash = hash_u64( hash, commit[setIndex].slots[descIndex].reflection->hash );
-		}
-		struct ProgramDescriptorInfo *info = &program->descriptorSetInfo[setIndex];
-		struct descriptor_set_result_s result = ResolveDescriptorSet( &rsh.nri, cmd, program->layout, info->setIndex, info->alloc, hash );
-		if( !result.found ) {
-			for( uint32_t bindingIndex = 0; bindingIndex < commit[setIndex].numBindings; bindingIndex++ ) {
-				struct glsl_commit_slots_s *c = &commit[setIndex].slots[bindingIndex];
-				NriDescriptorRangeUpdateDesc updateDesc = { 0 };
-				const NriDescriptor *descriptors[] = { c->binding->descriptor.descriptor };
-				updateDesc.descriptorNum = 1;
-				updateDesc.baseDescriptor = c->binding->registerOffset;
-				updateDesc.descriptors = descriptors;
-				rsh.nri.coreI.UpdateDescriptorRanges( result.set, c->reflection->rangeOffset, 1, &updateDesc );
-			}
-		}
-		vkCmdBindDescriptorSets(cmd->vk.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, program->vk.pipelineLayout, 0, 0, NULL, 0, NULL);
-		//rsh.nri.coreI.CmdSetDescriptorSet( cmd->cmd, setIndex, result.set, NULL );
-	}
+	//for( uint32_t setIndex = 0; setIndex < DESCRIPTOR_SET_MAX; setIndex++ ) {
+	//	struct glsl_descriptor_commit_s *c = &commit[setIndex];
+	//	if( c->numBindings == 0 )
+	//		continue;
+	//	hash_t hash = HASH_INITIAL_VALUE;
+	//	for( size_t descIndex = 0; descIndex < commit[setIndex].numBindings; descIndex++ ) {
+	//		struct glsl_descriptor_binding_s *binding = commit[setIndex].slots[descIndex].binding;
+	//		hash = hash_u64( hash, commit[setIndex].slots[descIndex].reflection->hash );
+	//		hash = hash_u64( hash, binding->descriptor.cookie );
+	//	}
+	//	struct glsl_program_descriptor_s *info = &program->programDescriptors[setIndex];
+	//	struct descriptor_set_result_s result = ResolveDescriptorSet( &rsh.device, &info->alloc, cmd->frameCount, hash );
+	//	if( !result.found ) {
+	//		for( uint32_t bindingIndex = 0; bindingIndex < commit[setIndex].numBindings; bindingIndex++ ) {
+	//			struct glsl_commit_slots_s *c = &commit[setIndex].slots[bindingIndex];
+	//			if( numWrites == Q_ARRAY_COUNT( descriptorWrite ) ) {
+	//				vkUpdateDescriptorSets( device->vk.device, Q_ARRAY_COUNT( descriptorWrite ), descriptorWrite, 0, NULL );
+	//			}
+	//			VkWriteDescriptorSet* vkDesc = descriptorWrite + (numWrites++);
+	//			memset(vkDesc, 0, sizeof(VkWriteDescriptorSet));
+	//			vkDesc->dstSet = result.set->vk.handle;
+	//			if(c->reflection->isArray) {
+	//				vkDesc->dstBinding = c->reflection->baseRegisterIndex ;
+	//				vkDesc->dstArrayElement = c->reflection->rangeOffset;
+	//			} else  {
+	//				vkDesc->dstBinding = c->reflection->baseRegisterIndex + c->reflection->rangeOffset;
+	//				vkDesc->dstArrayElement = 0;
+	//			}
+	//			vkDesc->descriptorType = c->binding->descriptor.vk.type;
+	//			switch( c->binding->descriptor.vk.type ) {
+	//				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+	//				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+	//					vkDesc->pBufferInfo = &c->binding->descriptor.vk.buffer.info;
+	//					break;
+	//				case VK_DESCRIPTOR_TYPE_SAMPLER:
+	//				case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+	//				case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+	//					vkDesc->pImageInfo = &c->binding->descriptor.vk.image.imageInfo;
+	//					break;
+	//				default:
+	//					assert(false); // this is bad
+	//					break;
+	//			}
+
+	//			//NriDescriptorRangeUpdateDesc updateDesc = { 0 };
+	//			//const NriDescriptor *descriptors[] = { c->binding->descriptor.descriptor };
+	//			//updateDesc.descriptorNum = 1;
+	//			//updateDesc.baseDescriptor = c->binding->registerOffset;
+	//			//updateDesc.descriptors = descriptors;
+	//			//rsh.nri.coreI.UpdateDescriptorRanges( result.set, c->reflection->rangeOffset, 1, &updateDesc );
+	//		}
+	//	}
+	//	if( numWrites > 0 ) {
+	//		vkUpdateDescriptorSets( device->vk.device, numWrites, descriptorWrite, 0, NULL );
+	//	}
+	//	vkCmdBindDescriptorSets( cmd->vk.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, program->vk.pipelineLayout, 0, 1, &result.set->vk.handle, 0, NULL );
+	//	// rsh.nri.coreI.CmdSetDescriptorSet( cmd->cmd, setIndex, result.set, NULL );
+	//}
 }
 
 //static void ri_vk_ConfigureVKLayout(struct glsl_program_s* program) { 
@@ -1333,6 +1398,44 @@ struct glsl_program_s *RP_ResolveProgram( int type, const char *name, const char
 
 	return RP_RegisterProgram(type, name, deformsKey, deforms,numDeforms, features );
 }
+
+#if(DEVICE_IMPL_VULKAN)
+void _vk__descriptorSetAlloc( struct RIDevice_s *device, struct descriptor_set_allloc_s *alloc)
+{
+	assert( device->renderer->api == RI_DEVICE_API_VK );
+	struct glsl_program_descriptor_s *programDescriptor = Q_CONTAINER_OF( alloc, struct glsl_program_descriptor_s, alloc );
+	VkDescriptorPoolSize descriptorPoolSize[16] = {};
+	size_t descriptorPoolLen = 0;
+	descriptorPoolSize[descriptorPoolLen++] = ( VkDescriptorPoolSize ){ VK_DESCRIPTOR_TYPE_SAMPLER, programDescriptor->samplerMaxNum * DESCRIPTOR_MAX_SIZE };
+	descriptorPoolSize[descriptorPoolLen++] = ( VkDescriptorPoolSize ){ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, programDescriptor->constantBufferMaxNum * DESCRIPTOR_MAX_SIZE };
+	descriptorPoolSize[descriptorPoolLen++] = ( VkDescriptorPoolSize ){ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, programDescriptor->dynamicConstantBufferMaxNum * DESCRIPTOR_MAX_SIZE };
+	descriptorPoolSize[descriptorPoolLen++] = ( VkDescriptorPoolSize ){ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, programDescriptor->textureMaxNum * DESCRIPTOR_MAX_SIZE };
+	descriptorPoolSize[descriptorPoolLen++] = ( VkDescriptorPoolSize ){ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, programDescriptor->storageTextureMaxNum * DESCRIPTOR_MAX_SIZE };
+	descriptorPoolSize[descriptorPoolLen++] = ( VkDescriptorPoolSize ){ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, programDescriptor->bufferMaxNum * DESCRIPTOR_MAX_SIZE };
+	descriptorPoolSize[descriptorPoolLen++] = ( VkDescriptorPoolSize ){ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, programDescriptor->storageBufferMaxNum * DESCRIPTOR_MAX_SIZE };
+	descriptorPoolSize[descriptorPoolLen++] =
+		( VkDescriptorPoolSize ){ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, programDescriptor->structuredBufferMaxNum * DESCRIPTOR_MAX_SIZE + programDescriptor->storageStructuredBufferMaxNum * DESCRIPTOR_MAX_SIZE };
+	descriptorPoolSize[descriptorPoolLen++] = ( VkDescriptorPoolSize ){ VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, programDescriptor->accelerationStructureMaxNum * DESCRIPTOR_MAX_SIZE };
+	assert( descriptorPoolLen < Q_ARRAY_COUNT( descriptorPoolSize ) );
+	const VkDescriptorPoolCreateInfo info = {
+		VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, NULL, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, DESCRIPTOR_MAX_SIZE, descriptorPoolLen, descriptorPoolSize };
+	struct descriptor_pool_alloc_slot_s poolSlot = { 0 };
+	VK_WrapResult( vkCreateDescriptorPool( device->vk.device, &info, NULL, &poolSlot.vk.handle ) );
+	arrpush( alloc->pools, poolSlot );
+
+	for( size_t i = 0; i < DESCRIPTOR_MAX_SIZE; i++ ) {
+		struct descriptor_set_slot_s *slot = AllocDescriptorsetSlot( alloc );
+		VkDescriptorSetAllocateInfo info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		info.pNext = NULL;
+		info.descriptorPool = poolSlot.vk.handle;
+		info.descriptorSetCount = 1;
+		info.pSetLayouts = &programDescriptor->vk.setLayout;
+		VK_WrapResult( vkAllocateDescriptorSets( device->vk.device, &info, &slot->vk.handle ) );
+		arrpush( alloc->reservedSlots, slot );
+	}
+}
+
+#endif
 
 struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const char *deformsKey, const deformv_t *deforms, int numDeforms, r_glslfeat_t features )
 {
@@ -1554,11 +1657,9 @@ struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const cha
 									  switch( stages[stageIdx].stage ) {
 										  case GLSL_STAGE_VERTEX:
 											  program->vk.pushConstant.shaderStageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
-											  // rootConstantDesc.shaderStages |= NriStageBits_VERTEX_SHADER;
 											  break;
 										  case GLSL_STAGE_FRAGMENT:
 											  program->vk.pushConstant.shaderStageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-											  // rootConstantDesc.shaderStages |= NriStageBits_FRAGMENT_SHADER;
 											  break;
 										  default:
 											  assert( false );
@@ -1575,83 +1676,85 @@ struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const cha
 								  for( size_t i_set = 0; i_set < reflectionDescriptorCount; i_set++ ) {
 									  const SpvReflectDescriptorSet *reflection = reflectionDescSets[i_set];
 										assert(reflection->set < Q_ARRAY_COUNT(program->descriptorSetInfo));
-									  struct descriptor_set_allloc_s *info = &program->descriptorSetInfo[reflection->set];
+										struct glsl_program_descriptor_s *programDesc = &program->programDescriptors[reflection->set];
+										programDesc->alloc.descriptorAllocator = _vk__descriptorSetAlloc;
+										programDesc->alloc.framesInFlight = NUMBER_FRAMES_FLIGHT;
+										for( size_t i_binding = 0; i_binding < reflection->binding_count; i_binding++ ) {
+											const SpvReflectDescriptorBinding *reflectionBinding = reflection->bindings[i_binding];
+											assert( reflection->set < DESCRIPTOR_SET_MAX );
+											assert( reflectionBinding->array.dims_count <= 1 ); // not going to handle multi-dim arrays
+											struct descriptor_reflection_s reflc = { 0 };
+											reflc.hash = Create_DescriptorHandle( reflectionBinding->name ).hash;
+											reflc.baseRegisterIndex = reflectionBinding->binding;
+											reflc.isArray = reflectionBinding->count > 0;
+											reflc.dimCount = max( 1, reflectionBinding->count );
 
-									  for( size_t i_binding = 0; i_binding < reflection->binding_count; i_binding++ ) {
-										  const SpvReflectDescriptorBinding *reflectionBinding = reflection->bindings[i_binding];
-										  assert( reflection->set < DESCRIPTOR_SET_MAX );
-										  assert( reflectionBinding->array.dims_count <= 1 ); // not going to handle multi-dim arrays
-										  struct descriptor_reflection_s reflc = { 0 };
-										  reflc.hash = Create_DescriptorHandle( reflectionBinding->name ).hash;
-										  reflc.baseRegisterIndex = reflectionBinding->binding;
-										  reflc.isArray = reflectionBinding->count > 0;
-										  reflc.dimCount = max( 1, reflectionBinding->count );
+											VkDescriptorSetLayoutBinding *layoutBinding = NULL;
+											for( size_t i = 0; i < arrlen( descriptorSetLayoutBindings[reflection->set] ); i++ ) {
+												if( descriptorSetLayoutBindings[reflection->set][i].binding == reflectionBinding->binding ) {
+													layoutBinding = descriptorSetLayoutBindings[reflection->set] + i;
+												}
+											}
 
-										  VkDescriptorSetLayoutBinding *layoutBinding = NULL;
-										  for( size_t i = 0; i < arrlen( descriptorSetLayoutBindings[reflection->set] ); i++ ) {
-											  if( descriptorSetLayoutBindings[reflection->set][i].binding == reflectionBinding->binding ) {
-												  layoutBinding = descriptorSetLayoutBindings[reflection->set] + i;
-											  }
-										  }
-										  if( !layoutBinding ) {
-											  VkDescriptorSetLayoutBinding bindings = {};
-											  arrpush( descriptorSetLayoutBindings[reflection->set], bindings );
-											  reflc.rangeOffset = arrlen( descriptorSetLayoutBindings[reflection->set] ) - 1;
-											  layoutBinding = descriptorSetLayoutBindings[reflection->set] + reflc.rangeOffset;
-										  }
+											if( !layoutBinding ) {
+												VkDescriptorSetLayoutBinding bindings = {};
+												arrpush( descriptorSetLayoutBindings[reflection->set], bindings );
+												reflc.rangeOffset = arrlen( descriptorSetLayoutBindings[reflection->set] ) - 1;
+												layoutBinding = descriptorSetLayoutBindings[reflection->set] + reflc.rangeOffset;
+											}
 
-										  const uint32_t bindingCount = max( reflectionBinding->count, 1 );
-										  layoutBinding->binding = reflectionBinding->binding;
-										  layoutBinding->descriptorCount = bindingCount;
-										  switch( stages[stageIdx].stage ) {
-											  case GLSL_STAGE_VERTEX:
-												  layoutBinding->stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
-												  break;
-											  case GLSL_STAGE_FRAGMENT:
-												  layoutBinding->stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-												  break;
-											  default:
-												  assert( false );
-												  break;
-										  }
-										  switch( reflectionBinding->descriptor_type ) {
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
-												  layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-												  info->config.samplerMaxNum += bindingCount;
-												  break;
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-												  layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-												  info->config.textureMaxNum += bindingCount;
-												  break;
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-												  layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-												  info->config.bufferMaxNum += bindingCount;
-												  break;
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-												  layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-												  info->config.storageTextureMaxNum += bindingCount;
-												  break;
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-												  layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
-												  info->config.storageBufferMaxNum += bindingCount;
-												  break;
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-												  layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-												  info->config.constantBufferMaxNum += bindingCount;
-												  break;
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-												  layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-												  info->config.structuredBufferMaxNum += bindingCount;
-												  break;
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
-											  case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-												  assert( false );
-												  break;
-										  }
-										  assert( program->numDescriptorReflections < PIPELINE_REFLECTION_HASH_SIZE );
+											const uint32_t bindingCount = max( reflectionBinding->count, 1 );
+											layoutBinding->binding = reflectionBinding->binding;
+											layoutBinding->descriptorCount = bindingCount;
+											switch( stages[stageIdx].stage ) {
+												case GLSL_STAGE_VERTEX:
+													layoutBinding->stageFlags |= VK_SHADER_STAGE_VERTEX_BIT;
+													break;
+												case GLSL_STAGE_FRAGMENT:
+													layoutBinding->stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+													break;
+												default:
+													assert( false );
+													break;
+											}
+											switch( reflectionBinding->descriptor_type ) {
+												case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
+													layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+													programDesc->samplerMaxNum += bindingCount;
+													break;
+												case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+													layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+													programDesc->textureMaxNum += bindingCount;
+													break;
+												case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+													layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+													programDesc->bufferMaxNum += bindingCount;
+													break;
+												case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+													layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+													programDesc->storageTextureMaxNum += bindingCount;
+													break;
+												case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+													layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+													programDesc->storageBufferMaxNum += bindingCount;
+													break;
+												case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+													layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+													programDesc->constantBufferMaxNum += bindingCount;
+													break;
+												case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+												case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+													layoutBinding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+													programDesc->structuredBufferMaxNum += bindingCount;
+													break;
+												case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+												case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+												case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+												case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+													assert( false );
+													break;
+											}
+											assert( program->numDescriptorReflections < PIPELINE_REFLECTION_HASH_SIZE );
 									  }
 								  }
 							  }
@@ -1675,7 +1778,7 @@ struct glsl_program_s *RP_RegisterProgram( int type, const char *name, const cha
 								  VkDescriptorSetLayoutCreateInfo createSetLayoutInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 								  VK_WrapResult( vkCreateDescriptorSetLayout( rsh.device.vk.device, &createSetLayoutInfo, NULL, setLayouts + bindingIdx ) );
 							  }
-							  program->descriptorSetInfo[bindingIdx].config.vk.setLayout = setLayouts[bindingIdx]; 
+							  program->programDescriptors[bindingIdx].vk.setLayout = setLayouts[bindingIdx]; 
 						  }
 						  pipelineLayoutCreateInfo.pSetLayouts = setLayouts;
 						  pipelineLayoutCreateInfo.setLayoutCount = numLayoutCount;

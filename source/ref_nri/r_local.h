@@ -380,9 +380,6 @@ typedef struct
 	uint64_t frameSetCount;
 	struct r_frame_set_s frameSets[NUMBER_FRAMES_FLIGHT];
 
-	//struct RIScratchAlloc_s uboFrameScratchAlloc[NUMBER_FRAMES_FLIGHT]; 	
-	
-
 	byte_vec4_t		customColors[NUM_CUSTOMCOLORS];
 } r_shared_t;
 

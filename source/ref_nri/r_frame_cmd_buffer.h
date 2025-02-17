@@ -6,12 +6,12 @@
 #include "r_resource.h"
 #include "r_vattribs.h"
 #include "r_block_buffer_pool.h"
+#include "ri_scratch_alloc.h"
 
 #include "../gameshared/q_arch.h"
 #include "../gameshared/q_math.h"
 
 #include "../gameshared/q_sds.h"
-
 #include "r_graphics.h"
 
 #include "qhash.h"
@@ -162,7 +162,7 @@ struct draw_element_s {
 
 struct ubo_frame_instance_s {
 	hash_t hash;
-	struct nri_descriptor_s descriptor;
+	struct RIDescriptor_s descriptor;
 	struct block_buffer_pool_req_s req; 
 };
 
@@ -180,9 +180,9 @@ struct frame_cmd_buffer_s {
 	//struct RIDescriptor_s* colorAttachment;
 	//struct RIDescriptor_s* depthAttachment;
 	//struct RIDescriptor_s* pogoAttachment[2]; // for portals a pogo attachment is not provided
-	uint64_t frameCount; // this value is bound by NUMBER_FRAMES_FLIGHT
+	uint64_t frameCount; // the current frame index 
 	
-	struct block_buffer_pool_s uboBlockBuffer; 
+	struct RIScratchAlloc_s uboBlockBuffer; 
 	struct frame_cmd_state_s state;
 	struct frame_tex_buffers_s textureBuffers;
 	
@@ -215,6 +215,10 @@ void R_CmdState_RestoreAttachment(struct frame_cmd_buffer_s* cmd, const struct f
 void FrameCmdBufferFree(struct frame_cmd_buffer_s* cmd);
 void ResetFrameCmdBuffer(struct nri_backend_s* backend,struct frame_cmd_buffer_s* cmd);
 void UpdateFrameUBO( struct frame_cmd_buffer_s *cmd, struct ubo_frame_instance_s *frame, void *data, size_t size );
+
+
+// try to commit the current frame ubo if its the same we will re-use this descriptor
+void TryCommitFrameUBOInstance( struct RIDevice_s *device, struct frame_cmd_buffer_s *cmd, struct RIDescriptor_s* desc, void *data, size_t size );
 
 // cmd buffer
 static inline int FR_CmdNumViewports(struct frame_cmd_buffer_s* cmd) {

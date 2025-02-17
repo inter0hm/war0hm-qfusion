@@ -14,6 +14,7 @@
 #define RESERVE_BLOCK_SIZE 1024
 #define ALLOC_HASH_RESERVE 256
 #define DESCRIPTOR_MAX_SIZE 64
+#define DESCRIPTOR_RESERVED_SIZE 64
 
 struct descriptor_set_slot_s {
 	uint32_t hash;
@@ -28,6 +29,7 @@ struct descriptor_set_slot_s {
 	union {
 #if ( DEVICE_IMPL_VULKAN )
 		struct {
+			VkDescriptorPool pool;
 			VkDescriptorSet handle;
 		} vk;
 #endif
@@ -45,58 +47,37 @@ struct descriptor_pool_alloc_slot_s {
 
 };
 
+struct descriptor_set_allloc_s;
+typedef void ( *RIAllocDescriptor_Func )( struct RIDevice_s *device, struct descriptor_set_allloc_s *alloc );
+
 struct descriptor_set_allloc_s {
-	// configuration for the allocator
-	struct {
-		union {
-#if ( DEVICE_IMPL_VULKAN )
-			struct {
-				VkDescriptorSetLayout setLayout;
-			} vk;
-#endif
-		};
-		uint32_t samplerMaxNum;
-		uint32_t constantBufferMaxNum;
-		uint32_t dynamicConstantBufferMaxNum;
-		uint32_t textureMaxNum;
-		uint32_t storageTextureMaxNum;
-		uint32_t bufferMaxNum;
-		uint32_t storageBufferMaxNum;
-		uint32_t structuredBufferMaxNum;
-		uint32_t storageStructuredBufferMaxNum;
-		uint32_t accelerationStructureMaxNum;
-	} config;
-	
+	RIAllocDescriptor_Func descriptorAllocator;
+	uint8_t framesInFlight; // the number of frames in flight 
+
 	struct descriptor_set_slot_s *hashSlots[ALLOC_HASH_RESERVE];
 	struct descriptor_set_slot_s *queueBegin;
 	struct descriptor_set_slot_s *queueEnd;
 
-	struct descriptor_set_slot_s **reservedSlots;
-	struct descriptor_pool_alloc_slot_s* pools;
+	struct descriptor_set_slot_s **reservedSlots; // stb arrays
+	struct descriptor_pool_alloc_slot_s* pools; // stb arrays
 	struct descriptor_set_slot_s **blocks;
 	size_t blockIndex;
 };
 
 struct descriptor_set_result_s {
 	bool found;
-	struct NriDescriptorSet *set;
+	struct descriptor_set_slot_s *set; // the associated slot
 };
 
 struct descriptor_set_result_s ResolveDescriptorSet( struct RIDevice_s *device,
 													 struct descriptor_set_allloc_s *alloc,
-													 struct frame_cmd_buffer_s *cmd,
-													 NriPipelineLayout *layout,
-													 uint32_t setIndex,
+													 uint32_t frameCount,
 													 uint32_t hash );
-void FreeDescriptorSetAlloc( struct nri_backend_s *backend, struct descriptor_set_allloc_s *alloc );
+void FreeDescriptorSetAlloc( struct RIDevice_s *device, struct descriptor_set_allloc_s *alloc );
 
-struct descriptor_simple_serializer_s {
-  NriDescriptor const* descriptors[DESCRIPTOR_MAX_BINDINGS];
-  uint32_t cookies[DESCRIPTOR_MAX_BINDINGS];
-  uint32_t descriptorMask;
-};
-hash_t DescSimple_SerialHash( struct descriptor_simple_serializer_s *state );
-void DescSimple_WriteImage( struct descriptor_simple_serializer_s *state, uint32_t slot, const image_t *image );
-void DescSimple_StateCommit(struct nri_backend_s *backend, struct descriptor_simple_serializer_s *state, NriDescriptorSet* descriptor);
+// utility
+struct descriptor_set_slot_s *AllocDescriptorsetSlot( struct descriptor_set_allloc_s *alloc );
+void AttachDescriptorSlot( struct descriptor_set_allloc_s *alloc, struct descriptor_set_slot_s *slot );
+void DetachDescriptorSlot( struct descriptor_set_allloc_s *alloc, struct descriptor_set_slot_s *slot );
 
 #endif

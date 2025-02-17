@@ -131,8 +131,25 @@ void FR_CmdResetCommandState( struct frame_cmd_buffer_s *cmd, enum CmdResetBits 
 	
 }
 
+void TryCommitFrameUBOInstance( struct RIDevice_s *device, struct frame_cmd_buffer_s *cmd, struct RIDescriptor_s *desc, void *data, size_t size )
+{
+	assert(ubo);
+	const hash_t hash = hash_data( HASH_INITIAL_VALUE, data, size );
+	if(hash == desc->cookie)
+		return;
+	desc->cookie = hash;
+	struct RIBufferScratchAllocReq_s req = RIAllocBufferFromScratchAlloc( device, &cmd->uboBlockBuffer, size );
+	GPU_VULKAN_BLOCK( ( &device->renderer ), ( {
+		memcpy(((uint8_t*)req.pMappedAddress) + req.bufferOffset, data, size);
+		desc->vk.buffer.info.buffer = req.block.vk.buffer;
+		desc->vk.buffer.info.offset = req.bufferOffset;
+		desc->vk.buffer.info.range = req.bufferSize;
+	} ) )
+}
+
 void UpdateFrameUBO( struct frame_cmd_buffer_s *cmd, struct ubo_frame_instance_s *ubo, void *data, size_t size )
 {
+
 	const hash_t hash = hash_data( HASH_INITIAL_VALUE, data, size );
 	if( ubo->hash != hash ) {
 		struct block_buffer_pool_req_s poolReq = BlockBufferPoolReq( &rsh.nri, &cmd->uboBlockBuffer, size );

@@ -30,6 +30,7 @@ typedef uint64_t r_glslfeat_t;
 #include "r_resource.h"
 
 #include "r_descriptor_pool.h"
+#include "ri_types.h"
 
 #include "qhash.h"
 
@@ -208,6 +209,27 @@ typedef enum {
 	GLSL_STAGE_MAX
 } glsl_program_stage_t;
 
+struct glsl_program_descriptor_s {
+		union {
+#if ( DEVICE_IMPL_VULKAN )
+			struct {
+				VkDescriptorSetLayout setLayout;
+			} vk;
+#endif
+		};
+		struct descriptor_set_allloc_s alloc; // the set allocator 
+		uint16_t samplerMaxNum;
+		uint16_t constantBufferMaxNum;
+		uint16_t dynamicConstantBufferMaxNum;
+		uint16_t textureMaxNum;
+		uint16_t storageTextureMaxNum;
+		uint16_t bufferMaxNum;
+		uint16_t storageBufferMaxNum;
+		uint16_t structuredBufferMaxNum;
+		uint16_t storageStructuredBufferMaxNum;
+		uint16_t accelerationStructureMaxNum;
+};
+
 struct glsl_program_s {
 	union {
 		struct {
@@ -238,7 +260,6 @@ struct glsl_program_s {
 	NriPipelineLayout *layout;
 	struct pipeline_hash_s {
 		uint64_t hash;
-
 		union {
 #if ( DEVICE_IMPL_VULKAN )
 			struct {
@@ -248,7 +269,7 @@ struct glsl_program_s {
 		};
 	} pipelines[PIPELINE_LAYOUT_HASH_SIZE];
 
-	struct descriptor_set_allloc_s descriptorSetInfo[DESCRIPTOR_SET_MAX];
+	struct glsl_program_descriptor_s programDescriptors[DESCRIPTOR_SET_MAX];
 
 	size_t numDescriptorReflections;
 	struct descriptor_reflection_s {
@@ -275,10 +296,10 @@ static inline struct glsl_descriptor_handle_s Create_DescriptorHandle(const char
 struct glsl_descriptor_binding_s {
 	struct glsl_descriptor_handle_s handle;
 	uint32_t registerOffset; 
-	struct nri_descriptor_s descriptor;
+	struct RIDescriptor_s descriptor;
 };
 
-void RP_BindDescriptorSets(struct frame_cmd_buffer_s* cmd, struct glsl_program_s* program, struct glsl_descriptor_binding_s* data, size_t numDescriptorData);
+void RP_BindDescriptorSets( struct RIDevice_s *device, struct frame_cmd_buffer_s *cmd, struct glsl_program_s *program, struct glsl_descriptor_binding_s *data, size_t numDescriptorData );
 
 void RP_Init( void );
 void RP_Shutdown( void );

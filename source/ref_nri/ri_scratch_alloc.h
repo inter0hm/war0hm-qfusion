@@ -10,6 +10,7 @@ struct RIBlockMem_s {
 	union {
 #if ( DEVICE_IMPL_VULKAN )
 		struct {
+			VkBufferView blockView;	
 		  VkBuffer buffer;
 		  struct VmaAllocation_T * allocator;
 		} vk;
@@ -42,11 +43,7 @@ struct RIScratchAllocDesc_s{
 };
 
 struct RIBufferScratchAllocReq_s {
-#if ( DEVICE_IMPL_VULKAN )
-	struct {
-		VkBuffer handle;
-	} vk;
-#endif
+	struct RIBlockMem_s block;
 	uint8_t *pMappedAddress;
 	size_t bufferOffset;
 	size_t bufferSize;

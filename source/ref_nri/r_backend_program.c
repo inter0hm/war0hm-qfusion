@@ -1140,7 +1140,7 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 				GPU_VULKAN_BLOCK( ( &rsh.renderer ), ( {
 									  vkCmdBindPipeline( cmd->vk.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->vk.handle );
 							} ) );
-				RP_BindDescriptorSets( cmd, program, descriptors, descriptorIndex );
+				RP_BindDescriptorSets( &rsh.device, cmd, program, descriptors, descriptorIndex );
 
 				//rsh.nri.coreI.CmdSetPipelineLayout( cmd->cmd, program->layout );
 				FR_CmdDrawElements(cmd, 
@@ -1884,13 +1884,13 @@ void RB_RenderMeshGLSLProgrammed( struct frame_cmd_buffer_s *cmd, const shaderpa
 				.handle = Create_DescriptorHandle( "obj" ) 
 			};
 		
-
 			struct glsl_program_s *program = RP_ResolveProgram( GLSL_PROGRAM_TYPE_FOG, NULL, rb.currentShader->deformsKey, rb.currentShader->deforms, rb.currentShader->numdeforms, programFeatures );
 			struct pipeline_hash_s *pipeline = RP_ResolvePipeline( program, &cmd->state );
+			vkCmdBindPipeline( cmd->vk.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->vk.handle );
 
-			rsh.nri.coreI.CmdSetPipeline( cmd->cmd, pipeline->pipeline );
-			rsh.nri.coreI.CmdSetPipelineLayout( cmd->cmd, program->layout );
-			RP_BindDescriptorSets( cmd, program, descriptors, descriptorIndex );
+			//rsh.nri.coreI.CmdSetPipeline( cmd->cmd, pipeline->pipeline );
+			//rsh.nri.coreI.CmdSetPipelineLayout( cmd->cmd, program->layout );
+			RP_BindDescriptorSets( rsh.device, cmd, program, descriptors, descriptorIndex );
 			
 			FR_CmdDrawElements(cmd, 
 				cmd->drawElements.numElems,

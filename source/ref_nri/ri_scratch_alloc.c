@@ -20,6 +20,14 @@ struct RIBlockMem_s RIUniformScratchAllocHandler(struct RIDevice_s* device, stru
 						  vmaAllocateMemoryForBuffer( device->vk.vmaAllocator, mem.vk.buffer, &allocInfo, &mem.vk.allocator, &allocationInfo );
 						  vmaBindBufferMemory2( device->vk.vmaAllocator, mem.vk.allocator, 0, mem.vk.buffer, NULL );
 						  mem.pMappedAddress = allocationInfo.pMappedData;
+
+						  VkBufferViewCreateInfo createInfo = { VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO };
+						  createInfo.flags = (VkBufferViewCreateFlags)0;
+						  createInfo.buffer = mem.vk.buffer;
+						  createInfo.format = VK_FORMAT_UNDEFINED;
+						  createInfo.offset = 0;
+						  createInfo.range = scratch->blockSize;
+						  VK_WrapResult( vkCreateBufferView( device->vk.device, &createInfo, NULL, &mem.vk.blockView ) );
 					  } ) )
 	return mem;
 }
@@ -96,9 +104,7 @@ struct RIBufferScratchAllocReq_s  RIAllocBufferFromScratchAlloc( struct RIDevice
 	}
 
 	struct RIBufferScratchAllocReq_s req = { 0 };
-	GPU_VULKAN_BLOCK( device->renderer, ( { 
-	  req.vk.handle = pool->current.vk.buffer; 
-	} ) );
+	req.block = pool->current;
 	req.pMappedAddress = pool->current.pMappedAddress;
 	req.bufferOffset = pool->blockOffset;
 	req.bufferSize = reqSize;
