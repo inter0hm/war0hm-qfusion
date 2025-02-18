@@ -10,42 +10,41 @@ static uint32_t cookie = 0;
 VkResult RI_VK_InitImageView(struct RIDevice_s* dev,VkImageViewCreateInfo* info, struct RIDescriptor_s* desc) {
 	assert(dev->renderer->api == RI_DEVICE_API_VK);
 	desc->cookie = cookie++;
-	desc->vk.type = RI_DESCRIPTOR_BUFFER_VIEW;
-	desc->vk.image.handle = info->image; 
-	return vkCreateImageView( dev->vk.device, info, NULL, &desc->vk.image.view);
+	desc->vk.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+	return vkCreateImageView( dev->vk.device, info, NULL, &desc->vk.image.info.imageView);
 }
+
 VkResult RI_VK_InitSampler(struct RIDevice_s* dev, VkSamplerCreateInfo* info, struct RIDescriptor_s* desc) {
 	assert(dev->renderer->api == RI_DEVICE_API_VK);
 	desc->cookie = cookie++;
-	desc->vk.type = RI_DESCRIPTOR_SAMPLER;
+	desc->vk.type = VK_DESCRIPTOR_TYPE_SAMPLER;
 	return vkCreateSampler( dev->vk.device, info, NULL, &desc->vk.sampler.sampler);
-
 }
 #endif
 
 bool IsEmptyDescriptor( struct RIDevice_s *dev, struct RIDescriptor_s *desc )
 {
-	GPU_VULKAN_BLOCK( dev->renderer, ( { return desc->vk.type == RI_DESCRIPTOR_NONE; } ) );
+	//GPU_VULKAN_BLOCK( dev->renderer, ( { return desc->vk.type == RI_DESCRIPTOR_NONE; } ) );
 	return true;
 }
 
 void FreeRIDescriptor( struct RIDevice_s *dev, struct RIDescriptor_s *desc )
 {
 	GPU_VULKAN_BLOCK( dev->renderer, ( {
-						  switch( desc->vk.type ) {
-							  case RI_DESCRIPTOR_BUFFER_VIEW:
-								  break;
-							  case RI_DESCRIPTOR_IMAGE_VIEW:
-								  vkDestroyImageView( dev->vk.device, desc->vk.image.view, NULL );
-								  break;
-							  case RI_DESCRIPTOR_SAMPLER:
-								  vkDestroySampler( dev->vk.device, desc->vk.sampler.sampler, NULL );
-								  break;
-							  case RI_DESCRIPTOR_ACCELERATION_STRUCTURE:
-								  break;
-								default: 
-									break;
-						  }
+					    //switch( desc->vk.type ) {
+					  	//  case RI_DESCRIPTOR_BUFFER_VIEW:
+					  	//	  break;
+					  	//  case RI_DESCRIPTOR_IMAGE_VIEW:
+					  	//	  vkDestroyImageView( dev->vk.device, desc->vk.image.view, NULL );
+					  	//	  break;
+					  	//  case RI_DESCRIPTOR_SAMPLER:
+					  	//	  vkDestroySampler( dev->vk.device, desc->vk.sampler.sampler, NULL );
+					  	//	  break;
+					  	//	  // case RI_DESCRIPTOR_ACCELERATION_STRUCTURE:
+					  	//	  //   break;
+					  	//  default:
+					  	//	  break;
+					    //}
 					  } ) );
 	memset( desc, 0, sizeof( struct RIDescriptor_s ) );
 }

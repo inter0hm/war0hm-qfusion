@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // r_program.c - OpenGL Shading Language support
 
-#include "NRIDescs.h"
 #include "qtypes.h"
 #include "r_descriptor_pool.h"
 #include "r_local.h"
@@ -40,7 +39,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../../gameshared/q_arch.h"
 #include "qhash.h"
 #include "ri_conversion.h"
-#include "vulkan/vulkan_core.h"
 
 #define MAX_GLSL_PROGRAMS			1024
 #define GLSL_PROGRAMS_HASH_SIZE		256
@@ -238,22 +236,25 @@ static void RF_DeleteProgram( struct glsl_program_s *program )
 	if( program->deformsKey )
 		R_Free( program->deformsKey );
 
-	if(program->layout)
-		rsh.nri.coreI.DestroyPipelineLayout(program->layout);
+	//if(program->layout)
+	//	rsh.nri.coreI.DestroyPipelineLayout(program->layout);
 
-	for( size_t i = 0; i < PIPELINE_LAYOUT_HASH_SIZE; i++ ) {
-		if( program->pipelines[i].pipeline )
-			rsh.nri.coreI.DestroyPipeline( program->pipelines[i].pipeline );
-	}
+	GPU_VULKAN_BLOCK( ( &rsh.renderer ), ( {
+						  for( size_t i = 0; i < PIPELINE_LAYOUT_HASH_SIZE; i++ ) {
+							  if( program->pipelines[i].vk.handle)
+								 vkDestroyPipeline(rsh.device.vk.device, program->pipelines[i].vk.handle, NULL);
+						  }
+						  for( size_t i = 0; i < DESCRIPTOR_SET_MAX; i++ ) {
+							  if( program->programDescriptors[i].vk.setLayout)
+									vkDestroyDescriptorSetLayout(rsh.device.vk.device, program->programDescriptors[i].vk.setLayout, NULL);
+						  }
+					  } ) );
+
 	for( size_t i = 0; i < GLSL_STAGE_MAX; i++ ) {
 		if( program->shaderBin[i].bin)
 			R_Free(program->shaderBin[i].bin);
 	}
 
-	for( size_t i = 0; i < DESCRIPTOR_SET_MAX; i++ ) {
-		if( program->programDescriptors[i].alloc )
-			FreeDescriptorSetAlloc( &rsh.nri, program->programDescriptors[i].alloc );
-	}
 
 	hash_next = program->hash_next;
 	memset( program, 0, sizeof( struct glsl_program_s ) );

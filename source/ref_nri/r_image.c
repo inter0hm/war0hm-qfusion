@@ -78,7 +78,7 @@ static int defaultAnisotropicFilter = 0;
 static void __FreeImage(struct frame_cmd_buffer_s* cmd, struct image_s *image );
 static NriTextureUsageBits __R_NRITextureUsageBits(int flags);
 static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mipOffset, int x, int y, int w, int h, enum texture_format_e srcFormat, uint8_t *data );
-static enum texture_format_e __R_GetImageFormat( struct image_s* image );
+static enum RI_Format_e __R_GetImageFormat( struct image_s *image );
 static uint16_t __R_calculateMipMapLevel(int flags, int width, int height, uint32_t minMipSize);
 
 // image data is attached to the buffer
@@ -942,28 +942,22 @@ static struct image_s *__R_AllocImage( const struct QStrSpan name) {
 	return image;
 }
 
-static NriTextureUsageBits __R_NRITextureUsageBits(int flags) {
-	assert( ( flags & ( IT_FRAMEBUFFER | IT_DEPTHRB | IT_DEPTH ) ) == 0 );
-	return NriTextureUsageBits_SHADER_RESOURCE;
-}
-
-
-static enum texture_format_e __R_ResolveDataFormat( int flags, int samples )
+static enum RI_Format_e __R_ResolveDataFormat( int flags, int samples )
 {
 	assert((flags & (IT_FRAMEBUFFER | IT_DEPTHRB | IT_DEPTH)) == 0);
 	if( samples == 4 ) {
-		return R_FORMAT_RGBA8_UNORM;
+		return RI_FORMAT_RGBA8_UNORM;
 	} else if( samples == 3 ) {
-		return R_FORMAT_RGB8_UNORM;
+		return RI_FORMAT_RGB8_UNORM;
 	} else if( samples == 2 ) {
-		return R_FORMAT_RG8_UNORM;
+		return RI_FORMAT_RG8_UNORM;
 	} else if( flags & IT_ALPHAMASK ) {
-		return R_FORMAT_A8_UNORM;
+		return RI_FORMAT_A8_UNORM;
 	}
-	return R_FORMAT_R8_UNORM;
+	return RI_FORMAT_R8_UNORM;
 }
 
-static enum texture_format_e __R_GetImageFormat( struct image_s* image )
+static enum RI_Format_e __R_GetImageFormat( struct image_s* image )
 {
 	assert( ( image->flags & ( IT_FRAMEBUFFER | IT_DEPTHRB | IT_DEPTH ) ) == 0 );
 	return RI_FORMAT_RGBA8_UNORM;
@@ -971,65 +965,55 @@ static enum texture_format_e __R_GetImageFormat( struct image_s* image )
 
 static void __R_CopyTextureDataTexture(struct image_s* image, int layer, int mipOffset, int x, int y, int w, int h, enum texture_format_e srcFormat, uint8_t *data )
 {
-	const struct base_format_def_s *srcDef = R_BaseFormatDef( srcFormat );
-	const struct base_format_def_s *destDef = R_BaseFormatDef(__R_GetImageFormat(image));
-	
-	const size_t srcBlockSize = RT_BlockSize( srcDef);
-	const size_t destBlockSize = RT_BlockSize( destDef);
+	const struct RIFormatProps_s*srcDef = GetRIFormatProps( srcFormat );
+	const struct RIFormatProps_s*destDef = GetRIFormatProps(__R_GetImageFormat(image));
 
+	struct RITextureUploadDesc_s  uploadDesc = {};
+	uploadDesc.sliceNum = h; 
+	uploadDesc.rowPitch = w * destDef->blockWidth; 
+	uploadDesc.arrayOffset = layer;
+	uploadDesc.mipOffset = mipOffset; 
+	uploadDesc.x = x;
+	uploadDesc.y = y;
+	uploadDesc.width = w; 
+	uploadDesc.height = h;
+	uploadDesc.format = __R_GetImageFormat(image);
 
-	texture_upload_desc_t uploadDesc = { 
-		.sliceNum = h, 
-		.rowPitch = w * destBlockSize, 
-		.arrayOffset = layer, 
-		.mipOffset = mipOffset, 
-		.x = x,
-		.y = y,
-		.width = w, 
-		.height = h, 
-		.target = image->texture,
-		.after = (NriAccessLayoutStage){
-			.layout = NriLayout_SHADER_RESOURCE,
-			.access = NriAccessBits_SHADER_RESOURCE,
-			.stages = NriStageBits_FRAGMENT_SHADER 
-		} 
-	};
-
-	R_ResourceBeginCopyTexture( &uploadDesc );
+	R_ResourceBeginCopyTexture( &rsh.device, &rsh.riUploader, &uploadDesc );
 	for( size_t slice = 0; slice < uploadDesc.height; slice++ ) {
 		const size_t dstRowStart = uploadDesc.alignRowPitch * slice;
 		memset( &( (uint8_t *)uploadDesc.data )[dstRowStart], 255, uploadDesc.rowPitch );
 		for( size_t column = 0; column < uploadDesc.width; column++ ) {
 			switch( srcFormat ) {
 				case RI_FORMAT_L8_A8_UNORM: {
-					const uint8_t luminance = data[( uploadDesc.width * srcBlockSize * slice ) + ( column * srcBlockSize )];
-					const uint8_t alpha = data[( uploadDesc.width * srcBlockSize * slice ) + ( column * srcBlockSize ) + 1];
+					const uint8_t luminance = data[( uploadDesc.width * srcDef->blockWidth * slice ) + ( column * srcDef->blockHeight )];
+					const uint8_t alpha = data[( uploadDesc.width * srcDef->blockWidth * slice ) + ( column * srcDef->blockHeight ) + 1];
 					uint8_t color[4] = { luminance, luminance, luminance, alpha };
-					memcpy( &( (uint8_t *)uploadDesc.data )[dstRowStart + ( destBlockSize * column )], color, min( sizeof( color ), destBlockSize ) );
+					memcpy( &( (uint8_t *)uploadDesc.data )[dstRowStart + ( srcDef->blockHeight * column )], color, min( sizeof( color ), srcDef->blockWidth ) );
 					break;
 				}
-				case RI_FORMAT_A8_UNORM: 
+				case RI_FORMAT_A8_UNORM:
 				case RI_FORMAT_R8_UNORM: {
-					const uint8_t c1 = data[( uploadDesc.width * srcBlockSize * slice ) + ( column * srcBlockSize )];
+					const uint8_t c1 = data[( uploadDesc.width * srcDef->blockHeight * slice ) + ( column * srcDef->blockWidth )];
 					uint8_t color[4]; //= { c1, c1, c1, c1 };
-					if(image->flags & IT_ALPHAMASK) {
+					if( image->flags & IT_ALPHAMASK ) {
 						color[0] = color[1] = color[2] = 0.0f;
 						color[3] = c1;
 					} else {
 						color[0] = color[1] = color[2] = c1;
 						color[3] = 255;
 					}
-					memcpy( &( (uint8_t *)uploadDesc.data )[dstRowStart + ( destBlockSize * column )], color, min( 4, destBlockSize ) );
+					memcpy( &( (uint8_t *)uploadDesc.data )[dstRowStart + ( srcDef->blockWidth * column )], color, min( 4, srcDef->blockWidth ) );
 					break;
 				}
 				default:
-					memcpy( &( (uint8_t *)uploadDesc.data )[dstRowStart + ( destBlockSize * column )], &data[( uploadDesc.width * srcBlockSize * slice ) + ( column * srcBlockSize )],
-							min( srcBlockSize, destBlockSize ) );
+					memcpy( &( (uint8_t *)uploadDesc.data )[dstRowStart + ( srcDef->blockWidth * column )], &data[( uploadDesc.width * srcDef->blockWidth * slice ) + ( column * srcDef->blockWidth )],
+							min( srcDef->blockWidth, destDef->blockWidth ) );
 					break;
 			}
 		}
 	}
-	R_ResourceEndCopyTexture( &uploadDesc );
+	R_ResourceEndCopyTexture( &rsh.device, &rsh.riUploader, &uploadDesc );
 }
 
 static uint16_t __R_calculateMipMapLevel(int flags, int width, int height, uint32_t minMipSize) {
@@ -1068,11 +1052,10 @@ struct image_s *R_LoadImage( const char *name, uint8_t **pic, int width, int hei
 	image->samples = samples;
 	image->width = width;
 	image->height = height;
+	image->mipNum = __R_calculateMipMapLevel( flags, width, height, minmipsize );
 
-	const uint32_t mipSize = __R_calculateMipMapLevel( flags, width, height, minmipsize );
-
-	enum texture_format_e srcFormat = __R_ResolveDataFormat( flags, samples );
-	enum texture_format_e destFormat = __R_GetImageFormat( image );
+	enum RI_Format_e srcFormat = __R_ResolveDataFormat( flags, samples );
+	enum RI_Format_e destFormat = __R_GetImageFormat( image );
 
 	NriTextureDesc textureDesc = { .width = width,
 								   .height = height,
@@ -1296,7 +1279,7 @@ void R_ReplaceSubImage( image_t *image, int layer, int x, int y, uint8_t **pic, 
 void R_ReplaceImageLayer( image_t *image, int layer, uint8_t **pic )
 {
 	assert( image );
-	assert( image->texture );
+	//assert( image->texture );
 
 	const size_t reservedSize = image->width * image->height * image->samples;
 	uint8_t *buf = NULL;
@@ -1305,7 +1288,6 @@ void R_ReplaceImageLayer( image_t *image, int layer, uint8_t **pic )
 
 	// uint8_t *buf = tmpBuffer;
 	enum texture_format_e srcFormat = __R_ResolveDataFormat( image->flags, image->samples );
-	const NriTextureDesc* textureDesc = rsh.nri.coreI.GetTextureDesc(image->texture);
 
 	uint8_t *tmpBuffer = NULL;
 	if( !( image->flags & IT_CUBEMAP ) && ( image->flags & ( IT_FLIPX | IT_FLIPY | IT_FLIPDIAGONAL ) ) ) {
@@ -1317,8 +1299,8 @@ void R_ReplaceImageLayer( image_t *image, int layer, uint8_t **pic )
 	uint32_t w = image->width;
 	uint32_t h = image->height;
 	// R_ResourceTransitionTexture(image->texture,(NriAccessLayoutStage){} );
-	for( size_t i = 0; i < textureDesc->mipNum; i++ ) {
-		__R_CopyTextureDataTexture(image, layer, i, 0, 0, image->width, image->height, srcFormat, buf);
+	for( size_t i = 0; i < image->mipNum; i++ ) {
+		__R_CopyTextureDataTexture( image, layer, i, 0, 0, image->width, image->height, srcFormat, buf );
 		w >>= 1;
 		h >>= 1;
 		if( w == 0 ) {
@@ -1584,47 +1566,47 @@ image_t	*R_FindImage( const char *name, const char *suffix, int flags, int minmi
 			}
 	} ) );
 
-	NriTextureDesc textureDesc = { .width = uploads[0].buffer.width,
-								   .height = uploads[0].buffer.height,
-								   .usage = __R_NRITextureUsageBits( flags ),
-								   .layerNum = uploadCount,
-								   .depth = 1,
-								   .format = R_ToNRIFormat( destFormat ),
-								   .sampleNum = 1,
-								   .type = NriTextureType_TEXTURE_2D,
-								   .mipNum = mipSize };
-	if( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &image->texture ) != NriResult_SUCCESS ) {
-		ri.Com_Printf( S_COLOR_YELLOW "Failed to Create Image: %s\n", image->name.buf );
-		__FreeImage( R_ActiveFrameCmd(), image );
-		image = NULL;
-		goto done;
-  }
-  rsh.nri.coreI.SetTextureDebugName( image->texture, image->name.buf );
+	//NriTextureDesc textureDesc = { .width = uploads[0].buffer.width,
+	//							   .height = uploads[0].buffer.height,
+	//							   .usage = __R_NRITextureUsageBits( flags ),
+	//							   .layerNum = uploadCount,
+	//							   .depth = 1,
+	//							   .format = R_ToNRIFormat( destFormat ),
+	//							   .sampleNum = 1,
+	//							   .type = NriTextureType_TEXTURE_2D,
+	//							   .mipNum = mipSize };
+	//if( rsh.nri.coreI.CreateTexture( rsh.nri.device, &textureDesc, &image->texture ) != NriResult_SUCCESS ) {
+	//	ri.Com_Printf( S_COLOR_YELLOW "Failed to Create Image: %s\n", image->name.buf );
+	//	__FreeImage( R_ActiveFrameCmd(), image );
+	//	image = NULL;
+	//	goto done;
+  //}
+  //rsh.nri.coreI.SetTextureDebugName( image->texture, image->name.buf );
 
-  NriResourceGroupDesc resourceGroupDesc = {
-  	.textureNum = 1,
-  	.textures = &image->texture,
-  	.memoryLocation = NriMemoryLocation_DEVICE,
-  };
-  const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
-  assert( numAllocations <= Q_ARRAY_COUNT( image->memory ) );
-  image->numAllocations = numAllocations;
-  if( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, image->memory ) ) {
-  	ri.Com_Printf( S_COLOR_YELLOW "Failed Allocation: %s\n", image->name.buf );
-  	__FreeImage(R_ActiveFrameCmd(), image );
-  	image = NULL;
-  	goto done;
-  }
-	NriTexture2DViewDesc textureViewDesc = {
-		.texture = image->texture,
-		.viewType = (flags & IT_CUBEMAP) ?  NriTexture2DViewType_SHADER_RESOURCE_CUBE : NriTexture2DViewType_SHADER_RESOURCE_2D,
-		.format = textureDesc.format
-	};
-	NriDescriptor* descriptor = NULL;
-	NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &descriptor) );
-	image->descriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
-	image->samplerDescriptor = R_CreateDescriptorWrapper(&rsh.nri, R_ResolveSamplerDescriptor(image->flags)); 
-	assert(image->samplerDescriptor.descriptor);
+  //NriResourceGroupDesc resourceGroupDesc = {
+  //	.textureNum = 1,
+  //	.textures = &image->texture,
+  //	.memoryLocation = NriMemoryLocation_DEVICE,
+  //};
+  //const size_t numAllocations = rsh.nri.helperI.CalculateAllocationNumber( rsh.nri.device, &resourceGroupDesc );
+  //assert( numAllocations <= Q_ARRAY_COUNT( image->memory ) );
+  //image->numAllocations = numAllocations;
+  //if( rsh.nri.helperI.AllocateAndBindMemory( rsh.nri.device, &resourceGroupDesc, image->memory ) ) {
+  //	ri.Com_Printf( S_COLOR_YELLOW "Failed Allocation: %s\n", image->name.buf );
+  //	__FreeImage(R_ActiveFrameCmd(), image );
+  //	image = NULL;
+  //	goto done;
+  //}
+	//NriTexture2DViewDesc textureViewDesc = {
+	//	.texture = image->texture,
+	//	.viewType = (flags & IT_CUBEMAP) ?  NriTexture2DViewType_SHADER_RESOURCE_CUBE : NriTexture2DViewType_SHADER_RESOURCE_2D,
+	//	.format = textureDesc.format
+	//};
+	//NriDescriptor* descriptor = NULL;
+	//NRI_ABORT_ON_FAILURE( rsh.nri.coreI.CreateTexture2DView( &textureViewDesc, &descriptor) );
+	//
+	//image->descriptor = R_CreateDescriptorWrapper( &rsh.nri, descriptor );
+	image->samplerBinding = R_ResolveSamplerDescriptor(image->flags); 
 
 	struct texture_buf_s transformBuffer = { 0 };
 	for( size_t index = 0; index < uploadCount; index++ ) {

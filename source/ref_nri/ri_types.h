@@ -5,7 +5,6 @@
 #include "../gameshared/q_arch.h"
 #include "math/qmath.h"
 #include "qtypes.h"
-#include "vulkan/vulkan_core.h"
 
 #define RI_MAX_SWAPCHAIN_IMAGES 8
 #define RI_NUMBER_FRAMES_FLIGHT 3
@@ -324,13 +323,6 @@ struct RIBufferHandle_s {
 	};
 };
 
-enum RIDescriptorType_e {
-	RI_DESCRIPTOR_NONE,
-	RI_DESCRIPTOR_BUFFER_VIEW,
-	RI_DESCRIPTOR_IMAGE_VIEW,
-	RI_DESCRIPTOR_SAMPLER,
-};
-
 struct RIViewport_s {
     float x;
     float y;
@@ -350,11 +342,14 @@ struct RIDescriptor_s {
 			VkDescriptorType type;
 			union {
 				struct {
-					struct VkDescriptorBufferInfo info;
+					struct VkDescriptorImageInfo info;
 				} image;
 				struct {
 					struct VkDescriptorBufferInfo info;
 				} buffer;
+				struct {
+					VkSampler sampler;
+				} sampler;
 			};
 		} vk;
 #endif

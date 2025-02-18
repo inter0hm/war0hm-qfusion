@@ -19,7 +19,6 @@ struct RIBlockMem_s {
 	uint8_t* pMappedAddress;
 };
 
-
 struct RIScratchAlloc_s;
 typedef struct RIBlockMem_s ( *RIAllocBlock_Func)(struct RIDevice_s* device, struct RIScratchAlloc_s* scratch);
 

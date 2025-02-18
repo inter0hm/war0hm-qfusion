@@ -334,14 +334,15 @@ typedef struct
 			struct {
 				uint64_t frameCnt;
 				sds path;
-				NriMemory *memory;
-				NriBuffer *buffer;
+				void *memory; //TODO: fix
+				void *buffer; //TODO: fix
 				struct texture_buf_desc_s textureBuferDesc;
 			} single;
 		};
 	} screenshot;
 
 	struct RISwapchain_s riSwapchain;
+	struct RIResourceUploader_s riUploader;
 
 	struct shadow_fb_s shadowFBs[NUMBER_FRAMES_FLIGHT][MAX_SHADOWGROUPS];	
 	struct portal_fb_s portalFBs[MAX_PORTAL_TEXTURES];
@@ -351,9 +352,9 @@ typedef struct
  	struct RIRenderer_s renderer;
  	struct RIDevice_s device;
 
- 	NriCommandQueue* cmdQueue;
- 	NriSwapChain* swapchain;
-	NriFence* frameFence;
+ 	//NriCommandQueue* cmdQueue;
+ 	//NriSwapChain* swapchain;
+	//NriFence* frameFence;
 	struct frame_tex_buffers_s* backBuffers;
 	struct frame_cmd_buffer_s primaryCmd;
 	

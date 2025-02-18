@@ -1,7 +1,6 @@
 #ifndef R_FRAME_CMD_BUFFER_H
 #define R_FRAME_CMD_BUFFER_H
 
-#include "NRIDescs.h"
 #include "r_nri.h"
 #include "r_resource.h"
 #include "r_vattribs.h"
@@ -23,11 +22,6 @@ typedef struct mesh_vbo_s mesh_vbo_t;
 typedef struct mfog_s mfog_t;
 typedef struct entity_s entity_t;
 typedef struct shader_s shader_t;
-
-struct frame_cmd_vertex_input_s {
-	NriBuffer *buffer;
-	uint64_t offset;
-};
 
 enum CmdStateResetBits {
   STATE_RESET_VERTEX_ATTACHMENT

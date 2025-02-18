@@ -18,7 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "NRIDescs.h"
 #include "r_frame_cmd_buffer.h"
 #include "r_graphics.h"
 #include "r_image.h"
@@ -63,37 +62,37 @@ static void __R_InitVolatileAssets( void )
 }
 
 static void __ShutdownSwapchainTexture() {
-	if(rsh.swapchain) {
-		for( size_t i = 0; i < arrlen( rsh.backBuffers ); i++ ) {
-			struct frame_tex_buffers_s *backBuffer = &rsh.backBuffers[i];
-			assert( backBuffer->colorAttachment );
-			assert( backBuffer->colorTexture );
-			assert( backBuffer->depthAttachment );
-			assert( backBuffer->depthTexture );
+	//if(rsh.swapchain) {
+	//	for( size_t i = 0; i < arrlen( rsh.backBuffers ); i++ ) {
+	//		struct frame_tex_buffers_s *backBuffer = &rsh.backBuffers[i];
+	//		assert( backBuffer->colorAttachment );
+	//		assert( backBuffer->colorTexture );
+	//		assert( backBuffer->depthAttachment );
+	//		assert( backBuffer->depthTexture );
 
-		 // for( size_t pogoIdx = 0; pogoIdx < Q_ARRAY_COUNT( rsh.backBuffers->pogoBuffers ); pogoIdx++ ) {
-		 // 	rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].colorAttachment );
-		 // 	rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].shaderDescriptor.descriptor );
-		 // 	rsh.nri.coreI.DestroyTexture( backBuffer->pogoBuffers[pogoIdx].colorTexture );
-		 // }
-		 // rsh.nri.coreI.DestroyDescriptor( backBuffer->colorAttachment );
-		 // rsh.nri.coreI.DestroyDescriptor( backBuffer->depthAttachment );
-		 // rsh.nri.coreI.DestroyTexture( backBuffer->depthTexture );
+	//	 // for( size_t pogoIdx = 0; pogoIdx < Q_ARRAY_COUNT( rsh.backBuffers->pogoBuffers ); pogoIdx++ ) {
+	//	 // 	rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].colorAttachment );
+	//	 // 	rsh.nri.coreI.DestroyDescriptor( backBuffer->pogoBuffers[pogoIdx].shaderDescriptor.descriptor );
+	//	 // 	rsh.nri.coreI.DestroyTexture( backBuffer->pogoBuffers[pogoIdx].colorTexture );
+	//	 // }
+	//	 // rsh.nri.coreI.DestroyDescriptor( backBuffer->colorAttachment );
+	//	 // rsh.nri.coreI.DestroyDescriptor( backBuffer->depthAttachment );
+	//	 // rsh.nri.coreI.DestroyTexture( backBuffer->depthTexture );
 
-			for( size_t mIdx = 0; mIdx < backBuffer->memoryLen; mIdx++ ) {
-				assert( backBuffer->memory[mIdx] );
-				rsh.nri.coreI.FreeMemory( backBuffer->memory[mIdx] );
-			}
-		}
-		rsh.nri.swapChainI.DestroySwapChain( rsh.swapchain );
-		arrfree(rsh.backBuffers);
-	}
-	if(rsh.frameFence) {
-		rsh.nri.coreI.DestroyFence(rsh.frameFence);
-	}
-	rsh.frameFence = NULL;
-	rsh.frameSetCount = 0;
-	rsh.swapchain = NULL;
+	//		for( size_t mIdx = 0; mIdx < backBuffer->memoryLen; mIdx++ ) {
+	//			assert( backBuffer->memory[mIdx] );
+	//			rsh.nri.coreI.FreeMemory( backBuffer->memory[mIdx] );
+	//		}
+	//	}
+	//	rsh.nri.swapChainI.DestroySwapChain( rsh.swapchain );
+	//	arrfree(rsh.backBuffers);
+	//}
+	//if(rsh.frameFence) {
+	//	rsh.nri.coreI.DestroyFence(rsh.frameFence);
+	//}
+	//rsh.frameFence = NULL;
+	//rsh.frameSetCount = 0;
+	//rsh.swapchain = NULL;
 }
 
 rserr_t RF_Init( const char *applicationName, const char *screenshotPrefix, int startupColor,

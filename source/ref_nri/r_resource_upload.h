@@ -22,24 +22,38 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define R_RESOURCE_UPLOAD_H
 
 #include "../gameshared/q_shared.h"
-#include "r_nri.h"
+#include "ri_format.h"
+#include "ri_types.h"
+
+#define RI_RESOURCE_UPLOADER_SET_SIZE (5)
 
 
 static const uint32_t SizeOfStageBufferByte = 8 * MB_TO_BYTE;
-static const NriAccessLayoutStage ResourceUploadTexturePostAccess = { 
-	.layout = NriLayout_COPY_DESTINATION, 
-	.access = NriAccessBits_COPY_DESTINATION, 
-	.stages = NriStageBits_COPY 
-};
-static const NriAccessStage ResourceUploadBufferPostAccess = { 
-	.access = NriLayout_COPY_DESTINATION, 
-	.stages = NriStageBits_COPY 
-};
+//static const NriAccessLayoutStage ResourceUploadTexturePostAccess = { 
+//	.layout = NriLayout_COPY_DESTINATION, 
+//	.access = NriAccessBits_COPY_DESTINATION, 
+//	.stages = NriStageBits_COPY 
+//};
+//static const NriAccessStage ResourceUploadBufferPostAccess = { 
+//	.access = NriLayout_COPY_DESTINATION, 
+//	.stages = NriStageBits_COPY 
+//};
 
-typedef struct {
-	NriBuffer *target;
-	NriAccessStage before;
-	NriAccessStage after; 
+struct RIBufferUploadDesc_s {
+	//NriBuffer *target;
+	//NriAccessStage before;
+	//NriAccessStage after; 
+		union {
+#if ( DEVICE_IMPL_VULKAN )
+			struct {
+				VkBuffer target;
+
+				// the backing stage buffer
+				VkBuffer stage;
+				size_t stageOffset;
+			} vk;
+#endif
+		};
 
 	size_t numBytes;
 	size_t byteOffset;
@@ -47,26 +61,40 @@ typedef struct {
 	// begin mapping
 	void *data;
 
-	struct {
-		NriBuffer *backing;
-		size_t byteOffset;
-	} internal;
-} buffer_upload_desc_t;
+//		union {
+//#if ( DEVICE_IMPL_VULKAN )
+//			struct {
+//				VkBuffer src;
+//				struct VmaAllocation_T *allocator;
+//			} vk;
+//#endif
+//		} internal;
 
-typedef struct {
-	NriTexture *target;
-	NriAccessLayoutStage before;
-	NriAccessLayoutStage after;
+	//struct {
+	//	NriBuffer *backing;
+	//	size_t byteOffset;
+	//} internal;
+};
+//buffer_upload_desc_t;
+
+struct RITextureUploadDesc_s {
+	//NriTexture *target;
+	//NriAccessLayoutStage before;
+	//NriAccessLayoutStage after;
 
 	union {
 #if ( DEVICE_IMPL_VULKAN )
 		struct {
-			VkImage image;
-    	struct VmaAllocation_T* vmaAlloc;
+			VkImage target;
+
+			VkBuffer stage;
+			size_t stageOffset;
 		} vk;
 #endif
 
 	};
+
+	enum RI_Format_e format;
 
 	// https://github.com/microsoft/DirectXTex/wiki/Image
 	uint32_t sliceNum;
@@ -77,6 +105,7 @@ typedef struct {
 	uint16_t z;
 	uint32_t width;
 	uint32_t height;
+	uint32_t depth;
 
 	uint32_t arrayOffset;
 	uint32_t mipOffset;
@@ -85,28 +114,80 @@ typedef struct {
 	void *data;
 	uint32_t alignRowPitch;
 	uint32_t alignSlicePitch;
+};
+//texture_upload_desc_t;
 
+struct RIResourceTempAlloc_s{
+		union {
+#if ( DEVICE_IMPL_VULKAN )
+			struct {
+				VkBufferView blockView;
+				VkBuffer buffer;
+				struct VmaAllocation_T *allocator;
+			} vk;
+#endif
+		};
+};
+
+struct RIResourceUploader_s {
+	// stage buffer
 	struct {
-		NriBuffer *backing;
-		uint64_t byteOffset;
-	} internal;
+		union {
+#if ( DEVICE_IMPL_VULKAN )
+			struct {
+				VkBufferView blockView;
+				VkBuffer buffer;
+				struct VmaAllocation_T *allocator;
+			} vk;
+#endif
+		};
+		uint8_t *pMappedAddress;
 
-} texture_upload_desc_t;
+		size_t tailOffset;
+		size_t remaningSpace;
+	} stage;
 
-void R_InitResourceUpload();
-void R_ExitResourceUpload();
+
+	union {
+#if ( DEVICE_IMPL_VULKAN )
+		struct {
+			VkSemaphore sem;
+		} vk;
+#endif
+	};
+
+	uint32_t cmdSetCount;
+	struct RIQueue_s* queue;
+	struct {
+		size_t reservedStageMemory;
+		struct RIResourceTempAlloc_s* temporary;
+		union {
+#if ( DEVICE_IMPL_VULKAN )
+			struct {
+				VkCommandPool pool;
+				VkCommandBuffer cmd;
+			} vk;
+#endif
+		};
+	} cmdSets[RI_RESOURCE_UPLOADER_SET_SIZE];
+};
+
+void RI_InitResourceUploader(struct RIDevice_s* device, struct RIResourceUploader_s* uploader );
+void RI_ExitResourceUpload(struct RIResourceUploader_s* uploader);
+
+//void R_InitResourceUpload();
 
 // buffer upload
 // NriAccessStage R_ResourceTransitionBuffer( NriBuffer *buffer, NriAccessStage currentAccessAndLayout );
-void R_ResourceBeginCopyBuffer( buffer_upload_desc_t *action );
-void R_ResourceEndCopyBuffer( buffer_upload_desc_t *action );
+void R_ResourceBeginCopyBuffer( struct RIDevice_s *device, struct RIResourceUploader_s *uploader, struct RIBufferUploadDesc_s  *action );
+void R_ResourceEndCopyBuffer( struct RIDevice_s *device, struct RIResourceUploader_s *uploader, struct RIBufferUploadDesc_s *action );
 
 // texture upload
 // void R_ResourceTransitionTexture( NriTexture *texture, NriAccessLayoutStage currentAccessAndLayout );
-void R_ResourceBeginCopyTexture( texture_upload_desc_t *desc );
-void R_ResourceEndCopyTexture( texture_upload_desc_t *desc );
-void R_ResourceSubmit();
+void R_ResourceBeginCopyTexture( struct RIDevice_s *device, struct RIResourceUploader_s *uploader, struct RITextureUploadDesc_s *desc );
+void R_ResourceEndCopyTexture( struct RIDevice_s *device, struct RIResourceUploader_s *uploader, struct RITextureUploadDesc_s *desc );
+void RI_ResourceSubmit( struct RIDevice_s *device, struct RIResourceUploader_s *uploader );
 
-void R_FlushTransitionBarrier( NriCommandBuffer *cmd );
+void R_FlushTransitionBarrier( struct RIDevice_s *device, struct RIResourceUploader_s *uploader );
 
 #endif

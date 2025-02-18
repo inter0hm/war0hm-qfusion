@@ -82,14 +82,9 @@ typedef struct image_s
     } vk;
     #endif
 	};
+	uint8_t mipNum;
 	struct RIDescriptor_s binding;
 	struct RIDescriptor_s* samplerBinding;
-
-	struct nri_descriptor_s descriptor;
-	struct nri_descriptor_s samplerDescriptor;
-	NriTexture* texture;
-	size_t numAllocations;
-	NriMemory* memory[4];
 
 	struct QStr name;// game path, not including extension 
 	int				registrationSequence;
@@ -106,8 +101,6 @@ typedef struct image_s
 	int tags;			   // usage tags of the image
 	struct image_s *next, *prev;
 } image_t;
-
-
 
 void R_InitImages( void );
 void R_TouchImage( image_t *image, int tags );
