@@ -5184,6 +5184,7 @@ static CURLcode create_conn(struct SessionHandle *data,
     result = parse_proxy(data, conn, proxy);
 
     free(proxy); /* parse_proxy copies the proxy string */
+    proxy = NULL; /* Set the freed pointer to NULL */
 
     if(result)
       return result;
@@ -5223,7 +5224,6 @@ static CURLcode create_conn(struct SessionHandle *data,
    *************************************************************/
   result = setup_connection_internals(conn);
   if(result != CURLE_OK) {
-    Curl_safefree(proxy);
     return result;
   }
 
@@ -5360,6 +5360,7 @@ static CURLcode create_conn(struct SessionHandle *data,
                                 handle in a multi stack may nick it */
     reuse_conn(conn, conn_temp);
     free(conn);          /* we don't need this anymore */
+    conn = NULL;
     conn = conn_temp;
     *in_connect = conn;
 
@@ -5415,7 +5416,6 @@ static CURLcode create_conn(struct SessionHandle *data,
       infof(data, "No connections available.\n");
 
       conn_free(conn);
-      *in_connect = NULL;
 
       return CURLE_NO_CONNECTION_AVAILABLE;
     }
