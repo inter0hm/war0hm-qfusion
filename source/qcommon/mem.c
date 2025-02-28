@@ -969,7 +969,7 @@ void Mem_ValidationAllAllocations() {
 		}
 	}
 	if(memTrackCount != stats.memTrackCount) 
-		Com_Printf("[!] number of tracked units is mismatched table is corrupted (found: %d expected: %d)", memTrackCount, stats.memTrackCount);
+		Com_Printf("[!] number of tracked units is mismatched table is corrupted (found: %u expected: %d)", memTrackCount, stats.memTrackCount);
 
 	assert(memTrackCount == stats.memTrackCount);
 	if (numberErrors > 0)
