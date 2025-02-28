@@ -19,6 +19,8 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 #include "../../SDL_internal.h"
+#include <errno.h>
+#include <limits.h>
 
 #if SDL_VIDEO_DRIVER_DIRECTFB
 
@@ -204,11 +206,17 @@ DirectFB_DeviceInformation(IDirectFB * dfb)
 static int readBoolEnv(const char *env_name, int def_val)
 {
     char *stemp;
+    char *endptr;
+    long val;
 
     stemp = SDL_getenv(env_name);
-    if (stemp)
-        return atoi(stemp);
-    else
+    if (stemp) {
+        errno = 0;
+        val = strtol(stemp, &endptr, 10);
+        if (errno == ERANGE || val > INT_MAX || val < INT_MIN || *endptr != '\0')
+            return def_val;
+        return (int)val;
+    } else
         return def_val;
 }
 
