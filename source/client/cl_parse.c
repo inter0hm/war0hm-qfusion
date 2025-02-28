@@ -974,7 +974,7 @@ void CL_ParseServerMessage( msg_t *msg )
 
 	if( cl_shownet->integer == 1 )
 	{
-		Com_Printf( "%i ", msg->cursize );
+		Com_Printf( "%lu ", msg->cursize );
 	}
 	else if( cl_shownet->integer >= 2 )
 	{
