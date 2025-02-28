@@ -1,4 +1,6 @@
 # ___WARFORK___ 
+An attempt to fix numerous public CVE from libs, so we do not break our compliance or put user at risk by hosting a WF server.
+The current state of WF do not comply with our security standard
 
 [![Build](https://github.com/TeamForbiddenLLC/warfork-qfusion/actions/workflows/build.yml/badge.svg)](https://github.com/TeamForbiddenLLC/warfork-qfusion/actions/workflows/build.yml)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/3b7508c80bab41cc833ae6c79a9260ba)](https://www.codacy.com/gh/TeamForbiddenLLC/warfork-qfusion/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=TeamForbiddenLLC/warfork-qfusion&amp;utm_campaign=Badge_Grade)
